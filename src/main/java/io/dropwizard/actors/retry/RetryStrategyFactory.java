@@ -1,7 +1,7 @@
-package io.dropwizard.actors.connectivity.retry;
+package io.dropwizard.actors.retry;
 
-import io.dropwizard.actors.connectivity.retry.config.*;
-import io.dropwizard.actors.connectivity.retry.impl.*;
+import io.dropwizard.actors.retry.config.*;
+import io.dropwizard.actors.retry.impl.*;
 
 /**
  * Creates strategy based on config

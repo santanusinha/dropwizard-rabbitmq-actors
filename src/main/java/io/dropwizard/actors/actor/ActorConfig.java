@@ -1,7 +1,7 @@
-package io.dropwizard.actors.connectivity.actor;
+package io.dropwizard.actors.actor;
 
-import io.dropwizard.actors.connectivity.retry.config.NoRetryConfig;
-import io.dropwizard.actors.connectivity.retry.config.RetryConfig;
+import io.dropwizard.actors.retry.config.NoRetryConfig;
+import io.dropwizard.actors.retry.config.RetryConfig;
 import lombok.*;
 import org.hibernate.validator.constraints.NotEmpty;
 

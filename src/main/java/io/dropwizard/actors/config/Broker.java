@@ -1,4 +1,4 @@
-package io.dropwizard.actors.connectivity.config;
+package io.dropwizard.actors.config;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,6 +1,6 @@
-package io.dropwizard.actors.connectivity.retry.config;
+package io.dropwizard.actors.retry.config;
 
-import io.dropwizard.actors.connectivity.retry.RetryType;
+import io.dropwizard.actors.retry.RetryType;
 import io.dropwizard.util.Duration;
 import lombok.Builder;
 import lombok.Data;
@@ -18,10 +18,11 @@ import javax.validation.constraints.NotNull;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class CountLimitedExponentialWaitRetryConfig extends RetryConfig {
+public class TimeLimitedExponentialWaitRetryConfig extends RetryConfig {
 
-    @Min(1)
-    private int maxAttempts = 1;
+    @NotNull
+    @Valid
+    private Duration maxTime = Duration.seconds(30);
 
     @NotNull
     @Valid
@@ -31,14 +32,14 @@ public class CountLimitedExponentialWaitRetryConfig extends RetryConfig {
     @Max(Long.MAX_VALUE)
     private long multipier = 1;
 
-    public CountLimitedExponentialWaitRetryConfig() {
-        super(RetryType.COUNT_LIMITED_EXPONENTIAL_BACKOFF);
+    public TimeLimitedExponentialWaitRetryConfig() {
+        super(RetryType.TIME_LIMITED_EXPONENTIAL_BACKOFF);
     }
 
     @Builder
-    public CountLimitedExponentialWaitRetryConfig(int maxAttempts, Duration maxTimeBetweenRetries, long multipier) {
+    public TimeLimitedExponentialWaitRetryConfig(Duration maxTime, Duration maxTimeBetweenRetries, long multipier) {
         this();
-        this.maxAttempts = maxAttempts;
+        this.maxTime = maxTime;
         this.maxTimeBetweenRetries = maxTimeBetweenRetries;
         this.multipier = multipier;
     }

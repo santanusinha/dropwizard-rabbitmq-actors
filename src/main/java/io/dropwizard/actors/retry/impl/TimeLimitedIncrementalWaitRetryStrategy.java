@@ -1,11 +1,11 @@
-package io.dropwizard.actors.connectivity.retry.impl;
+package io.dropwizard.actors.retry.impl;
 
 import com.github.rholder.retry.BlockStrategies;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
-import io.dropwizard.actors.connectivity.retry.RetryStrategy;
-import io.dropwizard.actors.connectivity.retry.config.TimeLimitedIncrementalWaitRetryConfig;
+import io.dropwizard.actors.retry.RetryStrategy;
+import io.dropwizard.actors.retry.config.TimeLimitedIncrementalWaitRetryConfig;
 
 import java.util.concurrent.TimeUnit;
 

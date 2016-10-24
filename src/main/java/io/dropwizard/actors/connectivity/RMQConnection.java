@@ -1,11 +1,13 @@
 package io.dropwizard.actors.connectivity;
 
+import com.codahale.metrics.health.HealthCheck;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.Address;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import io.dropwizard.actors.connectivity.config.RMQConfig;
+import io.dropwizard.actors.config.RMQConfig;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -20,9 +22,10 @@ import java.util.stream.Collectors;
 public class RMQConnection implements Managed {
     @Getter
     private final RMQConfig config;
+    @VisibleForTesting
+    @Getter
     private Connection connection;
     private Channel channel;
-    private static String QUEUE_PREFIX="promotions." ;
 
     public RMQConnection(RMQConfig config) {
         this.config = config;
@@ -46,20 +49,32 @@ public class RMQConnection implements Managed {
                 .map(broker -> new Address(broker.getHost()/*, broker.getPort()*/))
                 .collect(Collectors.toList());
 
-        connection = factory.newConnection(Executors.newFixedThreadPool(config.getThreadPoolSize())
-                ,addresses.toArray(new Address[addresses.size()]));
+        connection = factory.newConnection(Executors.newFixedThreadPool(config.getThreadPoolSize()),
+                                addresses.toArray(new Address[addresses.size()]));
         channel = connection.createChannel();
     }
 
-    private<T extends Enum<T>> String deriveQueueName(T type, boolean sideline) {
-        return QUEUE_PREFIX + (sideline ? getSideline(type.name()) : type.name());
+    public void ensure(final String queueName,
+                       final String exchange) throws Exception {
+        ensure(queueName, queueName, exchange, rmqOpts());
     }
 
-    public void ensure(final String queueName, String exchange,Map<String, Object> rmqOpts) throws Exception {
+    public void ensure(final String queueName,
+                       final String exchange,
+                       final Map<String, Object> rmqOpts) throws Exception {
         ensure(queueName, queueName, exchange, rmqOpts);    
     }
-    
-    public void ensure(final String queueName, final String routingQueue, String exchange,Map<String, Object> rmqOpts) throws Exception {
+
+    public void ensure(final String queueName,
+                       final String routingQueue,
+                       final String exchange) throws Exception {
+        ensure(queueName, routingQueue, exchange, rmqOpts());
+    }
+
+    public void ensure(final String queueName,
+                       final String routingQueue,
+                       final String exchange,
+                       final Map<String, Object> rmqOpts) throws Exception {
         channel.queueDeclare(queueName, true, false, false, rmqOpts);
         channel.queueBind(queueName, exchange, routingQueue);
         log.info("Created queue: {}", queueName);
@@ -80,9 +95,39 @@ public class RMQConnection implements Managed {
                 .build();
     }
 
+    public HealthCheck healthcheck() {
+        return new HealthCheck() {
+            @Override
+            protected Result check() throws Exception {
+                if (connection == null) {
+                    log.warn("RMQ Htalthcheck::No RMQ connection available");
+                    return Result.unhealthy("No RMQ connection available");
+                }
+                if (!connection.isOpen()) {
+                    log.warn("RMQ Htalthcheck::RMQ connection is not open");
+                    return Result.unhealthy("RMQ connection is not open");
+                }
+                if(null == channel) {
+                    log.warn("RMQ Htalthcheck::Producer channel is down");
+                    return Result.unhealthy("Producer channel is down");
+                }
+                if(!channel.isOpen()) {
+                    log.warn("RMQ Htalthcheck::Producer channel is closed");
+                    return Result.unhealthy("Producer channel is closed");
+                }
+                return Result.healthy();
+            }
+        };
+    }
+
     @Override
     public void stop() throws Exception {
-
+        if(null != channel && channel.isOpen()) {
+            channel.close();
+        }
+        if(null != connection && connection.isOpen()) {
+            connection.close();
+        }
     }
 
     public Channel channel() throws IOException {

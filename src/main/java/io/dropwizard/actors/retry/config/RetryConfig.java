@@ -1,7 +1,7 @@
-package io.dropwizard.actors.connectivity.retry.config;
+package io.dropwizard.actors.retry.config;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.dropwizard.actors.connectivity.retry.RetryType;
+import io.dropwizard.actors.retry.RetryType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;

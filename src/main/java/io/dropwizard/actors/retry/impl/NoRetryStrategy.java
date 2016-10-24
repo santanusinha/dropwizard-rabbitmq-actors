@@ -1,9 +1,9 @@
-package io.dropwizard.actors.connectivity.retry.impl;
+package io.dropwizard.actors.retry.impl;
 
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
-import io.dropwizard.actors.connectivity.retry.RetryStrategy;
-import io.dropwizard.actors.connectivity.retry.config.NoRetryConfig;
+import io.dropwizard.actors.retry.RetryStrategy;
+import io.dropwizard.actors.retry.config.NoRetryConfig;
 
 /**
  * No retries

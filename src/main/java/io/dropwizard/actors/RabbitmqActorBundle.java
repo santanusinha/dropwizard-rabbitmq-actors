@@ -1,16 +1,19 @@
 package io.dropwizard.actors;
 
+import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.actors.connectivity.RMQConnection;
-import io.dropwizard.actors.connectivity.config.RMQConfig;
+import io.dropwizard.actors.config.RMQConfig;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
- * Created by santanu on 13/10/16.
+ * A bundle to add RMQ actors
  */
-public abstract class RabbitmqActorBundle<T extends RabbitmqActorBundleConfiguration> implements ConfiguredBundle<T> {
+@Slf4j
+public abstract class RabbitmqActorBundle<T extends Configuration> implements ConfiguredBundle<T> {
 
     @Getter
     private RMQConnection connection;
@@ -20,13 +23,15 @@ public abstract class RabbitmqActorBundle<T extends RabbitmqActorBundleConfigura
 
     @Override
     public void run(T t, Environment environment) throws Exception {
-        RMQConfig config = t.getRabbitmq();
-        connection = new RMQConnection(config);
+        connection = new RMQConnection(getConfig(t));
         environment.lifecycle().manage(connection);
+        environment.healthChecks().register("rabbitmq-actors", connection.healthcheck());
     }
 
     @Override
     public void initialize(Bootstrap<?> bootstrap) {
 
     }
+
+    protected abstract RMQConfig getConfig(T t);
 }

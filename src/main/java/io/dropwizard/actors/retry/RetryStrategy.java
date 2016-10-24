@@ -1,4 +1,4 @@
-package io.dropwizard.actors.connectivity.retry;
+package io.dropwizard.actors.retry;
 
 import com.github.rholder.retry.Retryer;
 

@@ -1,6 +1,6 @@
-package io.dropwizard.actors.connectivity.retry.config;
+package io.dropwizard.actors.retry.config;
 
-import io.dropwizard.actors.connectivity.retry.RetryType;
+import io.dropwizard.actors.retry.RetryType;
 
 /**
  * No retry will be done

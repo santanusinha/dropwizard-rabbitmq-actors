@@ -1,12 +1,12 @@
-package io.dropwizard.actors.connectivity.actor;
+package io.dropwizard.actors.actor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.rabbitmq.client.*;
 import io.dropwizard.actors.connectivity.RMQConnection;
-import io.dropwizard.actors.connectivity.retry.RetryStrategy;
-import io.dropwizard.actors.connectivity.retry.RetryStrategyFactory;
+import io.dropwizard.actors.retry.RetryStrategy;
+import io.dropwizard.actors.retry.RetryStrategyFactory;
 import io.dropwizard.lifecycle.Managed;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,7 @@ import java.util.Set;
 @EqualsAndHashCode
 @ToString
 @Slf4j
-public abstract class Actor<MessageType  extends Enum<MessageType>, Message> implements Managed {
+public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> implements Managed {
 
     private final MessageType type;
     private final ActorConfig config;
@@ -143,16 +143,16 @@ public abstract class Actor<MessageType  extends Enum<MessageType>, Message> imp
         ensureExchange(dlx);
 
         this.publishChannel = connection.newChannel();
-        connection.ensure(queueName + "_SIDELINE", queueName, dlx, connection.rmqOpts());
+        connection.ensure(queueName + "_SIDELINE", queueName, dlx);
         connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx));
-        for(int i = 0; i < config.getConcurrency(); i++) {
+        for(int i = 1; i <= config.getConcurrency(); i++) {
             Channel consumeChannel = connection.newChannel();
             final Handler handler = new Handler(consumeChannel,
                     mapper, clazz, droppedExceptionTypes, prefetchCount, this);
             final String tag = consumeChannel.basicConsume(queueName, false, handler);
             handler.setTag(tag);
             handlers.add(handler);
-            log.info("Started consumer of type {}: {}", type.name(), i);
+            log.info("Started consumer {} of type {}", i, type.name());
         }
 
     }

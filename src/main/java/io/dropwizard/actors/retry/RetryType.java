@@ -1,4 +1,4 @@
-package io.dropwizard.actors.connectivity.retry;
+package io.dropwizard.actors.retry;
 
 /**
  * Created by santanu on 14/10/16.

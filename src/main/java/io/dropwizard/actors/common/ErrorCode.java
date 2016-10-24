@@ -1,4 +1,4 @@
-package io.dropwizard.actors.connectivity.common;
+package io.dropwizard.actors.common;
 
 /**
  * Error codes
