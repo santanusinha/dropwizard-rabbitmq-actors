@@ -12,13 +12,13 @@ import lombok.ToString;
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(name = "PAYMENT_WALLET_TO_WALLET", value = CountLimitedExponentialWaitRetryConfig.class),
-        @JsonSubTypes.Type(name = "PAYMENT_WALLET_TO_WALLET", value = CountLimitedFixedWaitRetryConfig.class),
-        @JsonSubTypes.Type(name = "PAYMENT_WALLET_TO_WALLET", value = CountLimitedIncrementalWaitRetryConfig.class),
-        @JsonSubTypes.Type(name = "PAYMENT_WALLET_TO_WALLET", value = NoRetryConfig.class),
-        @JsonSubTypes.Type(name = "PAYMENT_WALLET_TO_WALLET", value = TimeLimitedExponentialWaitRetryConfig.class),
-        @JsonSubTypes.Type(name = "PAYMENT_WALLET_TO_WALLET", value = TimeLimitedFixedWaitRetryConfig.class),
-        @JsonSubTypes.Type(name = "PAYMENT_WALLET_TO_WALLET", value = TimeLimitedIncrementalWaitRetryConfig.class)
+        @JsonSubTypes.Type(name = "COUNT_LIMITED_EXPONENTIAL_BACKOFF", value = CountLimitedExponentialWaitRetryConfig.class),
+        @JsonSubTypes.Type(name = "COUNT_LIMITED_FIXED_WAIT", value = CountLimitedFixedWaitRetryConfig.class),
+        @JsonSubTypes.Type(name = "COUNT_LIMITED_INCREMENTAL_WAIT", value = CountLimitedIncrementalWaitRetryConfig.class),
+        @JsonSubTypes.Type(name = "NO_RETRY", value = NoRetryConfig.class),
+        @JsonSubTypes.Type(name = "TIME_LIMITED_EXPONENTIAL_BACKOFF", value = TimeLimitedExponentialWaitRetryConfig.class),
+        @JsonSubTypes.Type(name = "TIME_LIMITED_FIXED_WAIT", value = TimeLimitedFixedWaitRetryConfig.class),
+        @JsonSubTypes.Type(name = "TIME_LIMITED_INCREMENTAL_WAIT", value = TimeLimitedIncrementalWaitRetryConfig.class)
 })
 @Data
 @EqualsAndHashCode
