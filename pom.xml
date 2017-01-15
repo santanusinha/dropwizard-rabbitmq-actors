@@ -6,7 +6,7 @@
 
     <groupId>io.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.5-SNAPSHOT</version>
     <distributionManagement>
         <repository>
             <id>clojars</id>
@@ -49,8 +49,8 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dropwizard.version>1.0.0</dropwizard.version>
-        <lombok.version>1.16.10</lombok.version>
+        <dropwizard.version>1.0.5</dropwizard.version>
+        <lombok.version>1.16.12</lombok.version>
         <guava.version>19.0</guava.version>
         <junit.version>4.12</junit.version>
         <ranger.version>0.2.1</ranger.version>
@@ -83,7 +83,7 @@
         <dependency>
             <groupId>com.rabbitmq</groupId>
             <artifactId>amqp-client</artifactId>
-            <version>3.6.5</version>
+            <version>4.0.1</version>
             <scope>provided</scope>
         </dependency>
 
