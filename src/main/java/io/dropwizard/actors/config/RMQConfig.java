@@ -48,7 +48,14 @@ public class RMQConfig {
     /**
      * Enable SSL for connectivity. TODO:: Give proper cert based support
      */
-    private boolean sslEnabled = false;
-    
-    
+    private boolean secure;
+
+    private String certStorePath;
+
+    private String certPassword;
+
+    private String serverCertStorePath;
+
+    private String serverCertPassword;
+
 }

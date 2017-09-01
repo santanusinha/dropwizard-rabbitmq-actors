@@ -2,6 +2,8 @@ package io.dropwizard.actors.connectivity;
 
 import com.codahale.metrics.health.HealthCheck;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.Address;
 import com.rabbitmq.client.Channel;
@@ -11,8 +13,13 @@ import io.dropwizard.actors.config.RMQConfig;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.ssl.SSLContexts;
 
+import javax.net.ssl.SSLContext;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.KeyStore;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -35,10 +42,31 @@ public class RMQConnection implements Managed {
     @Override
     public void start() throws Exception {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setUsername(config.getUserName());
-        factory.setPassword(config.getPassword());
-        if(config.isSslEnabled()) {
-            factory.useSslProtocol();
+        if(config.isSecure()) {
+            factory.setUsername(config.getUserName());
+            factory.setPassword(config.getPassword());
+            if(Strings.isNullOrEmpty(config.getCertStorePath())) {
+                factory.useSslProtocol();
+            }
+            else {
+                Preconditions.checkNotNull(config.getCertPassword(), "Cert password is required if cert file path has been provided");
+                KeyStore ks = KeyStore.getInstance("JKS");
+                ks.load(new FileInputStream(config.getCertStorePath()), config.getCertPassword().toCharArray());
+
+                KeyStore tks = KeyStore.getInstance("JKS");
+                tks.load(new FileInputStream(config.getServerCertStorePath()), config.getServerCertPassword().toCharArray());
+                SSLContext c = SSLContexts.custom()
+                        .useProtocol("TLSv1.2")
+                        .loadTrustMaterial(tks, new TrustSelfSignedStrategy())
+                        .loadKeyMaterial(ks, config.getCertPassword().toCharArray(), (aliases, socket) -> "clientcert")
+                        .build();
+                factory.useSslProtocol(c);
+                factory.setVirtualHost(config.getUserName());
+            }
+        }
+        else {
+            factory.setUsername(config.getUserName());
+            factory.setPassword(config.getPassword());
         }
         factory.setAutomaticRecoveryEnabled(true);
         factory.setTopologyRecoveryEnabled(true);
