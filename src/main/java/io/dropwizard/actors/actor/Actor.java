@@ -114,8 +114,26 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
 
     }
 
+    public final void publishWithTtl(Message message, long delayMilliseconds) throws Exception {
+        log.info("Publishing message to ttl queue with queue:{} delay:{}", queueName, delayMilliseconds);
+        if (!config.isTtlEnabled()) {
+            log.warn("Publishing ttl message to non-ttl based queue queue:{}", queueName);
+        }
+
+        publishChannel.basicPublish(ttlExchange(config),
+                ttlQueue(queueName),
+                new AMQP.BasicProperties.Builder()
+                        .headers(Collections.singletonMap("x-message-ttl", delayMilliseconds))
+                        .deliveryMode(2)
+                        .build(),
+                mapper().writeValueAsBytes(message));
+    }
+
     public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
         log.info("Publishing message to exchange with delay: {}", delayMilliseconds);
+        if (!config.isDelayed()) {
+            log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
+        }
         publish(message, new AMQP.BasicProperties.Builder()
                 .headers(Collections.singletonMap("x-delay", delayMilliseconds))
                 .deliveryMode(2)
@@ -145,7 +163,11 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
         this.publishChannel = connection.newChannel();
         connection.ensure(queueName + "_SIDELINE", queueName, dlx);
         connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx));
-        for(int i = 1; i <= config.getConcurrency(); i++) {
+        if (config.isTtlEnabled()) {
+            ensureExchange(ttlExchange(config));
+            connection.ensure(ttlQueue(queueName), ttlExchange(config), connection.rmqOpts(exchange));
+        }
+        for (int i = 1; i <= config.getConcurrency(); i++) {
             Channel consumeChannel = connection.newChannel();
             final Handler handler = new Handler(consumeChannel,
                     mapper, clazz, droppedExceptionTypes, prefetchCount, this);
@@ -180,6 +202,14 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
                         .put("ha-mode", "all")
                         .put("x-delayed-type", "direct")
                         .build());
+    }
+
+    private String ttlExchange(ActorConfig actorConfig) {
+        return String.format("%s_TTL", actorConfig.getExchange());
+    }
+
+    private String ttlQueue(String queueName) {
+        return String.format("%s_TTL", queueName);
     }
 
     @Override
