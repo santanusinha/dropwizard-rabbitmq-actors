@@ -114,30 +114,26 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
 
     }
 
-    public final void publishWithTtl(Message message, long delayMilliseconds) throws Exception {
-        log.info("Publishing message to ttl queue with queue:{} delay:{}", queueName, delayMilliseconds);
-        if (!config.isTtlEnabled()) {
-            log.warn("Publishing ttl message to non-ttl based queue queue:{}", queueName);
-        }
-
-        publishChannel.basicPublish(ttlExchange(config),
-                ttlQueue(queueName),
-                new AMQP.BasicProperties.Builder()
-                        .headers(Collections.singletonMap("x-message-ttl", delayMilliseconds))
-                        .deliveryMode(2)
-                        .build(),
-                mapper().writeValueAsBytes(message));
-    }
-
     public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
         log.info("Publishing message to exchange with delay: {}", delayMilliseconds);
         if (!config.isDelayed()) {
             log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
         }
-        publish(message, new AMQP.BasicProperties.Builder()
-                .headers(Collections.singletonMap("x-delay", delayMilliseconds))
-                .deliveryMode(2)
-                .build());
+
+        if (config.getDelayType() == DelayType.TTL) {
+            publishChannel.basicPublish(ttlExchange(config),
+                    ttlQueue(queueName),
+                    new AMQP.BasicProperties.Builder()
+                            .headers(Collections.singletonMap("x-message-ttl", delayMilliseconds))
+                            .deliveryMode(2)
+                            .build(),
+                    mapper().writeValueAsBytes(message));
+        } else {
+            publish(message, new AMQP.BasicProperties.Builder()
+                    .headers(Collections.singletonMap("x-delay", delayMilliseconds))
+                    .deliveryMode(2)
+                    .build());
+        }
     }
 
     public final void publish(Message message) throws Exception {
@@ -163,8 +159,7 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
         this.publishChannel = connection.newChannel();
         connection.ensure(queueName + "_SIDELINE", queueName, dlx);
         connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx));
-        if (config.isTtlEnabled()) {
-            ensureExchange(ttlExchange(config));
+        if (config.getDelayType() == DelayType.TTL) {
             connection.ensure(ttlQueue(queueName), ttlExchange(config), connection.rmqOpts(exchange));
         }
         for (int i = 1; i <= config.getConcurrency(); i++) {
@@ -192,16 +187,20 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
     }
 
     private void ensureDelayedExchange(String exchange) throws IOException {
-        connection.channel().exchangeDeclare(
-                exchange,
-                "x-delayed-message",
-                true,
-                false,
-                ImmutableMap.<String, Object>builder()
-                        .put("x-ha-policy", "all")
-                        .put("ha-mode", "all")
-                        .put("x-delayed-type", "direct")
-                        .build());
+        if (config.getDelayType() == DelayType.TTL){
+            ensureExchange(ttlExchange(config));
+        } else {
+            connection.channel().exchangeDeclare(
+                    exchange,
+                    "x-delayed-message",
+                    true,
+                    false,
+                    ImmutableMap.<String, Object>builder()
+                            .put("x-ha-policy", "all")
+                            .put("ha-mode", "all")
+                            .put("x-delayed-type", "direct")
+                            .build());
+        }
     }
 
     private String ttlExchange(ActorConfig actorConfig) {

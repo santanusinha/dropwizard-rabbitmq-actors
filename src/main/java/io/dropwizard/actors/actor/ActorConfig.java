@@ -26,7 +26,7 @@ public class ActorConfig {
 
     private boolean delayed = false;
 
-    private boolean ttlEnabled = false;
+    private DelayType delayType = DelayType.DELAYED;
 
     @NotNull
     @NotEmpty
