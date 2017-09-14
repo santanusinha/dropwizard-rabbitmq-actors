@@ -122,7 +122,7 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
 
         if (config.getDelayType() == DelayType.TTL) {
             publishChannel.basicPublish(ttlExchange(config),
-                    ttlQueue(queueName),
+                    queueName,
                     new AMQP.BasicProperties.Builder()
                             .headers(Collections.singletonMap("x-message-ttl", delayMilliseconds))
                             .deliveryMode(2)
@@ -160,7 +160,7 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
         connection.ensure(queueName + "_SIDELINE", queueName, dlx);
         connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx));
         if (config.getDelayType() == DelayType.TTL) {
-            connection.ensure(ttlQueue(queueName), ttlExchange(config), connection.rmqOpts(exchange));
+            connection.ensure(ttlQueue(queueName), queueName, ttlExchange(config), connection.rmqOpts(exchange));
         }
         for (int i = 1; i <= config.getConcurrency(); i++) {
             Channel consumeChannel = connection.newChannel();
