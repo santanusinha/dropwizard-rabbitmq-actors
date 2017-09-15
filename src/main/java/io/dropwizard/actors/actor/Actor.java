@@ -124,7 +124,7 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
             publishChannel.basicPublish(ttlExchange(config),
                     queueName,
                     new AMQP.BasicProperties.Builder()
-                            .headers(Collections.singletonMap("x-message-ttl", delayMilliseconds))
+                            .expiration(String.valueOf(delayMilliseconds))
                             .deliveryMode(2)
                             .build(),
                     mapper().writeValueAsBytes(message));
