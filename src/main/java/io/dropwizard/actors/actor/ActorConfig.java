@@ -26,6 +26,8 @@ public class ActorConfig {
 
     private boolean delayed = false;
 
+    private DelayType delayType = DelayType.DELAYED;
+
     @NotNull
     @NotEmpty
     private String prefix = "payments.actors";
