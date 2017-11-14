@@ -6,18 +6,7 @@
 
     <groupId>io.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors</artifactId>
-    <version>1.1.4-1-SNAPSHOT</version>
-    <distributionManagement>
-        <repository>
-            <id>phonepe-releases</id>
-            <url>http://artifactory.phonepe.com/content/repositories/releases</url>
-        </repository>
-        <snapshotRepository>
-            <id>phonepe-snapshots</id>
-            <url>http://artifactory.phonepe.com/content/repositories/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
-
+    <version>1.1.4-2-SNAPSHOT</version>
 
     <scm>
         <connection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</connection>
