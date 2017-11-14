@@ -60,6 +60,11 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
 
     abstract protected boolean handle(Message message) throws Exception;
 
+    protected boolean isExceptionIgnorable(Throwable t) {
+        return droppedExceptionTypes
+                .stream()
+                .anyMatch(exceptionType -> ClassUtils.isAssignable(t.getClass(), exceptionType));
+    }
 
     private class Handler extends DefaultConsumer {
         private final ObjectMapper mapper;
@@ -100,9 +105,7 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
                 }
             } catch (Throwable t) {
                 log.error("Error processing message...", t);
-                if (droppedExceptionTypes
-                        .stream()
-                        .anyMatch(exceptionType -> ClassUtils.isAssignable(t.getClass(), exceptionType))) {
+                if (isExceptionIgnorable(t)) {
                     log.warn("Acked message due to exception: ", t);
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
                 }
