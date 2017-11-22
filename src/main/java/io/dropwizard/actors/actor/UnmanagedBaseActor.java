@@ -39,7 +39,7 @@ public class UnmanagedBaseActor<Message> implements Managed {
     private Channel publishChannel;
     private List<Handler> handlers = Lists.newArrayList();
 
-    protected UnmanagedBaseActor(
+    public UnmanagedBaseActor(
             String name,
             ActorConfig config,
             RMQConnection connection,
@@ -58,6 +58,36 @@ public class UnmanagedBaseActor<Message> implements Managed {
         this.errorCheckFunction = errorCheckFunction;
         this.queueName  = String.format("%s.%s", config.getPrefix(), name);
         this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());
+    }
+
+    public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
+        log.info("Publishing message to exchange with delay: {}", delayMilliseconds);
+        if (!config.isDelayed()) {
+            log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
+        }
+
+        if (config.getDelayType() == DelayType.TTL) {
+            publishChannel.basicPublish(ttlExchange(config),
+                    queueName,
+                    new AMQP.BasicProperties.Builder()
+                            .expiration(String.valueOf(delayMilliseconds))
+                            .deliveryMode(2)
+                            .build(),
+                    mapper().writeValueAsBytes(message));
+        } else {
+            publish(message, new AMQP.BasicProperties.Builder()
+                    .headers(Collections.singletonMap("x-delay", delayMilliseconds))
+                    .deliveryMode(2)
+                    .build());
+        }
+    }
+
+    public final void publish(Message message) throws Exception {
+        publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
+    }
+
+    public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
+        publishChannel.basicPublish(config.getExchange(), queueName, properties, mapper().writeValueAsBytes(message));
     }
 
     private boolean handle(Message message) throws Exception {
@@ -107,36 +137,6 @@ public class UnmanagedBaseActor<Message> implements Managed {
             }
         }
 
-    }
-
-    public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
-        log.info("Publishing message to exchange with delay: {}", delayMilliseconds);
-        if (!config.isDelayed()) {
-            log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
-        }
-
-        if (config.getDelayType() == DelayType.TTL) {
-            publishChannel.basicPublish(ttlExchange(config),
-                    queueName,
-                    new AMQP.BasicProperties.Builder()
-                            .expiration(String.valueOf(delayMilliseconds))
-                            .deliveryMode(2)
-                            .build(),
-                    mapper().writeValueAsBytes(message));
-        } else {
-            publish(message, new AMQP.BasicProperties.Builder()
-                    .headers(Collections.singletonMap("x-delay", delayMilliseconds))
-                    .deliveryMode(2)
-                    .build());
-        }
-    }
-
-    public final void publish(Message message) throws Exception {
-        publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
-    }
-
-    public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
-        publishChannel.basicPublish(config.getExchange(), queueName, properties, mapper().writeValueAsBytes(message));
     }
 
     @Override
