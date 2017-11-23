@@ -30,7 +30,7 @@ public class ActorConfig {
 
     @NotNull
     @NotEmpty
-    private String prefix = "payments.actors";
+    private String prefix = "actors";
 
     @Min(1)
     @Max(100)
