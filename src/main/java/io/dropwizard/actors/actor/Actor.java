@@ -61,9 +61,9 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
     abstract protected boolean handle(Message message) throws Exception;
 
     protected boolean isExceptionIgnorable(Throwable t) {
-        return droppedExceptionTypes
-                .stream()
-                .anyMatch(exceptionType -> ClassUtils.isAssignable(t.getClass(), exceptionType));
+        return droppedExceptionTypes != null && !droppedExceptionTypes.isEmpty()
+                && droppedExceptionTypes.stream()
+                                        .anyMatch(exceptionType -> ClassUtils.isAssignable(t.getClass(), exceptionType));
     }
 
     private class Handler extends DefaultConsumer {
