@@ -16,9 +16,9 @@ import java.util.concurrent.TimeUnit;
 public class CountLimitedFixedWaitRetryStrategy extends RetryStrategy {
     public CountLimitedFixedWaitRetryStrategy(CountLimitedFixedWaitRetryConfig config) {
         super(RetryerBuilder.<Boolean>newBuilder()
-                .retryIfException(exception -> CommonUtils.isEmpty(config.getRetriableExceptions())
-                        || (null != exception
-                        && config.getRetriableExceptions().contains(exception.getClass().getSimpleName())))                .withStopStrategy(StopStrategies.stopAfterAttempt(config.getMaxAttempts()))
+                .retryIfException(exception -> CommonUtils.isRetriable(config.getRetriableExceptions(),
+                        exception))
+                .withStopStrategy(StopStrategies.stopAfterAttempt(config.getMaxAttempts()))
                 .withBlockStrategy(BlockStrategies.threadSleepStrategy())
                 .withWaitStrategy(
                         WaitStrategies.fixedWait(config.getWaitTime().toMilliseconds(), TimeUnit.MILLISECONDS))

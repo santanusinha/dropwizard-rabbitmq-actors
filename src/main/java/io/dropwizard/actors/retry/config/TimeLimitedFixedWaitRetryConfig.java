@@ -32,8 +32,7 @@ public class TimeLimitedFixedWaitRetryConfig extends RetryConfig {
     }
 
     @Builder
-    public TimeLimitedFixedWaitRetryConfig(Duration maxTime, Duration waitTime,
-                                           Set<String> retriableExceptions) {
+    public TimeLimitedFixedWaitRetryConfig(Duration maxTime, Duration waitTime, Set<String> retriableExceptions) {
         super(RetryType.TIME_LIMITED_FIXED_WAIT, retriableExceptions);
         this.maxTime = maxTime;
         this.waitTime = waitTime;

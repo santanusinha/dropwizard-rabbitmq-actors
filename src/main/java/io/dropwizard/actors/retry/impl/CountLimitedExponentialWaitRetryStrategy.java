@@ -16,9 +16,8 @@ import java.util.concurrent.TimeUnit;
 public class CountLimitedExponentialWaitRetryStrategy extends RetryStrategy {
     public CountLimitedExponentialWaitRetryStrategy(CountLimitedExponentialWaitRetryConfig config) {
         super(RetryerBuilder.<Boolean>newBuilder()
-                .retryIfException(exception -> CommonUtils.isEmpty(config.getRetriableExceptions())
-                        || (null != exception
-                        && config.getRetriableExceptions().contains(exception.getClass().getSimpleName())))
+                .retryIfException(exception -> CommonUtils.isRetriable(config.getRetriableExceptions(),
+                        exception))
                 .withStopStrategy(StopStrategies.stopAfterAttempt(config.getMaxAttempts()))
                 .withBlockStrategy(BlockStrategies.threadSleepStrategy())
                 .withWaitStrategy(

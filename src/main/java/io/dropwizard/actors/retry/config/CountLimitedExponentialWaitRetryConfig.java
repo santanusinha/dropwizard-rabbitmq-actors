@@ -37,8 +37,7 @@ public class CountLimitedExponentialWaitRetryConfig extends RetryConfig {
     }
 
     @Builder
-    public CountLimitedExponentialWaitRetryConfig(int maxAttempts, Duration maxTimeBetweenRetries, long multipier,
-                                                  Set<String> retriableExceptions) {
+    public CountLimitedExponentialWaitRetryConfig(int maxAttempts, Duration maxTimeBetweenRetries, long multipier, Set<String> retriableExceptions) {
         super(RetryType.COUNT_LIMITED_EXPONENTIAL_BACKOFF, retriableExceptions);
         this.maxAttempts = maxAttempts;
         this.maxTimeBetweenRetries = maxTimeBetweenRetries;

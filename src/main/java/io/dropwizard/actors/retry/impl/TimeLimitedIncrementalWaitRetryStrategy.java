@@ -16,9 +16,8 @@ import java.util.concurrent.TimeUnit;
 public class TimeLimitedIncrementalWaitRetryStrategy extends RetryStrategy {
     public TimeLimitedIncrementalWaitRetryStrategy(TimeLimitedIncrementalWaitRetryConfig config) {
         super(RetryerBuilder.<Boolean>newBuilder()
-                .retryIfException(exception -> CommonUtils.isEmpty(config.getRetriableExceptions())
-                        || (null != exception
-                        && config.getRetriableExceptions().contains(exception.getClass().getSimpleName())))
+                .retryIfException(exception -> CommonUtils.isRetriable(config.getRetriableExceptions(),
+                        exception))
                 .withStopStrategy(
                         StopStrategies.stopAfterDelay(config.getMaxTime().toMilliseconds(), TimeUnit.MILLISECONDS))
                 .withBlockStrategy(BlockStrategies.threadSleepStrategy())
