@@ -52,7 +52,8 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
         this.connection = connection;
         this.mapper = mapper;
         this.clazz = clazz;
-        this.droppedExceptionTypes = droppedExceptionTypes;
+        this.droppedExceptionTypes = null == droppedExceptionTypes
+                ? Collections.emptySet() : droppedExceptionTypes;
         this.prefetchCount = config.getPrefetchCount();
         this.queueName  = String.format("%s.%s", config.getPrefix(), type.name());
         this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());

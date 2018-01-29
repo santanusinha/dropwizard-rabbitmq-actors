@@ -10,6 +10,7 @@ import lombok.ToString;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
+import java.util.Set;
 
 /**
  * No retry will be done
@@ -31,8 +32,8 @@ public class CountLimitedFixedWaitRetryConfig extends RetryConfig {
     }
 
     @Builder
-    public CountLimitedFixedWaitRetryConfig(int maxAttempts, Duration waitTime) {
-        this();
+    public CountLimitedFixedWaitRetryConfig(int maxAttempts, Duration waitTime, Set<String> retriableExceptions) {
+        super(RetryType.COUNT_LIMITED_FIXED_WAIT, retriableExceptions);
         this.maxAttempts = maxAttempts;
         this.waitTime = waitTime;
     }
