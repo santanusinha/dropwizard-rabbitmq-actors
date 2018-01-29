@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
+import java.util.Set;
+
 /**
  * Configure a retry strategy
  */
@@ -26,7 +28,15 @@ import lombok.ToString;
 public abstract class RetryConfig {
     private final RetryType type;
 
+    private Set<String> retriableExceptions;
+
     protected RetryConfig(RetryType type) {
         this.type = type;
+    }
+
+    protected RetryConfig(RetryType type,
+                          Set<String> retriableExceptions) {
+        this.type = type;
+        this.retriableExceptions = retriableExceptions;
     }
 }

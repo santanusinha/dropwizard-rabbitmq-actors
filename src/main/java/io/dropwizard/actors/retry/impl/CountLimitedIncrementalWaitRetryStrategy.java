@@ -6,6 +6,7 @@ import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import io.dropwizard.actors.retry.RetryStrategy;
 import io.dropwizard.actors.retry.config.CountLimitedIncrementalWaitRetryConfig;
+import io.dropwizard.actors.utils.CommonUtils;
 
 import java.util.concurrent.TimeUnit;
 
@@ -15,7 +16,9 @@ import java.util.concurrent.TimeUnit;
 public class CountLimitedIncrementalWaitRetryStrategy extends RetryStrategy {
     public CountLimitedIncrementalWaitRetryStrategy(CountLimitedIncrementalWaitRetryConfig config) {
         super(RetryerBuilder.<Boolean>newBuilder()
-                .retryIfException()
+                .retryIfException(exception -> CommonUtils.isEmpty(config.getRetriableExceptions())
+                        || (null != exception
+                        && config.getRetriableExceptions().contains(exception.getClass().getSimpleName())))
                 .withStopStrategy(StopStrategies.stopAfterAttempt(config.getMaxAttempts()))
                 .withBlockStrategy(BlockStrategies.threadSleepStrategy())
                 .withWaitStrategy(

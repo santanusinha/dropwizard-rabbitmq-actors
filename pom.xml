@@ -6,7 +6,7 @@
 
     <groupId>io.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors</artifactId>
-    <version>1.1.4-2-SNAPSHOT</version>
+    <version>1.1.4-3-SNAPSHOT</version>
 
     <scm>
         <connection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</connection>
