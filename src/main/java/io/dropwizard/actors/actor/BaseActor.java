@@ -12,6 +12,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ClassUtils;
 
+import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -34,7 +35,9 @@ public abstract class BaseActor<Message> implements Managed {
             RetryStrategyFactory retryStrategyFactory,
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
-        this.droppedExceptionTypes = droppedExceptionTypes;
+        this.droppedExceptionTypes
+                = null == droppedExceptionTypes
+                    ? Collections.emptySet() : droppedExceptionTypes;
         actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory, clazz, this::handle, this::isExceptionIgnorable);
     }
 
