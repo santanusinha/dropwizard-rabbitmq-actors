@@ -52,7 +52,8 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
         this.connection = connection;
         this.mapper = mapper;
         this.clazz = clazz;
-        this.droppedExceptionTypes = droppedExceptionTypes;
+        this.droppedExceptionTypes = null == droppedExceptionTypes
+                ? Collections.emptySet() : droppedExceptionTypes;
         this.prefetchCount = config.getPrefetchCount();
         this.queueName  = String.format("%s.%s", config.getPrefix(), type.name());
         this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());
@@ -60,6 +61,11 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
 
     abstract protected boolean handle(Message message) throws Exception;
 
+    protected boolean isExceptionIgnorable(Throwable t) {
+        return droppedExceptionTypes
+                .stream()
+                .anyMatch(exceptionType -> ClassUtils.isAssignable(t.getClass(), exceptionType));
+    }
 
     private class Handler extends DefaultConsumer {
         private final ObjectMapper mapper;
@@ -100,9 +106,7 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
                 }
             } catch (Throwable t) {
                 log.error("Error processing message...", t);
-                if (droppedExceptionTypes
-                        .stream()
-                        .anyMatch(exceptionType -> ClassUtils.isAssignable(t.getClass(), exceptionType))) {
+                if (isExceptionIgnorable(t)) {
                     log.warn("Acked message due to exception: ", t);
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
                 }
@@ -116,10 +120,24 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
 
     public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
         log.info("Publishing message to exchange with delay: {}", delayMilliseconds);
-        publish(message, new AMQP.BasicProperties.Builder()
-                .headers(Collections.singletonMap("x-delay", delayMilliseconds))
-                .deliveryMode(2)
-                .build());
+        if (!config.isDelayed()) {
+            log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
+        }
+
+        if (config.getDelayType() == DelayType.TTL) {
+            publishChannel.basicPublish(ttlExchange(config),
+                    queueName,
+                    new AMQP.BasicProperties.Builder()
+                            .expiration(String.valueOf(delayMilliseconds))
+                            .deliveryMode(2)
+                            .build(),
+                    mapper().writeValueAsBytes(message));
+        } else {
+            publish(message, new AMQP.BasicProperties.Builder()
+                    .headers(Collections.singletonMap("x-delay", delayMilliseconds))
+                    .deliveryMode(2)
+                    .build());
+        }
     }
 
     public final void publish(Message message) throws Exception {
@@ -145,7 +163,10 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
         this.publishChannel = connection.newChannel();
         connection.ensure(queueName + "_SIDELINE", queueName, dlx);
         connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx));
-        for(int i = 1; i <= config.getConcurrency(); i++) {
+        if (config.getDelayType() == DelayType.TTL) {
+            connection.ensure(ttlQueue(queueName), queueName, ttlExchange(config), connection.rmqOpts(exchange));
+        }
+        for (int i = 1; i <= config.getConcurrency(); i++) {
             Channel consumeChannel = connection.newChannel();
             final Handler handler = new Handler(consumeChannel,
                     mapper, clazz, droppedExceptionTypes, prefetchCount, this);
@@ -170,16 +191,28 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> im
     }
 
     private void ensureDelayedExchange(String exchange) throws IOException {
-        connection.channel().exchangeDeclare(
-                exchange,
-                "x-delayed-message",
-                true,
-                false,
-                ImmutableMap.<String, Object>builder()
-                        .put("x-ha-policy", "all")
-                        .put("ha-mode", "all")
-                        .put("x-delayed-type", "direct")
-                        .build());
+        if (config.getDelayType() == DelayType.TTL){
+            ensureExchange(ttlExchange(config));
+        } else {
+            connection.channel().exchangeDeclare(
+                    exchange,
+                    "x-delayed-message",
+                    true,
+                    false,
+                    ImmutableMap.<String, Object>builder()
+                            .put("x-ha-policy", "all")
+                            .put("ha-mode", "all")
+                            .put("x-delayed-type", "direct")
+                            .build());
+        }
+    }
+
+    private String ttlExchange(ActorConfig actorConfig) {
+        return String.format("%s_TTL", actorConfig.getExchange());
+    }
+
+    private String ttlQueue(String queueName) {
+        return String.format("%s_TTL", queueName);
     }
 
     @Override
