@@ -6,8 +6,7 @@
 
     <groupId>io.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors</artifactId>
-    <version>1.1.4-4-SNAPSHOT</version>
-
+    <version>1.2.2-1-SNAPSHOT</version>
     <scm>
         <connection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</connection>
         <developerConnection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</developerConnection>
@@ -50,7 +49,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dropwizard.version>1.1.4</dropwizard.version>
+        <dropwizard.version>1.2.2</dropwizard.version>
         <lombok.version>1.16.18</lombok.version>
         <guava.version>23.0</guava.version>
         <junit.version>4.12</junit.version>
@@ -133,18 +132,6 @@
                         <totalLineRate>70</totalLineRate>
                         <packageLineRate>70</packageLineRate>
                         <packageBranchRate>70</packageBranchRate>
-                        <!--<regexes>
-                            <regex>
-                                <pattern>com.example.reallyimportant.*</pattern>
-                                <branchRate>90</branchRate>
-                                <lineRate>80</lineRate>
-                            </regex>
-                            <regex>
-                                <pattern>com.example.boringcode.*</pattern>
-                                <branchRate>40</branchRate>
-                                <lineRate>30</lineRate>
-                            </regex>
-                        </regexes>-->
                     </check>
                 </configuration>
                 <executions>
@@ -152,6 +139,27 @@
                         <goals>
                             <goal>clean</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.0.0-M2</version>
+                <executions>
+                    <execution>
+                        <id>enforce-no-snapshots</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireReleaseDeps>
+                                    <message>No Snapshots Allowed!</message>
+                                </requireReleaseDeps>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
