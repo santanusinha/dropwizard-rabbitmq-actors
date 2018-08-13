@@ -16,7 +16,7 @@ import java.util.Collections;
 import java.util.Set;
 
 /**
- * Actor to be taken
+ * This is a managed wrapper for {@link UnmanagedBaseActor} this is managed and therefore started by D/W.
  */
 @Data
 @EqualsAndHashCode

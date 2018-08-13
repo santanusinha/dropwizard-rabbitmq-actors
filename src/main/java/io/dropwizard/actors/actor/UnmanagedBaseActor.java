@@ -7,7 +7,6 @@ import com.rabbitmq.client.*;
 import io.dropwizard.actors.connectivity.RMQConnection;
 import io.dropwizard.actors.retry.RetryStrategy;
 import io.dropwizard.actors.retry.RetryStrategyFactory;
-import io.dropwizard.lifecycle.Managed;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,13 +16,14 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Actor to be taken
+ * This actor can be derived to directly call start/stop.
+ * This is not Managed and will not be automatically started by dropwizard.
  */
 @Data
 @EqualsAndHashCode
 @ToString
 @Slf4j
-public class UnmanagedBaseActor<Message> implements Managed {
+public class UnmanagedBaseActor<Message> {
 
     private final String name;
     private final ActorConfig config;
@@ -139,7 +139,6 @@ public class UnmanagedBaseActor<Message> implements Managed {
 
     }
 
-    @Override
     public void start() throws Exception {
         final String exchange = config.getExchange();
         final String dlx = config.getExchange() + "_SIDELINE";
@@ -205,7 +204,6 @@ public class UnmanagedBaseActor<Message> implements Managed {
         return String.format("%s_TTL", queueName);
     }
 
-    @Override
     public void stop() throws Exception {
         try {
             publishChannel.close();
