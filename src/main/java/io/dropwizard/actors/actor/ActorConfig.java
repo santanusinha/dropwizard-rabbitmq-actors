@@ -33,7 +33,7 @@ public class ActorConfig {
     @NotNull
     @NotEmpty
     @Builder.Default
-    private String prefix = "payments.actors";
+    private String prefix = "rabbitmq.actors";
 
     @Min(1)
     @Max(100)
