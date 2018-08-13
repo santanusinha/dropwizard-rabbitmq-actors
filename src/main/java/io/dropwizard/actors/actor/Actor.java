@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Set;
 
 /**
- * A simplere derivation of {@link BaseActor} to be used in most common actor use cases. This is managed by dropwizard.
+ * A simpler derivation of {@link BaseActor} to be used in most common actor use cases. This is managed by dropwizard.
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
