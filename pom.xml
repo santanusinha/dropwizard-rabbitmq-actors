@@ -6,15 +6,7 @@
 
     <groupId>io.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors</artifactId>
-    <version>1.2.2</version>
-    <distributionManagement>
-        <repository>
-            <id>clojars</id>
-            <name>Clojars repository</name>
-            <url>https://clojars.org/repo</url>
-        </repository>
-    </distributionManagement>
-
+    <version>1.2.2-1-SNAPSHOT</version>
     <scm>
         <connection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</connection>
         <developerConnection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</developerConnection>
@@ -46,6 +38,14 @@
             <url>https://clojars.org/repo</url>
         </repository>
     </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>clojars</id>
+            <name>Clojars repository</name>
+            <url>https://clojars.org/repo</url>
+        </repository>
+    </distributionManagement>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

@@ -24,24 +24,30 @@ public class ActorConfig {
     @NotEmpty
     private String exchange;
 
+    @Builder.Default
     private boolean delayed = false;
 
+    @Builder.Default
     private DelayType delayType = DelayType.DELAYED;
 
     @NotNull
     @NotEmpty
-    private String prefix = "payments.actors";
+    @Builder.Default
+    private String prefix = "rabbitmq.actors";
 
     @Min(1)
     @Max(100)
+    @Builder.Default
     private int concurrency = 3;
 
     @Min(1)
     @Max(100)
+    @Builder.Default
     private int prefetchCount = 1;
 
     @NotNull
     @Valid
+    @Builder.Default
     private RetryConfig retryConfig = new NoRetryConfig();
 
 }
