@@ -6,7 +6,7 @@
 
     <groupId>io.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors</artifactId>
-    <version>${dropwizard.version}</version>
+    <version>1.2.2</version>
     <distributionManagement>
         <repository>
             <id>clojars</id>
