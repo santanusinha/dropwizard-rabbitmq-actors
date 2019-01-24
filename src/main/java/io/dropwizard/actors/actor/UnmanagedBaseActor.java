@@ -23,9 +23,9 @@ import java.util.function.Function;
 @EqualsAndHashCode
 @ToString
 @Slf4j
-public class UnmanagedBaseActor<Message> {
+public class UnmanagedBaseActor<MessageType  extends Enum<MessageType>, Message> {
 
-    private final String name;
+    private final MessageType type;
     private final ActorConfig config;
     private final RMQConnection connection;
     private final ObjectMapper mapper;
@@ -35,12 +35,11 @@ public class UnmanagedBaseActor<Message> {
     private final Function<Throwable, Boolean> errorCheckFunction;
     private final String queueName;
     private final RetryStrategy retryStrategy;
-
     private Channel publishChannel;
     private List<Handler> handlers = Lists.newArrayList();
 
     public UnmanagedBaseActor(
-            String name,
+            MessageType type,
             ActorConfig config,
             RMQConnection connection,
             ObjectMapper mapper,
@@ -48,7 +47,7 @@ public class UnmanagedBaseActor<Message> {
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction ) {
-        this.name = name;
+        this.type = type;
         this.config = config;
         this.connection = connection;
         this.mapper = mapper;
@@ -56,7 +55,7 @@ public class UnmanagedBaseActor<Message> {
         this.prefetchCount = config.getPrefetchCount();
         this.handlerFunction = handlerFunction;
         this.errorCheckFunction = errorCheckFunction;
-        this.queueName  = String.format("%s.%s", config.getPrefix(), name);
+        this.queueName  = String.format("%s.%s", config.getPrefix(), type.name());
         this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());
     }
 
@@ -162,7 +161,7 @@ public class UnmanagedBaseActor<Message> {
             final String tag = consumeChannel.basicConsume(queueName, false, handler);
             handler.setTag(tag);
             handlers.add(handler);
-            log.info("Started consumer {} of type {}", i, name);
+            log.info("Started consumer {} of type {}", i, type);
         }
 
     }
@@ -208,7 +207,7 @@ public class UnmanagedBaseActor<Message> {
         try {
             publishChannel.close();
         } catch (Exception e) {
-            log.error(String.format("Error closing publisher:%s" , name), e);
+            log.error(String.format("Error closing publisher: %s" , type), e);
         }
         handlers.forEach(handler -> {
             try {
