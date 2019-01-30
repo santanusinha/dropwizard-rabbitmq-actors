@@ -11,7 +11,6 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.StandardMetricsCollector;
-import io.dropwizard.actors.ExecutorServiceProvider;
 import io.dropwizard.actors.config.RMQConfig;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Getter;
@@ -25,7 +24,6 @@ import java.io.IOException;
 import java.security.KeyStore;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Slf4j
 public class RMQConnection implements Managed {
@@ -35,13 +33,13 @@ public class RMQConnection implements Managed {
     @Getter
     private Connection connection;
     private Channel channel;
-    private MetricRegistry metricRegistry;
-    private ExecutorServiceProvider executorServiceProvider;
+    private final MetricRegistry metricRegistry;
+    private final ExecutorService executorService;
 
-    public RMQConnection(RMQConfig config, MetricRegistry metricRegistry, ExecutorServiceProvider executorServiceProvider) {
+    public RMQConnection(RMQConfig config, MetricRegistry metricRegistry, ExecutorService executorService) {
         this.config = config;
         this.metricRegistry = metricRegistry;
-        this.executorServiceProvider = executorServiceProvider;
+        this.executorService = executorService;
     }
 
 
@@ -82,13 +80,11 @@ public class RMQConnection implements Managed {
         factory.setTopologyRecoveryEnabled(true);
         factory.setNetworkRecoveryInterval(3000);
         factory.setRequestedHeartbeat(60);
-
-        final ExecutorService executorService = executorServiceProvider != null
-                ?executorServiceProvider.newFixedThreadPool("rabbitMQActors", config.getThreadPoolSize())
-                : Executors.newFixedThreadPool(config.getThreadPoolSize());
-
-        connection = factory.newConnection(executorService, config.getBrokers().stream()
-                .map(broker -> new Address(broker.getHost())).toArray(Address[]::new));
+        connection = factory.newConnection(executorService,
+                config.getBrokers().stream()
+                        .map(broker -> new Address(broker.getHost()))
+                        .toArray(Address[]::new)
+        );
         channel = connection.createChannel();
     }
 
