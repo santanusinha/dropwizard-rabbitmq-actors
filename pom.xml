@@ -6,7 +6,7 @@
 
     <groupId>io.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors</artifactId>
-    <version>1.2.2-2-SNAPSHOT</version>
+    <version>1.2.2-3-R-SNAPSHOT</version>
     <scm>
         <connection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</connection>
         <developerConnection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</developerConnection>
@@ -39,12 +39,16 @@
         </repository>
     </repositories>
 
+
     <distributionManagement>
         <repository>
-            <id>clojars</id>
-            <name>Clojars repository</name>
-            <url>https://clojars.org/repo</url>
+            <id>phonepe-releases</id>
+            <url>http://artifactory.phonepe.com/content/repositories/releases</url>
         </repository>
+        <snapshotRepository>
+            <id>phonepe-snapshots</id>
+            <url>http://artifactory.phonepe.com/content/repositories/snapshots</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <properties>
@@ -142,27 +146,27 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.0.0-M2</version>
-                <executions>
-                    <execution>
-                        <id>enforce-no-snapshots</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <requireReleaseDeps>
-                                    <message>No Snapshots Allowed!</message>
-                                </requireReleaseDeps>
-                            </rules>
-                            <fail>true</fail>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+            <!--<plugin>-->
+                <!--<groupId>org.apache.maven.plugins</groupId>-->
+                <!--<artifactId>maven-enforcer-plugin</artifactId>-->
+                <!--<version>3.0.0-M2</version>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<id>enforce-no-snapshots</id>-->
+                        <!--<goals>-->
+                            <!--<goal>enforce</goal>-->
+                        <!--</goals>-->
+                        <!--<configuration>-->
+                            <!--<rules>-->
+                                <!--<requireReleaseDeps>-->
+                                    <!--<message>No Snapshots Allowed!</message>-->
+                                <!--</requireReleaseDeps>-->
+                            <!--</rules>-->
+                            <!--<fail>true</fail>-->
+                        <!--</configuration>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+            <!--</plugin>-->
         </plugins>
     </build>
 

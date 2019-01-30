@@ -1,6 +1,5 @@
 package io.dropwizard.actors.connectivity;
 
-import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheck;
 import com.google.common.annotations.VisibleForTesting;
@@ -12,6 +11,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.StandardMetricsCollector;
+import io.dropwizard.actors.ExecutorServiceProvider;
 import io.dropwizard.actors.config.RMQConfig;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Getter;
@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.security.KeyStore;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Slf4j
 public class RMQConnection implements Managed {
@@ -39,9 +38,10 @@ public class RMQConnection implements Managed {
     private Channel channel;
     private ExecutorService executorService;
 
-    public RMQConnection(RMQConfig config, MetricRegistry metricRegistry) {
+    public RMQConnection(RMQConfig config, MetricRegistry metricRegistry, ExecutorServiceProvider executorServiceProvider) {
         this.config = config;
         this.metricRegistry = metricRegistry;
+        this.executorService = executorServiceProvider.newFixedThreadPool("rabbitMQActors", config.getThreadPoolSize());
     }
 
 
@@ -79,8 +79,6 @@ public class RMQConnection implements Managed {
         factory.setTopologyRecoveryEnabled(true);
         factory.setNetworkRecoveryInterval(3000);
         factory.setRequestedHeartbeat(60);
-        this.executorService = new InstrumentedExecutorService(Executors.newFixedThreadPool(config.getThreadPoolSize()),
-                metricRegistry, "rabbitmq-actors");
         connection = factory.newConnection(executorService, config.getBrokers().stream()
                 .map(broker -> new Address(broker.getHost())).toArray(Address[]::new));
         channel = connection.createChannel();

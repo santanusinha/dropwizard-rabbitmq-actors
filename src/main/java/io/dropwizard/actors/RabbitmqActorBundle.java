@@ -24,7 +24,7 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
 
     @Override
     public void run(T t, Environment environment) throws Exception {
-        connection = new RMQConnection(getConfig(t), getMetricRegistry(t));
+        connection = new RMQConnection(getConfig(t), getMetricRegistry(t), getExecutorServiceProvider());
         environment.lifecycle().manage(connection);
         environment.healthChecks().register("rabbitmq-actors", connection.healthcheck());
     }
@@ -37,4 +37,6 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     protected abstract RMQConfig getConfig(T t);
 
     protected abstract MetricRegistry getMetricRegistry(T t);
+
+    protected abstract ExecutorServiceProvider getExecutorServiceProvider();
 }
