@@ -1,5 +1,6 @@
 package io.dropwizard.actors.connectivity;
 
+import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheck;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -9,6 +10,8 @@ import com.rabbitmq.client.Address;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.impl.StandardMetricsCollector;
+import io.dropwizard.actors.ExecutorServiceProvider;
 import io.dropwizard.actors.config.RMQConfig;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Getter;
@@ -20,10 +23,9 @@ import javax.net.ssl.SSLContext;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyStore;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class RMQConnection implements Managed {
@@ -33,15 +35,23 @@ public class RMQConnection implements Managed {
     @Getter
     private Connection connection;
     private Channel channel;
+    private MetricRegistry metricRegistry;
+    private ExecutorServiceProvider executorServiceProvider;
 
-    public RMQConnection(RMQConfig config) {
+    public RMQConnection(RMQConfig config, MetricRegistry metricRegistry, ExecutorServiceProvider executorServiceProvider) {
         this.config = config;
+        this.metricRegistry = metricRegistry;
+        this.executorServiceProvider = executorServiceProvider;
     }
 
 
     @Override
     public void start() throws Exception {
         ConnectionFactory factory = new ConnectionFactory();
+        if (metricRegistry != null) {
+            factory.setMetricsCollector(new StandardMetricsCollector(metricRegistry));
+        }
+
         if(config.isSecure()) {
             factory.setUsername(config.getUserName());
             factory.setPassword(config.getPassword());
@@ -72,13 +82,13 @@ public class RMQConnection implements Managed {
         factory.setTopologyRecoveryEnabled(true);
         factory.setNetworkRecoveryInterval(3000);
         factory.setRequestedHeartbeat(60);
-        List<Address> addresses = config.getBrokers()
-                .stream()
-                .map(broker -> new Address(broker.getHost()/*, broker.getPort()*/))
-                .collect(Collectors.toList());
 
-        connection = factory.newConnection(Executors.newFixedThreadPool(config.getThreadPoolSize()),
-                                addresses.toArray(new Address[addresses.size()]));
+        final ExecutorService executorService = executorServiceProvider != null
+                ?executorServiceProvider.newFixedThreadPool("rabbitMQActors", config.getThreadPoolSize())
+                : Executors.newFixedThreadPool(config.getThreadPoolSize());
+
+        connection = factory.newConnection(executorService, config.getBrokers().stream()
+                .map(broker -> new Address(broker.getHost())).toArray(Address[]::new));
         channel = connection.createChannel();
     }
 
