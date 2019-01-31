@@ -11,7 +11,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
@@ -23,18 +22,26 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     @Getter
     private RMQConnection connection;
 
+    private ExecutorServiceProvider executorServiceProvider;
+
+    private MetricRegistry metricRegistry;
+
     protected RabbitmqActorBundle() {
+
+    }
+
+    protected RabbitmqActorBundle(MetricRegistry metricRegistry, ExecutorServiceProvider executorServiceProvider) {
+        this.metricRegistry = metricRegistry;
+        this.executorServiceProvider = executorServiceProvider;
     }
 
     @Override
     public void run(T t, Environment environment) throws Exception {
         val config = getConfig(t);
-        MetricRegistry metrics = getMetricRegistry(t);
-        if (metrics == null){
-            metrics = environment.metrics();
-        }
-        val executorService = getExecutorServiceProvider(t).newFixedThreadPool("rabbitmq-actors", config.getThreadPoolSize());
-        connection = new RMQConnection(config, metrics, executorService);
+        val metrics = metrics(environment);
+        val executorServiceProvide = executorServiceProvider();
+        connection = new RMQConnection(config, metrics,
+                executorServiceProvide.newFixedThreadPool("rabbitmq-actors", config.getThreadPoolSize()));
         environment.lifecycle().manage(connection);
         environment.healthChecks().register("rabbitmq-actors", connection.healthcheck());
     }
@@ -51,10 +58,6 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
      * dropwizard environment is picked
      */
 
-    protected MetricRegistry getMetricRegistry(T t) {
-        return null;
-    }
-
     /**
      * Provides implementation for {@link ExecutorServiceProvider}. Should be overridden if custom executor service
      * implementations needs to be used. For e.g. {@link com.codahale.metrics.InstrumentedExecutorService}.
@@ -62,4 +65,20 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     protected ExecutorServiceProvider getExecutorServiceProvider(T t) {
         return (name, coreSize) -> Executors.newFixedThreadPool(coreSize);
     }
+
+
+    private MetricRegistry metrics(Environment environment) {
+        if (this.metricRegistry != null) {
+            return this.metricRegistry;
+        }
+        return environment.metrics();
+    }
+
+    private ExecutorServiceProvider executorServiceProvider() {
+        if (this.executorServiceProvider != null) {
+            return executorServiceProvider;
+        }
+        return (name, coreSize) -> Executors.newFixedThreadPool(coreSize);
+    }
+
 }
