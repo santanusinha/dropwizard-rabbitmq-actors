@@ -6,7 +6,7 @@
 
     <groupId>io.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors</artifactId>
-    <version>1.2.2-1</version>
+    <version>1.2.2-2-SNAPSHOT</version>
     <scm>
         <connection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</connection>
         <developerConnection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</developerConnection>
@@ -81,7 +81,7 @@
         <dependency>
             <groupId>com.rabbitmq</groupId>
             <artifactId>amqp-client</artifactId>
-            <version>3.6.6</version>
+            <version>5.5.3</version>
             <scope>provided</scope>
         </dependency>
 
