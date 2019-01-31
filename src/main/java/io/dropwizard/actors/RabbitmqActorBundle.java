@@ -29,7 +29,10 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     @Override
     public void run(T t, Environment environment) throws Exception {
         val config = getConfig(t);
-        val metrics = getMetricRegistry(t);
+        MetricRegistry metrics = getMetricRegistry(t);
+        if (metrics == null){
+            metrics = environment.metrics();
+        }
         val executorService = getExecutorServiceProvider(t).newFixedThreadPool("rabbitmq-actors", config.getThreadPoolSize());
         connection = new RMQConnection(config, metrics, executorService);
         environment.lifecycle().manage(connection);
@@ -44,8 +47,8 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     protected abstract RMQConfig getConfig(T t);
 
     /**
-     * Provides metric registry for instrumenting RMQConnection. If method returns null, metrics collector for
-     * RabbitMQ connection is not initialized.
+     * Provides metric registry for instrumenting RMQConnection. If method returns null, default metric registry from
+     * dropwizard environment is picked
      */
 
     protected MetricRegistry getMetricRegistry(T t) {

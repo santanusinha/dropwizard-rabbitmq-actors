@@ -46,10 +46,7 @@ public class RMQConnection implements Managed {
     @Override
     public void start() throws Exception {
         ConnectionFactory factory = new ConnectionFactory();
-        if (metricRegistry != null) {
-            factory.setMetricsCollector(new StandardMetricsCollector(metricRegistry));
-        }
-
+        factory.setMetricsCollector(new StandardMetricsCollector(metricRegistry));
         if(config.isSecure()) {
             factory.setUsername(config.getUserName());
             factory.setPassword(config.getPassword());
