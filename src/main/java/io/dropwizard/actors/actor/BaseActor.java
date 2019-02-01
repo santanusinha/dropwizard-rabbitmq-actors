@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.MessageProperties;
 import io.dropwizard.actors.connectivity.RMQConnection;
-import io.dropwizard.actors.retry.RetryStrategy;
 import io.dropwizard.actors.retry.RetryStrategyFactory;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Data;
