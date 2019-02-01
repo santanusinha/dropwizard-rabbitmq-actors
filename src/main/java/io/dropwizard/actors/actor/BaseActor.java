@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.MessageProperties;
 import io.dropwizard.actors.connectivity.RMQConnection;
+import io.dropwizard.actors.retry.RetryStrategy;
 import io.dropwizard.actors.retry.RetryStrategyFactory;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Data;
@@ -22,13 +23,14 @@ import java.util.Set;
 @EqualsAndHashCode
 @ToString
 @Slf4j
-public abstract class BaseActor<Message> implements Managed {
+public abstract class BaseActor<MessageType extends Enum<MessageType>, Message> implements Managed {
 
     private final UnmanagedBaseActor<Message> actorImpl;
     private final Set<Class<?>> droppedExceptionTypes;
+    private final MessageType type;
 
     protected BaseActor(
-            String name,
+            MessageType type,
             ActorConfig config,
             RMQConnection connection,
             ObjectMapper mapper,
@@ -38,7 +40,8 @@ public abstract class BaseActor<Message> implements Managed {
         this.droppedExceptionTypes
                 = null == droppedExceptionTypes
                     ? Collections.emptySet() : droppedExceptionTypes;
-        actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory, clazz, this::handle, this::isExceptionIgnorable);
+        this.type = type;
+        actorImpl = new UnmanagedBaseActor<>(type.name(), config, connection, mapper, retryStrategyFactory, clazz, this::handle, this::isExceptionIgnorable);
     }
 
     abstract protected boolean handle(Message message) throws Exception;
@@ -70,6 +73,14 @@ public abstract class BaseActor<Message> implements Managed {
     @Override
     public void stop() throws Exception {
         actorImpl.start();
+    }
+
+    public MessageType getType(){
+        return type;
+    }
+
+    public RetryStrategy getRetryStrategy(){
+        return actorImpl.getRetryStrategy();
     }
 
 }
