@@ -23,14 +23,13 @@ import java.util.Set;
 @EqualsAndHashCode
 @ToString
 @Slf4j
-public abstract class BaseActor<MessageType extends Enum<MessageType>, Message> implements Managed {
+public abstract class BaseActor<Message> implements Managed {
 
     private final UnmanagedBaseActor<Message> actorImpl;
     private final Set<Class<?>> droppedExceptionTypes;
-    private final MessageType type;
 
     protected BaseActor(
-            MessageType type,
+            String name,
             ActorConfig config,
             RMQConnection connection,
             ObjectMapper mapper,
@@ -40,8 +39,7 @@ public abstract class BaseActor<MessageType extends Enum<MessageType>, Message> 
         this.droppedExceptionTypes
                 = null == droppedExceptionTypes
                     ? Collections.emptySet() : droppedExceptionTypes;
-        this.type = type;
-        actorImpl = new UnmanagedBaseActor<>(type.name(), config, connection, mapper, retryStrategyFactory, clazz, this::handle, this::isExceptionIgnorable);
+        actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory, clazz, this::handle, this::isExceptionIgnorable);
     }
 
     abstract protected boolean handle(Message message) throws Exception;
@@ -73,14 +71,6 @@ public abstract class BaseActor<MessageType extends Enum<MessageType>, Message> 
     @Override
     public void stop() throws Exception {
         actorImpl.start();
-    }
-
-    public MessageType getType(){
-        return type;
-    }
-
-    public RetryStrategy getRetryStrategy(){
-        return actorImpl.getRetryStrategy();
     }
 
 }
