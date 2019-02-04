@@ -17,7 +17,9 @@ import java.util.Set;
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 @Slf4j
-public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> extends BaseActor<Message> {
+public abstract class  Actor<MessageType extends Enum<MessageType>, Message> extends BaseActor<Message> {
+
+    private MessageType type;
 
     protected Actor(
             MessageType type,
@@ -28,6 +30,7 @@ public abstract class  Actor<MessageType  extends Enum<MessageType>, Message> ex
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
         super(type.name(), config, connection, mapper, retryStrategyFactory, clazz, droppedExceptionTypes);
+        this.type = type;
     }
 
 
