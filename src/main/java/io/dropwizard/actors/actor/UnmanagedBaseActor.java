@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 
@@ -36,6 +37,8 @@ public class UnmanagedBaseActor<Message> {
     private final String queueName;
     private final RetryStrategy retryStrategy;
 
+    private final Date activationTime;
+
     private Channel publishChannel;
     private List<Handler> handlers = Lists.newArrayList();
 
@@ -58,6 +61,8 @@ public class UnmanagedBaseActor<Message> {
         this.errorCheckFunction = errorCheckFunction;
         this.queueName  = String.format("%s.%s", config.getPrefix(), name);
         this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());
+        this.activationTime = new Date( System.currentTimeMillis()
+                                                + (connection.getConfig().getStartupGracePeriodSeconds() * 1000));
     }
 
     public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
@@ -115,6 +120,17 @@ public class UnmanagedBaseActor<Message> {
         @Override
         public void handleDelivery(String consumerTag, Envelope envelope,
                                    AMQP.BasicProperties properties, byte[] body) throws IOException {
+            final Date currTime = new Date();
+            if(currTime.before(activationTime)) {
+                log.warn("Rejecting message as it is delivered within grace period. Current time: {} Activation Time: {}",
+                         currTime, activationTime);
+                try {
+                    getChannel().basicReject(envelope.getDeliveryTag(), true);
+                } catch (Throwable t) {
+                    log.error("Got error rejecting message... Message will be in unknown state", t);
+                }
+                return;
+            }
             try {
                 final Message message = mapper.readValue(body, clazz);
 

@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.NotEmpty;
 
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
@@ -49,6 +51,10 @@ public class RMQConfig {
      * Enable SSL for connectivity. TODO:: Give proper cert based support
      */
     private boolean secure;
+
+    @Min(0)
+    @Max(1024)
+    private int startupGracePeriodSeconds = 0;
 
     private String certStorePath;
 
