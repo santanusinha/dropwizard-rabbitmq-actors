@@ -122,8 +122,9 @@ public class UnmanagedBaseActor<Message> {
                                    AMQP.BasicProperties properties, byte[] body) throws IOException {
             final Date currTime = new Date();
             if(currTime.before(activationTime)) {
-                log.warn("Rejecting message as it is delivered within grace period. Current time: {} Activation Time: {}",
-                         currTime, activationTime);
+                log.warn("Rejecting message as it is delivered within grace period." +
+                                 " Current time: {} Activation Time: {}. Rejected message: {}",
+                         currTime, activationTime, new String(body));
                 try {
                     getChannel().basicReject(envelope.getDeliveryTag(), true);
                 } catch (Throwable t) {
