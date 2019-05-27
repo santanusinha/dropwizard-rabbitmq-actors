@@ -69,7 +69,7 @@ public abstract class BaseActor<Message> implements Managed {
 
     @Override
     public void stop() throws Exception {
-        actorImpl.start();
+        actorImpl.stop();
     }
 
 }
