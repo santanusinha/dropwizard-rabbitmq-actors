@@ -6,14 +6,13 @@ import com.rabbitmq.client.MessageProperties;
 import io.dropwizard.actors.connectivity.RMQConnection;
 import io.dropwizard.actors.retry.RetryStrategyFactory;
 import io.dropwizard.lifecycle.Managed;
+import java.util.Collections;
+import java.util.Set;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ClassUtils;
-
-import java.util.Collections;
-import java.util.Set;
 
 /**
  * This is a managed wrapper for {@link UnmanagedBaseActor} this is managed and therefore started by D/W.
@@ -24,52 +23,66 @@ import java.util.Set;
 @Slf4j
 public abstract class BaseActor<Message> implements Managed {
 
-    private final UnmanagedBaseActor<Message> actorImpl;
-    private final Set<Class<?>> droppedExceptionTypes;
+  private final UnmanagedBaseActor<Message> actorImpl;
+  private final Set<Class<?>> droppedExceptionTypes;
 
-    protected BaseActor(
-            String name,
-            ActorConfig config,
-            RMQConnection connection,
-            ObjectMapper mapper,
-            RetryStrategyFactory retryStrategyFactory,
-            Class<? extends Message> clazz,
-            Set<Class<?>> droppedExceptionTypes) {
-        this.droppedExceptionTypes
-                = null == droppedExceptionTypes
-                    ? Collections.emptySet() : droppedExceptionTypes;
-        actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory, clazz, this::handle, this::isExceptionIgnorable);
-    }
+  protected BaseActor(UnmanagedPublishActor<Message> publishActor, Set<Class<?>> droppedExceptionTypes) {
+    this(publishActor, null, droppedExceptionTypes);
+  }
 
-    abstract protected boolean handle(Message message) throws Exception;
+  protected BaseActor(UnmanagedConsumeActor<Message> consumeActor, Set<Class<?>> droppedExceptionTypes) {
+    this(null, consumeActor, droppedExceptionTypes);
+  }
 
-    protected boolean isExceptionIgnorable(Throwable t) {
-        return droppedExceptionTypes
-                .stream()
-                .anyMatch(exceptionType -> ClassUtils.isAssignable(t.getClass(), exceptionType));
-    }
+  protected BaseActor(UnmanagedPublishActor<Message> produceActor,
+      UnmanagedConsumeActor<Message> consumeActor,
+      Set<Class<?>> droppedExceptionTypes) {
+    actorImpl = new UnmanagedBaseActor<>(produceActor, consumeActor);
+    this.droppedExceptionTypes = droppedExceptionTypes;
+  }
 
-    public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
-        actorImpl.publishWithDelay(message, delayMilliseconds);
-    }
+  protected BaseActor(
+      String name,
+      ActorConfig config,
+      RMQConnection connection,
+      ObjectMapper mapper,
+      RetryStrategyFactory retryStrategyFactory,
+      Class<? extends Message> clazz,
+      Set<Class<?>> droppedExceptionTypes) {
+    this.droppedExceptionTypes
+        = null == droppedExceptionTypes
+        ? Collections.emptySet() : droppedExceptionTypes;
+    actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory, clazz, this::handle,
+        this::isExceptionIgnorable);
+  }
 
-    public final void publish(Message message) throws Exception {
-        publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
-    }
+  abstract protected boolean handle(Message message) throws Exception;
 
-    public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
-        actorImpl.publish(message, properties);
-    }
+  protected boolean isExceptionIgnorable(Throwable t) {
+    return droppedExceptionTypes
+        .stream()
+        .anyMatch(exceptionType -> ClassUtils.isAssignable(t.getClass(), exceptionType));
+  }
 
-    @Override
-    public void start() throws Exception {
-        actorImpl.start();
+  public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
+    actorImpl.publishWithDelay(message, delayMilliseconds);
+  }
 
-    }
+  public final void publish(Message message) throws Exception {
+    publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
+  }
 
-    @Override
-    public void stop() throws Exception {
-        actorImpl.stop();
-    }
+  public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
+    actorImpl.publish(message, properties);
+  }
 
+  @Override
+  public void start() throws Exception {
+    actorImpl.start();
+  }
+
+  @Override
+  public void stop() throws Exception {
+    actorImpl.stop();
+  }
 }
