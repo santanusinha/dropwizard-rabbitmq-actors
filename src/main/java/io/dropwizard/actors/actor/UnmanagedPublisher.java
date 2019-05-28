@@ -12,7 +12,7 @@ import java.util.Collections;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class UnmanagedPublishActor<Message> {
+public class UnmanagedPublisher<Message> {
 
   private final String name;
   private final ActorConfig config;
@@ -22,7 +22,7 @@ public class UnmanagedPublishActor<Message> {
 
   private Channel publishChannel;
 
-  public UnmanagedPublishActor(
+  public UnmanagedPublisher(
       String name,
       ActorConfig config,
       RMQConnection connection,

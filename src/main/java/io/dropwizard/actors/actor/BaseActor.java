@@ -26,16 +26,16 @@ public abstract class BaseActor<Message> implements Managed {
   private final UnmanagedBaseActor<Message> actorImpl;
   private final Set<Class<?>> droppedExceptionTypes;
 
-  protected BaseActor(UnmanagedPublishActor<Message> publishActor, Set<Class<?>> droppedExceptionTypes) {
+  protected BaseActor(UnmanagedPublisher<Message> publishActor, Set<Class<?>> droppedExceptionTypes) {
     this(publishActor, null, droppedExceptionTypes);
   }
 
-  protected BaseActor(UnmanagedConsumeActor<Message> consumeActor, Set<Class<?>> droppedExceptionTypes) {
+  protected BaseActor(UnmanagedConsumer<Message> consumeActor, Set<Class<?>> droppedExceptionTypes) {
     this(null, consumeActor, droppedExceptionTypes);
   }
 
-  protected BaseActor(UnmanagedPublishActor<Message> produceActor,
-      UnmanagedConsumeActor<Message> consumeActor,
+  protected BaseActor(UnmanagedPublisher<Message> produceActor,
+      UnmanagedConsumer<Message> consumeActor,
       Set<Class<?>> droppedExceptionTypes) {
     actorImpl = new UnmanagedBaseActor<>(produceActor, consumeActor);
     this.droppedExceptionTypes = droppedExceptionTypes;

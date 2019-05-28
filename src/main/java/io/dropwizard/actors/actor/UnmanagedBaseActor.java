@@ -24,11 +24,11 @@ import org.apache.commons.lang3.NotImplementedException;
 @Slf4j
 public class UnmanagedBaseActor<Message> {
 
-  private final UnmanagedPublishActor<Message> publishActor;
-  private final UnmanagedConsumeActor<Message> consumeActor;
+  private final UnmanagedPublisher<Message> publishActor;
+  private final UnmanagedConsumer<Message> consumeActor;
 
-  public UnmanagedBaseActor(UnmanagedPublishActor<Message> publishActor,
-      UnmanagedConsumeActor<Message> consumeActor) {
+  public UnmanagedBaseActor(UnmanagedPublisher<Message> publishActor,
+      UnmanagedConsumer<Message> consumeActor) {
     this.publishActor = publishActor;
     this.consumeActor = consumeActor;
   }
@@ -42,8 +42,8 @@ public class UnmanagedBaseActor<Message> {
       Class<? extends Message> clazz,
       MessageHandlingFunction<Message, Boolean> handlerFunction,
       Function<Throwable, Boolean> errorCheckFunction) {
-    this(new UnmanagedPublishActor<>(name, config, connection, mapper),
-        new UnmanagedConsumeActor<>(
+    this(new UnmanagedPublisher<>(name, config, connection, mapper),
+        new UnmanagedConsumer<>(
             name, config, connection, mapper, retryStrategyFactory, clazz, handlerFunction, errorCheckFunction));
   }
 
@@ -59,7 +59,7 @@ public class UnmanagedBaseActor<Message> {
     publishActor().publish(message, properties);
   }
 
-  private UnmanagedPublishActor<Message> publishActor() {
+  private UnmanagedPublisher<Message> publishActor() {
     if (isNull(publishActor)) {
       throw new NotImplementedException("PublishActor is not initialized");
     }

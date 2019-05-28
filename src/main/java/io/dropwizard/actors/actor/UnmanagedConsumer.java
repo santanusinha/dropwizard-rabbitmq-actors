@@ -18,7 +18,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class UnmanagedConsumeActor<Message> {
+public class UnmanagedConsumer<Message> {
 
   private final String name;
   private final ActorConfig config;
@@ -33,7 +33,7 @@ public class UnmanagedConsumeActor<Message> {
 
   private List<Handler> handlers = Lists.newArrayList();
 
-  public UnmanagedConsumeActor(
+  public UnmanagedConsumer(
       String name,
       ActorConfig config,
       RMQConnection connection,
