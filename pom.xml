@@ -10,15 +10,7 @@
     <name>Dropwizard RabbitMQ Bundle</name>
     <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors</url>
     <description>Provides actor abstraction on RabbitMQ for dropwizard based projects.</description>
-
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-
+    <inceptionYear>2016</inceptionYear>
 
     <scm>
         <connection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</connection>
@@ -36,13 +28,27 @@
         </license>
     </licenses>
 
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors/issues</url>
+    </issueManagement>
+
     <developers>
         <developer>
             <id>santanusinha</id>
             <name>Santanu Sinha</name>
             <email>santanu.sinha@gmail.com</email>
+            <roles>
+                <role>owner</role>
+                <role>developer</role>
+            </roles>
         </developer>
     </developers>
+
+    <ciManagement>
+        <system>Travis CI</system>
+        <url>https://travis-ci.org/santanusinha/dropwizard-rabbitmq-actors</url>
+    </ciManagement>
 
     <repositories>
         <repository>
