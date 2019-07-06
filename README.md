@@ -15,4 +15,4 @@ Provides actor abstraction on RabbitMQ for dropwizard based projects.
 Apache-2.0
 
 # NOTE
-Package and group id has changed from `io.dropwizard.actors` to `io.appfrom.dropwizard.actors` from 1.3.12-3.
+Package and group id has changed from `io.dropwizard.actors` to `io.appfrom.dropwizard.actors` from 1.3.12-1.
