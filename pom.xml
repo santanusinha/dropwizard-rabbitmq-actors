@@ -50,14 +50,6 @@
         <url>https://travis-ci.org/santanusinha/dropwizard-rabbitmq-actors</url>
     </ciManagement>
 
-    <repositories>
-        <repository>
-            <id>clojars</id>
-            <name>Clojars repository</name>
-            <url>https://clojars.org/repo</url>
-        </repository>
-    </repositories>
-
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
