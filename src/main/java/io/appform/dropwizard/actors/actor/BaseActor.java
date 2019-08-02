@@ -77,10 +77,13 @@ public abstract class BaseActor<Message> implements Managed {
         actorImpl.publish(message, properties);
     }
 
+    public final long pendingMessagesCount() {
+        return actorImpl.pendingMessagesCount();
+    }
+
     @Override
     public void start() throws Exception {
         actorImpl.start();
-
     }
 
     @Override
