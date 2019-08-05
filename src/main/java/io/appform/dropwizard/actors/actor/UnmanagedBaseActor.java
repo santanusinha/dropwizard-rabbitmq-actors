@@ -111,6 +111,44 @@ public class UnmanagedBaseActor<Message> {
         publishChannel.basicPublish(config.getExchange(), queueName, properties, mapper().writeValueAsBytes(message));
     }
 
+    public final long pendingMessagesCount() {
+        try {
+            return publishChannel.messageCount(queueName);
+        }
+        catch (IOException e) {
+            log.error("Issue getting message count. Will return max", e);
+        }
+        return Long.MAX_VALUE;
+    }
+
+    public void start() throws Exception {
+        final String exchange = config.getExchange();
+        final String dlx = config.getExchange() + "_SIDELINE";
+        if(config.isDelayed()) {
+            ensureDelayedExchange(exchange);
+        }
+        else {
+            ensureExchange(exchange);
+        }
+        ensureExchange(dlx);
+
+        this.publishChannel = connection.newChannel();
+        connection.ensure(queueName + "_SIDELINE", queueName, dlx);
+        connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx));
+        if (config.getDelayType() == DelayType.TTL) {
+            connection.ensure(ttlQueue(queueName), queueName, ttlExchange(config), connection.rmqOpts(exchange));
+        }
+        for (int i = 1; i <= config.getConcurrency(); i++) {
+            Channel consumeChannel = connection.newChannel();
+            final Handler handler = new Handler(consumeChannel, mapper, clazz, prefetchCount);
+            final String tag = consumeChannel.basicConsume(queueName, false, handler);
+            handler.setTag(tag);
+            handlers.add(handler);
+            log.info("Started consumer {} of type {}", i, name);
+        }
+
+    }
+
     private boolean handle(Message message) throws Exception {
         return handlerFunction.apply(message);
     }
@@ -168,34 +206,6 @@ public class UnmanagedBaseActor<Message> {
                     getChannel().basicReject(envelope.getDeliveryTag(), false);
                 }
             }
-        }
-
-    }
-
-    public void start() throws Exception {
-        final String exchange = config.getExchange();
-        final String dlx = config.getExchange() + "_SIDELINE";
-        if(config.isDelayed()) {
-            ensureDelayedExchange(exchange);
-        }
-        else {
-            ensureExchange(exchange);
-        }
-        ensureExchange(dlx);
-
-        this.publishChannel = connection.newChannel();
-        connection.ensure(queueName + "_SIDELINE", queueName, dlx);
-        connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx));
-        if (config.getDelayType() == DelayType.TTL) {
-            connection.ensure(ttlQueue(queueName), queueName, ttlExchange(config), connection.rmqOpts(exchange));
-        }
-        for (int i = 1; i <= config.getConcurrency(); i++) {
-            Channel consumeChannel = connection.newChannel();
-            final Handler handler = new Handler(consumeChannel, mapper, clazz, prefetchCount);
-            final String tag = consumeChannel.basicConsume(queueName, false, handler);
-            handler.setTag(tag);
-            handlers.add(handler);
-            log.info("Started consumer {} of type {}", i, name);
         }
 
     }
