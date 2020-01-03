@@ -30,17 +30,16 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.StandardMetricsCollector;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.dropwizard.lifecycle.Managed;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
-import org.apache.http.ssl.SSLContexts;
-
-import javax.net.ssl.SSLContext;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyStore;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import javax.net.ssl.SSLContext;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.ssl.SSLContexts;
 
 @Slf4j
 public class RMQConnection implements Managed {
@@ -94,10 +93,11 @@ public class RMQConnection implements Managed {
         factory.setTopologyRecoveryEnabled(true);
         factory.setNetworkRecoveryInterval(3000);
         factory.setRequestedHeartbeat(60);
+        factory.setVirtualHost(config.getVirtualHost());
         connection = factory.newConnection(executorService,
-                config.getBrokers().stream()
-                        .map(broker -> new Address(broker.getHost()))
-                        .toArray(Address[]::new)
+            config.getBrokers().stream()
+                .map(broker -> new Address(broker.getHost()))
+                .toArray(Address[]::new)
         );
         channel = connection.createChannel();
     }
