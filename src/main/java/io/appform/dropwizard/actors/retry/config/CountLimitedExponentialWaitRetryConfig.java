@@ -16,7 +16,6 @@
 
 package io.appform.dropwizard.actors.retry.config;
 
-import io.appform.dropwizard.actors.retry.PostRetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryType;
 import io.dropwizard.util.Duration;
 import lombok.Builder;
@@ -56,9 +55,8 @@ public class CountLimitedExponentialWaitRetryConfig extends RetryConfig {
     @Builder
     public CountLimitedExponentialWaitRetryConfig(int maxAttempts, Duration maxTimeBetweenRetries,
                                                   long multipier,
-                                                  Set<String> retriableExceptions,
-                                                  PostRetryStrategy postRetryStrategy) {
-        super(RetryType.COUNT_LIMITED_EXPONENTIAL_BACKOFF, retriableExceptions, postRetryStrategy);
+                                                  Set<String> retriableExceptions) {
+        super(RetryType.COUNT_LIMITED_EXPONENTIAL_BACKOFF, retriableExceptions);
         this.maxAttempts = maxAttempts;
         this.maxTimeBetweenRetries = maxTimeBetweenRetries;
         this.multipier = multipier;

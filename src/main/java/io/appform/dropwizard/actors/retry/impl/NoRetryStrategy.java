@@ -29,6 +29,6 @@ public class NoRetryStrategy extends RetryStrategy {
     public NoRetryStrategy(NoRetryConfig config) {
         super(RetryerBuilder.<Boolean>newBuilder()
                 .withStopStrategy(StopStrategies.stopAfterAttempt(1))
-                .build(), config.getPostRetryStrategy());
+                .build());
     }
 }

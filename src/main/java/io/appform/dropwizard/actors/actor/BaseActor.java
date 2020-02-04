@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.postretry.PostRetryStrategyFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Data;
@@ -49,12 +50,14 @@ public abstract class BaseActor<Message> implements Managed {
             RMQConnection connection,
             ObjectMapper mapper,
             RetryStrategyFactory retryStrategyFactory,
+            PostRetryStrategyFactory postRetryStrategyFactory,
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
         this.droppedExceptionTypes
                 = null == droppedExceptionTypes
                     ? Collections.emptySet() : droppedExceptionTypes;
-        actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory, clazz, this::handle, this::isExceptionIgnorable);
+        actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory, postRetryStrategyFactory,
+                clazz, this::handle, this::isExceptionIgnorable);
     }
 
     abstract protected boolean handle(Message message) throws Exception;

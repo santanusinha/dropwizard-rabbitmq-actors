@@ -39,6 +39,6 @@ public class TimeLimitedFixedWaitRetryStrategy extends RetryStrategy {
                 .withBlockStrategy(BlockStrategies.threadSleepStrategy())
                 .withWaitStrategy(
                         WaitStrategies.fixedWait(config.getWaitTime().toMilliseconds(), TimeUnit.MILLISECONDS))
-                .build(), config.getPostRetryStrategy());
+                .build());
     }
 }

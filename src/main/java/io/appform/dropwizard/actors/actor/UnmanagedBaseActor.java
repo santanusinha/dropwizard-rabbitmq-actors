@@ -21,6 +21,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.rabbitmq.client.*;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.postretry.PostRetryHandler;
+import io.appform.dropwizard.actors.postretry.PostRetryStrategyFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import lombok.*;
@@ -52,6 +54,7 @@ public class UnmanagedBaseActor<Message> {
     private final Function<Throwable, Boolean> errorCheckFunction;
     private final String queueName;
     private final RetryStrategy retryStrategy;
+    private final PostRetryHandler postRetryHandler;
 
     private final Date activationTime;
 
@@ -64,6 +67,7 @@ public class UnmanagedBaseActor<Message> {
             RMQConnection connection,
             ObjectMapper mapper,
             RetryStrategyFactory retryStrategyFactory,
+            PostRetryStrategyFactory postRetryStrategyFactory,
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction ) {
@@ -77,6 +81,7 @@ public class UnmanagedBaseActor<Message> {
         this.errorCheckFunction = errorCheckFunction;
         this.queueName  = String.format("%s.%s", config.getPrefix(), name);
         this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());
+        this.postRetryHandler = postRetryStrategyFactory.create(config.getPostRetryConfig());
         this.activationTime = new Date( System.currentTimeMillis()
                                                 + (connection.getConfig().getStartupGracePeriodSeconds() * 1000));
     }
@@ -198,12 +203,12 @@ public class UnmanagedBaseActor<Message> {
                 }
             } catch (Throwable t) {
                 log.error("Error processing message...", t);
-                if(retryStrategy.postRetryAckHandling()) {
-                    log.warn("Acked message due to post retry strategy: ", t);
+                boolean ack = postRetryHandler.handle();
+                if(ack) {
+                    log.warn("Acked message due to post retry handling: ", t);
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
                 } else if (errorCheckFunction.apply(t)) {
                     log.warn("Acked message due to exception: ", t);
-                    getChannel().basicAck(envelope.getDeliveryTag(), false);
                 }
                 else {
                     getChannel().basicReject(envelope.getDeliveryTag(), false);
