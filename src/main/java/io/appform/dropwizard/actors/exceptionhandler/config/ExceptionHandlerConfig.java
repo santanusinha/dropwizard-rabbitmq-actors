@@ -1,8 +1,8 @@
-package io.appform.dropwizard.actors.postretry.config;
+package io.appform.dropwizard.actors.exceptionhandler.config;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.appform.dropwizard.actors.postretry.PostRetryType;
+import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlerType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -18,13 +18,13 @@ import lombok.ToString;
 @Data
 @EqualsAndHashCode
 @ToString
-public abstract class PostRetryConfig {
+public abstract class ExceptionHandlerConfig {
 
-    private final PostRetryType type;
+    private final ExceptionHandlerType type;
 
-    public PostRetryConfig(PostRetryType type) {
+    public ExceptionHandlerConfig(ExceptionHandlerType type) {
         this.type = type;
     }
 
-    abstract public <T> T accept(PostRetryConfigVisitor<T> visitor);
+    abstract public <T> T accept(ExceptionHandlerConfigVisitor<T> visitor);
 }
