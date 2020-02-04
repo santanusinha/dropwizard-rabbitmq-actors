@@ -208,6 +208,7 @@ public class UnmanagedBaseActor<Message> {
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
                 } else if(postRetryHandler.handle()) {
                     log.warn("Acked message due to post retry handling: ", t);
+                    getChannel().basicAck(envelope.getDeliveryTag(), false);
                 } else {
                     getChannel().basicReject(envelope.getDeliveryTag(), false);
                 }
