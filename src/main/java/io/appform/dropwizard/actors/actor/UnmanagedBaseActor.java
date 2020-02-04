@@ -203,14 +203,12 @@ public class UnmanagedBaseActor<Message> {
                 }
             } catch (Throwable t) {
                 log.error("Error processing message...", t);
-                boolean ack = postRetryHandler.handle();
-                if(ack) {
+                if(errorCheckFunction.apply(t)) {
+                    log.warn("Acked message due to exception: ", t);
+                } else if(postRetryHandler.handle()) {
                     log.warn("Acked message due to post retry handling: ", t);
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
-                } else if (errorCheckFunction.apply(t)) {
-                    log.warn("Acked message due to exception: ", t);
-                }
-                else {
+                } else {
                     getChannel().basicReject(envelope.getDeliveryTag(), false);
                 }
             }
