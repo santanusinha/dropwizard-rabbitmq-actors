@@ -37,6 +37,6 @@ public class TimeLimitedExponentialWaitRetryStrategy extends RetryStrategy {
                 .withWaitStrategy(
                         WaitStrategies.exponentialWait(config.getMultipier(),
                                 config.getMaxTimeBetweenRetries().toMilliseconds(), TimeUnit.MILLISECONDS))
-                .build());
+                .build(), config.getPostRetryStrategy());
     }
 }

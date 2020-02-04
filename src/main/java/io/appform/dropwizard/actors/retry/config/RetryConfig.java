@@ -18,6 +18,7 @@ package io.appform.dropwizard.actors.retry.config;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.appform.dropwizard.actors.retry.PostRetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -46,13 +47,17 @@ public abstract class RetryConfig {
 
     private Set<String> retriableExceptions;
 
+    private PostRetryStrategy postRetryStrategy;
+
     protected RetryConfig(RetryType type) {
         this.type = type;
     }
 
     protected RetryConfig(RetryType type,
-                          Set<String> retriableExceptions) {
+                          Set<String> retriableExceptions,
+                          PostRetryStrategy postRetryStrategy) {
         this.type = type;
         this.retriableExceptions = retriableExceptions;
+        this.postRetryStrategy = postRetryStrategy;
     }
 }

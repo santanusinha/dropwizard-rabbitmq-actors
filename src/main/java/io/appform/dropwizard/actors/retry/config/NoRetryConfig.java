@@ -16,7 +16,10 @@
 
 package io.appform.dropwizard.actors.retry.config;
 
+import io.appform.dropwizard.actors.retry.PostRetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryType;
+
+import java.util.Collections;
 
 /**
  * No retry will be done
@@ -24,5 +27,9 @@ import io.appform.dropwizard.actors.retry.RetryType;
 public class NoRetryConfig extends RetryConfig {
     public NoRetryConfig() {
         super(RetryType.NO_RETRY);
+    }
+
+    public NoRetryConfig(PostRetryStrategy postRetryStrategy) {
+        super(RetryType.NO_RETRY, Collections.emptySet(), postRetryStrategy);
     }
 }

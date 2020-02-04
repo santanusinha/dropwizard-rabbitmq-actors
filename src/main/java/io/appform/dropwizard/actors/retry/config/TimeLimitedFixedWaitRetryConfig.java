@@ -16,6 +16,7 @@
 
 package io.appform.dropwizard.actors.retry.config;
 
+import io.appform.dropwizard.actors.retry.PostRetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryType;
 import io.dropwizard.util.Duration;
 import lombok.Builder;
@@ -48,8 +49,9 @@ public class TimeLimitedFixedWaitRetryConfig extends RetryConfig {
     }
 
     @Builder
-    public TimeLimitedFixedWaitRetryConfig(Duration maxTime, Duration waitTime, Set<String> retriableExceptions) {
-        super(RetryType.TIME_LIMITED_FIXED_WAIT, retriableExceptions);
+    public TimeLimitedFixedWaitRetryConfig(Duration maxTime, Duration waitTime, Set<String> retriableExceptions,
+                                           PostRetryStrategy postRetryStrategy) {
+        super(RetryType.TIME_LIMITED_FIXED_WAIT, retriableExceptions, postRetryStrategy);
         this.maxTime = maxTime;
         this.waitTime = waitTime;
     }

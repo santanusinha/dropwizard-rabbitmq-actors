@@ -26,11 +26,19 @@ import java.util.concurrent.Callable;
 public abstract class RetryStrategy {
     private final Retryer<Boolean> retryer;
 
-    protected RetryStrategy(Retryer<Boolean> retryer) {
+    private final PostRetryStrategy postRetryStrategy;
+
+    protected RetryStrategy(Retryer<Boolean> retryer,
+                            PostRetryStrategy postRetryStrategy) {
         this.retryer = retryer;
+        this.postRetryStrategy = postRetryStrategy;
     }
 
     public boolean execute(Callable<Boolean> callable) throws Exception {
         return retryer.call(callable);
+    }
+
+    public boolean postRetryAckHandling() {
+        return postRetryStrategy.isAckAfterRetriesExhausted();
     }
 }
