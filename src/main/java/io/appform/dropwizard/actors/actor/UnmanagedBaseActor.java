@@ -205,9 +205,9 @@ public class UnmanagedBaseActor<Message> {
                 log.error("Error processing message...", t);
                 if(errorCheckFunction.apply(t)) {
                     log.warn("Acked message due to exception: ", t);
+                    getChannel().basicAck(envelope.getDeliveryTag(), false);
                 } else if(postRetryHandler.handle()) {
                     log.warn("Acked message due to post retry handling: ", t);
-                    getChannel().basicAck(envelope.getDeliveryTag(), false);
                 } else {
                     getChannel().basicReject(envelope.getDeliveryTag(), false);
                 }
