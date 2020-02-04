@@ -25,5 +25,4 @@ public class NoRetryConfig extends RetryConfig {
     public NoRetryConfig() {
         super(RetryType.NO_RETRY);
     }
-
 }

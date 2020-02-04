@@ -14,6 +14,6 @@ public class MessageDropHandler extends PostRetryHandler {
 
     @Override
     public boolean handle() {
-        return false;
+        return true;
     }
 }

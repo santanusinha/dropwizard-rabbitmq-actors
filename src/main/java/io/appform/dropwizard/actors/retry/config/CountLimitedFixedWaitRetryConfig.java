@@ -48,8 +48,7 @@ public class CountLimitedFixedWaitRetryConfig extends RetryConfig {
     }
 
     @Builder
-    public CountLimitedFixedWaitRetryConfig(int maxAttempts, Duration waitTime,
-                                            Set<String> retriableExceptions) {
+    public CountLimitedFixedWaitRetryConfig(int maxAttempts, Duration waitTime, Set<String> retriableExceptions) {
         super(RetryType.COUNT_LIMITED_FIXED_WAIT, retriableExceptions);
         this.maxAttempts = maxAttempts;
         this.waitTime = waitTime;
