@@ -20,17 +20,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.dropwizard.actors.actor.UnmanagedConsumer;
-import io.dropwizard.actors.actor.UnmanagedPublisher;
+import io.appform.dropwizard.actors.base.UnmanagedConsumer;
+import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.dropwizard.lifecycle.Managed;
-import java.util.Collections;
-import java.util.Set;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ClassUtils;
+
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * This is a managed wrapper for {@link UnmanagedBaseActor} this is managed and therefore started by D/W.
@@ -41,66 +43,73 @@ import org.apache.commons.lang3.ClassUtils;
 @Slf4j
 public abstract class BaseActor<Message> implements Managed {
 
-  private final UnmanagedBaseActor<Message> actorImpl;
-  private final Set<Class<?>> droppedExceptionTypes;
+    private final UnmanagedBaseActor<Message> actorImpl;
+    private final Set<Class<?>> droppedExceptionTypes;
 
-  protected BaseActor(UnmanagedPublisher<Message> publishActor, Set<Class<?>> droppedExceptionTypes) {
-    this(publishActor, null, droppedExceptionTypes);
-  }
+    protected BaseActor(UnmanagedPublisher<Message> publishActor, Set<Class<?>> droppedExceptionTypes) {
+        this(publishActor, null, droppedExceptionTypes);
+    }
 
-  protected BaseActor(UnmanagedConsumer<Message> consumeActor, Set<Class<?>> droppedExceptionTypes) {
-    this(null, consumeActor, droppedExceptionTypes);
-  }
+    protected BaseActor(UnmanagedConsumer<Message> consumeActor, Set<Class<?>> droppedExceptionTypes) {
+        this(null, consumeActor, droppedExceptionTypes);
+    }
 
-  protected BaseActor(UnmanagedPublisher<Message> produceActor,
-      UnmanagedConsumer<Message> consumeActor,
-      Set<Class<?>> droppedExceptionTypes) {
-    actorImpl = new UnmanagedBaseActor<>(produceActor, consumeActor);
-    this.droppedExceptionTypes = droppedExceptionTypes;
-  }
+    protected BaseActor(UnmanagedPublisher<Message> produceActor,
+                        UnmanagedConsumer<Message> consumeActor,
+                        Set<Class<?>> droppedExceptionTypes) {
+        actorImpl = new UnmanagedBaseActor<>(produceActor, consumeActor);
+        this.droppedExceptionTypes = droppedExceptionTypes;
+    }
 
-  protected BaseActor(
-      String name,
-      ActorConfig config,
-      RMQConnection connection,
-      ObjectMapper mapper,
-      RetryStrategyFactory retryStrategyFactory,
-      Class<? extends Message> clazz,
-      Set<Class<?>> droppedExceptionTypes) {
-    this.droppedExceptionTypes
-        = null == droppedExceptionTypes
-        ? Collections.emptySet() : droppedExceptionTypes;
-    actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory, clazz, this::handle,
-        this::isExceptionIgnorable);
-  }
+    protected BaseActor(
+            String name,
+            ActorConfig config,
+            RMQConnection connection,
+            ObjectMapper mapper,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            Set<Class<?>> droppedExceptionTypes) {
+        this.droppedExceptionTypes
+                = null == droppedExceptionTypes
+                ? Collections.emptySet() : droppedExceptionTypes;
+        actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory,
+                exceptionHandlingFactory, clazz,
+                this::handle,
+                this::isExceptionIgnorable);
+    }
 
-  abstract protected boolean handle(Message message) throws Exception;
+    abstract protected boolean handle(Message message) throws Exception;
 
-  protected boolean isExceptionIgnorable(Throwable t) {
-    return droppedExceptionTypes
-        .stream()
-        .anyMatch(exceptionType -> ClassUtils.isAssignable(t.getClass(), exceptionType));
-  }
+    protected boolean isExceptionIgnorable(Throwable t) {
+        return droppedExceptionTypes
+                .stream()
+                .anyMatch(exceptionType -> ClassUtils.isAssignable(t.getClass(), exceptionType));
+    }
 
-  public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
-    actorImpl.publishWithDelay(message, delayMilliseconds);
-  }
+    public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
+        actorImpl.publishWithDelay(message, delayMilliseconds);
+    }
 
-  public final void publish(Message message) throws Exception {
-    publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
-  }
+    public final void publish(Message message) throws Exception {
+        publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
+    }
 
-  public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
-    actorImpl.publish(message, properties);
-  }
+    public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
+        actorImpl.publish(message, properties);
+    }
 
-  @Override
-  public void start() throws Exception {
-    actorImpl.start();
-  }
+    public final long pendingMessagesCount() {
+        return actorImpl.pendingMessagesCount();
+    }
 
-  @Override
-  public void stop() throws Exception {
-    actorImpl.stop();
-  }
+    @Override
+    public void start() throws Exception {
+        actorImpl.start();
+    }
+
+    @Override
+    public void stop() throws Exception {
+        actorImpl.stop();
+    }
 }

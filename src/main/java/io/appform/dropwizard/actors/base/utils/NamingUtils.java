@@ -1,4 +1,4 @@
-package io.dropwizard.actors.utils;
+package io.appform.dropwizard.actors.base.utils;
 
 public class NamingUtils {
 
