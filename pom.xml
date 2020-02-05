@@ -6,7 +6,7 @@
 
     <groupId>io.appform.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors</artifactId>
-    <version>1.3.13-3-SNAPSHOT</version>
+    <version>1.3.13-3</version>
     <name>Dropwizard RabbitMQ Bundle</name>
     <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors</url>
     <description>Provides actor abstraction on RabbitMQ for dropwizard based projects.</description>
