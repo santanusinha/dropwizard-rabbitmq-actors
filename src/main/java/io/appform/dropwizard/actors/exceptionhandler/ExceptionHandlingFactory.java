@@ -14,7 +14,9 @@ import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 public class ExceptionHandlingFactory {
 
     public ExceptionHandler create(ExceptionHandlerConfig config) {
-
+        if(config == null) {
+            return new MessageSidelineHandler(new SidelineConfig());
+        }
         return config.accept(new ExceptionHandlerConfigVisitor<ExceptionHandler>() {
             @Override
             public ExceptionHandler visit(DropConfig config) {
