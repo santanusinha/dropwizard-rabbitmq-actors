@@ -21,6 +21,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.rabbitmq.client.*;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
+import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import lombok.*;
@@ -52,6 +54,7 @@ public class UnmanagedBaseActor<Message> {
     private final Function<Throwable, Boolean> errorCheckFunction;
     private final String queueName;
     private final RetryStrategy retryStrategy;
+    private final ExceptionHandler exceptionHandler;
 
     private final Date activationTime;
 
@@ -64,6 +67,7 @@ public class UnmanagedBaseActor<Message> {
             RMQConnection connection,
             ObjectMapper mapper,
             RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction ) {
@@ -77,6 +81,7 @@ public class UnmanagedBaseActor<Message> {
         this.errorCheckFunction = errorCheckFunction;
         this.queueName  = String.format("%s.%s", config.getPrefix(), name);
         this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());
+        this.exceptionHandler = exceptionHandlingFactory.create(config.getExceptionHandlerConfig());
         this.activationTime = new Date( System.currentTimeMillis()
                                                 + (connection.getConfig().getStartupGracePeriodSeconds() * 1000));
     }
@@ -198,11 +203,13 @@ public class UnmanagedBaseActor<Message> {
                 }
             } catch (Throwable t) {
                 log.error("Error processing message...", t);
-                if (errorCheckFunction.apply(t)) {
+                if(errorCheckFunction.apply(t)) {
                     log.warn("Acked message due to exception: ", t);
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
-                }
-                else {
+                } else if(exceptionHandler.handle()) {
+                    log.warn("Acked message due to exception handling strategy: ", t);
+                    getChannel().basicAck(envelope.getDeliveryTag(), false);
+                } else {
                     getChannel().basicReject(envelope.getDeliveryTag(), false);
                 }
             }
