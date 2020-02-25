@@ -39,14 +39,14 @@ public class ConnectionRegistry implements Managed {
         return connections.computeIfAbsent(config.getName(), connection -> {
             log.info(String.format("Creating new RMQ connection with name [%s]", connection));
             RMQConnection rmqConnection = new RMQConnection(connection, rmqConfig, metricRegistry,
-                    executorServiceProvider.newFixedThreadPool(String.format("rabbitmq-actors.%s", connection),
+                    executorServiceProvider.newFixedThreadPool(String.format("rabbitmq-actors-%s", connection),
                             config.getThreadPoolSize()));
             try {
                 rmqConnection.start();
             } catch (Exception e) {
                 throw RabbitmqActorException.propagate(e);
             }
-            environment.healthChecks().register(String.format("rabbitmq-actors.%s", connection), rmqConnection.healthcheck());
+            environment.healthChecks().register(String.format("rabbitmq-actors-%s", connection), rmqConnection.healthcheck());
             log.info(String.format("Created new RMQ connection with name [%s]", connection));
             return rmqConnection;
         });

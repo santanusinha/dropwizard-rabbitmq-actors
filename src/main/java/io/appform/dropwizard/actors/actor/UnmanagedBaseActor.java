@@ -101,7 +101,7 @@ public class UnmanagedBaseActor<Message> {
             @Override
             public ConnectionConfig visit(ExclusiveConnectionStrategy strategy) {
                 return ConnectionConfig.builder()
-                        .name(String.format("producer.%s", actorName))
+                        .name(String.format("producer-%s", actorName))
                         .threadPoolSize(strategy.getThreadPoolSize())
                         .build();
             }
@@ -126,7 +126,7 @@ public class UnmanagedBaseActor<Message> {
             @Override
             public ConnectionConfig visit(ExclusiveConnectionStrategy strategy) {
                 return ConnectionConfig.builder()
-                        .name(String.format("consumer.%s", actorName))
+                        .name(String.format("consumer-%s", actorName))
                         .threadPoolSize(strategy.getThreadPoolSize())
                         .build();
             }
