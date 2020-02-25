@@ -19,6 +19,7 @@ package io.appform.dropwizard.actors;
 import com.codahale.metrics.MetricRegistry;
 import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.config.RMQConfig;
+import io.appform.dropwizard.actors.connectivity.ConnectionConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
@@ -57,7 +58,11 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
         val config = getConfig(t);
         this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, metricRegistry,
                 config);
-        this.connection = connectionRegistry.createOrGet(Constants.DEFAULT_CONNECTION_NAME);
+        environment.lifecycle().manage(connectionRegistry);
+        this.connection = connectionRegistry.createOrGet(ConnectionConfig.builder()
+                .name(Constants.DEFAULT_CONNECTION_NAME)
+                .threadPoolSize(config.getThreadPoolSize())
+                .build());
     }
 
     @Override

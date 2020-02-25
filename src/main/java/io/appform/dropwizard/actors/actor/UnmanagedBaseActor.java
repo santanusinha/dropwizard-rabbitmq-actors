@@ -22,7 +22,7 @@ import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.common.Constants;
-import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.connectivity.*;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import lombok.Data;
@@ -82,50 +82,62 @@ public class UnmanagedBaseActor<Message> {
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
-        val consumerConnection = connectionRegistry.createOrGet(consumerConnectionName(name, config));
-        val producerConnection = connectionRegistry.createOrGet(producerConnectionName(name, config));
+        val consumerConnection = connectionRegistry.createOrGet(consumerConfig(name, config.getConsumerConfig()));
+        val producerConnection = connectionRegistry.createOrGet(producerConfig(name, config.getProducerConfig()));
         this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper);
         this.consumeActor = new UnmanagedConsumer<>(
                 name, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz, handlerFunction,
                 errorCheckFunction);
     }
 
-    private String producerConnectionName(String name, ActorConfig config) {
-        if (config.getProducerConfig() == null) {
-            return Constants.DEFAULT_CONNECTION_NAME;
+    private ConnectionConfig producerConfig(String actorName, ProducerConfig producerConfig) {
+        if (producerConfig == null) {
+            return ConnectionConfig.builder()
+                    .name(Constants.DEFAULT_CONNECTION_NAME)
+                    .build();
         }
 
-        return config.getProducerConfig().getConnectionIsolationLevel().accept(
-                new ConnectionIsolation.ConnectionIsolationVisitor<String>() {
-                    @Override
-                    public String visitShared() {
-                        return Constants.DEFAULT_CONNECTION_NAME;
-                    }
+        return producerConfig.getConnectionIsolationStrategy().accept(new ConnectionIsolationStrategyVisitor<ConnectionConfig>() {
+            @Override
+            public ConnectionConfig visit(ExclusiveConnectionStrategy strategy) {
+                return ConnectionConfig.builder()
+                        .name(String.format("producer.%s", actorName))
+                        .threadPoolSize(strategy.getThreadPoolSize())
+                        .build();
+            }
 
-                    @Override
-                    public String visitExclusive() {
-                        return name;
-                    }
-                });
+            @Override
+            public ConnectionConfig visit(SharedConnectionStrategy strategy) {
+                return ConnectionConfig.builder()
+                        .name(Constants.DEFAULT_CONNECTION_NAME)
+                        .build();
+            }
+        });
     }
 
-    private String consumerConnectionName(String name, ActorConfig config) {
-        if (config.getConsumerConfig() == null) {
-            return Constants.DEFAULT_CONNECTION_NAME;
+    private ConnectionConfig consumerConfig(String actorName, ConsumerConfig consumerConfig) {
+        if (consumerConfig == null) {
+            return ConnectionConfig.builder()
+                    .name(Constants.DEFAULT_CONNECTION_NAME)
+                    .build();
         }
 
-        return config.getConsumerConfig().getConnectionIsolationLevel().accept(
-                new ConnectionIsolation.ConnectionIsolationVisitor<String>() {
-                    @Override
-                    public String visitShared() {
-                        return Constants.DEFAULT_CONNECTION_NAME;
-                    }
+        return consumerConfig.getConnectionIsolationStrategy().accept(new ConnectionIsolationStrategyVisitor<ConnectionConfig>() {
+            @Override
+            public ConnectionConfig visit(ExclusiveConnectionStrategy strategy) {
+                return ConnectionConfig.builder()
+                        .name(String.format("consumer.%s", actorName))
+                        .threadPoolSize(strategy.getThreadPoolSize())
+                        .build();
+            }
 
-                    @Override
-                    public String visitExclusive() {
-                        return name;
-                    }
-                });
+            @Override
+            public ConnectionConfig visit(SharedConnectionStrategy strategy) {
+                return ConnectionConfig.builder()
+                        .name(Constants.DEFAULT_CONNECTION_NAME)
+                        .build();
+            }
+        });
     }
 
     public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {

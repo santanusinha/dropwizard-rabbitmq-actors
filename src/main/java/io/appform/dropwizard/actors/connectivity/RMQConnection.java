@@ -65,6 +65,7 @@ public class RMQConnection implements Managed {
 
     @Override
     public void start() throws Exception {
+        log.info(String.format("Starting RMQ connection [%s]", name));
         ConnectionFactory factory = new ConnectionFactory();
         factory.setMetricsCollector(new StandardMetricsCollector(metricRegistry, name));
         if(config.isSecure()) {
@@ -103,6 +104,7 @@ public class RMQConnection implements Managed {
                         .toArray(Address[]::new)
         );
         channel = connection.createChannel();
+        log.info(String.format("Started RMQ connection [%s] ", name));
     }
 
     public void ensure(final String queueName,
@@ -128,7 +130,7 @@ public class RMQConnection implements Managed {
                        final Map<String, Object> rmqOpts) throws Exception {
         channel.queueDeclare(queueName, true, false, false, rmqOpts);
         channel.queueBind(queueName, exchange, routingQueue);
-        log.info("Created queue: {}", queueName);
+        log.info("Created queue: {} bound to {}", queueName, exchange);
     }
 
     public Map<String, Object> rmqOpts() {

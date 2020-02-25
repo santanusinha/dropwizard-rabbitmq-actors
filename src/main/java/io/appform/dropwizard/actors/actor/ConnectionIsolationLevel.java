@@ -1,6 +1,6 @@
 package io.appform.dropwizard.actors.actor;
 
-public enum ConnectionIsolation {
+public enum ConnectionIsolationLevel {
 
     SHARED {
         @Override
