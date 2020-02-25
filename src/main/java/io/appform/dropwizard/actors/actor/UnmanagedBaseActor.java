@@ -137,7 +137,7 @@ public class UnmanagedBaseActor<Message> {
                     .name(Constants.DEFAULT_CONNECTION_NAME)
                     .build();
         }
-        return connectionConfig(String.format("consumer-%s", actorName),
+        return connectionConfig(String.format("producer-%s", actorName),
                 producerConfig.getConnectionIsolationStrategy());
     }
 
