@@ -46,14 +46,17 @@ import java.util.concurrent.ExecutorService;
 public class RMQConnection implements Managed {
     @Getter
     private final RMQConfig config;
-    @VisibleForTesting
-    @Getter
+    private final String name;
     private Connection connection;
     private Channel channel;
     private final MetricRegistry metricRegistry;
     private final ExecutorService executorService;
 
-    public RMQConnection(RMQConfig config, MetricRegistry metricRegistry, ExecutorService executorService) {
+    public RMQConnection(String name,
+                         RMQConfig config,
+                         MetricRegistry metricRegistry,
+                         ExecutorService executorService) {
+        this.name = name;
         this.config = config;
         this.metricRegistry = metricRegistry;
         this.executorService = executorService;
@@ -63,7 +66,7 @@ public class RMQConnection implements Managed {
     @Override
     public void start() throws Exception {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setMetricsCollector(new StandardMetricsCollector(metricRegistry));
+        factory.setMetricsCollector(new StandardMetricsCollector(metricRegistry, name));
         if(config.isSecure()) {
             factory.setUsername(config.getUserName());
             factory.setPassword(config.getPassword());

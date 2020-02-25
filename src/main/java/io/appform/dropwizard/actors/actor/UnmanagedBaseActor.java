@@ -18,15 +18,18 @@ package io.appform.dropwizard.actors.actor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
+import io.appform.dropwizard.actors.ConnectionRegistry;
+import io.appform.dropwizard.actors.base.UnmanagedConsumer;
+import io.appform.dropwizard.actors.base.UnmanagedPublisher;
+import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.appform.dropwizard.actors.base.UnmanagedConsumer;
-import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.function.Function;
@@ -67,6 +70,62 @@ public class UnmanagedBaseActor<Message> {
                 new UnmanagedConsumer<>(
                         name, config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz, handlerFunction,
                         errorCheckFunction));
+    }
+
+    public UnmanagedBaseActor(
+            String name,
+            ActorConfig config,
+            ConnectionRegistry connectionRegistry,
+            ObjectMapper mapper,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            MessageHandlingFunction<Message, Boolean> handlerFunction,
+            Function<Throwable, Boolean> errorCheckFunction) {
+        val consumerConnection = connectionRegistry.createOrGet(consumerConnectionName(name, config));
+        val producerConnection = connectionRegistry.createOrGet(producerConnectionName(name, config));
+        this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper);
+        this.consumeActor = new UnmanagedConsumer<>(
+                name, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz, handlerFunction,
+                errorCheckFunction);
+    }
+
+    private String producerConnectionName(String name, ActorConfig config) {
+        if (config.getProducerConfig() == null) {
+            return Constants.DEFAULT_CONNECTION_NAME;
+        }
+
+        return config.getProducerConfig().getConnectionIsolationLevel().accept(
+                new ConnectionIsolation.ConnectionIsolationVisitor<String>() {
+                    @Override
+                    public String visitShared() {
+                        return Constants.DEFAULT_CONNECTION_NAME;
+                    }
+
+                    @Override
+                    public String visitExclusive() {
+                        return name;
+                    }
+                });
+    }
+
+    private String consumerConnectionName(String name, ActorConfig config) {
+        if (config.getConsumerConfig() == null) {
+            return Constants.DEFAULT_CONNECTION_NAME;
+        }
+
+        return config.getConsumerConfig().getConnectionIsolationLevel().accept(
+                new ConnectionIsolation.ConnectionIsolationVisitor<String>() {
+                    @Override
+                    public String visitShared() {
+                        return Constants.DEFAULT_CONNECTION_NAME;
+                    }
+
+                    @Override
+                    public String visitExclusive() {
+                        return name;
+                    }
+                });
     }
 
     public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {

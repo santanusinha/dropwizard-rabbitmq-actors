@@ -17,10 +17,11 @@
 package io.appform.dropwizard.actors;
 
 import com.codahale.metrics.MetricRegistry;
-import io.dropwizard.Configuration;
-import io.dropwizard.ConfiguredBundle;
+import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.dropwizard.Configuration;
+import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import lombok.Getter;
@@ -38,15 +39,15 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     @Getter
     private RMQConnection connection;
 
+    @Getter
+    private ConnectionRegistry connectionRegistry;
+
     private ExecutorServiceProvider executorServiceProvider;
 
     private MetricRegistry metricRegistry;
 
-    protected RabbitmqActorBundle() {
-
-    }
-
-    protected RabbitmqActorBundle(MetricRegistry metricRegistry, ExecutorServiceProvider executorServiceProvider) {
+    protected RabbitmqActorBundle(final MetricRegistry metricRegistry,
+                                  final ExecutorServiceProvider executorServiceProvider) {
         this.metricRegistry = metricRegistry;
         this.executorServiceProvider = executorServiceProvider;
     }
@@ -54,12 +55,9 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     @Override
     public void run(T t, Environment environment) throws Exception {
         val config = getConfig(t);
-        val metrics = metrics(environment);
-        val executorServiceProvide = executorServiceProvider();
-        connection = new RMQConnection(config, metrics,
-                executorServiceProvide.newFixedThreadPool("rabbitmq-actors", config.getThreadPoolSize()));
-        environment.lifecycle().manage(connection);
-        environment.healthChecks().register("rabbitmq-actors", connection.healthcheck());
+        this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, metricRegistry,
+                config);
+        this.connection = connectionRegistry.createOrGet(Constants.DEFAULT_CONNECTION_NAME);
     }
 
     @Override
@@ -81,7 +79,6 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     protected ExecutorServiceProvider getExecutorServiceProvider(T t) {
         return (name, coreSize) -> Executors.newFixedThreadPool(coreSize);
     }
-
 
     private MetricRegistry metrics(Environment environment) {
         if (this.metricRegistry != null) {
