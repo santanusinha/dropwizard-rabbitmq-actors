@@ -10,6 +10,7 @@ import io.dropwizard.setup.Environment;
 import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -38,15 +39,17 @@ public class ConnectionRegistry implements Managed {
     public RMQConnection createOrGet(ConnectionConfig config) {
         return connections.computeIfAbsent(config.getName(), connection -> {
             log.info(String.format("Creating new RMQ connection with name [%s]", connection));
-            RMQConnection rmqConnection = new RMQConnection(connection, rmqConfig, metricRegistry,
-                    executorServiceProvider.newFixedThreadPool(String.format("rabbitmq-actors-%s", connection),
-                            config.getThreadPoolSize()));
+            val rmqConnection = new RMQConnection(connection,
+                    rmqConfig,
+                    metricRegistry,
+                    executorServiceProvider.newFixedThreadPool(String.format("rmqconnection-%s", connection),
+                            config.getThreadPoolSize()),
+                    environment);
             try {
                 rmqConnection.start();
             } catch (Exception e) {
                 throw RabbitmqActorException.propagate(e);
             }
-            environment.healthChecks().register(String.format("rabbitmq-actors-%s", connection), rmqConnection.healthcheck());
             log.info(String.format("Created new RMQ connection with name [%s]", connection));
             return rmqConnection;
         });

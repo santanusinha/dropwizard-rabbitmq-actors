@@ -1,5 +1,6 @@
 package io.appform.dropwizard.actors.connectivity;
 
+import io.appform.dropwizard.actors.common.Constants;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,7 +22,7 @@ public class ConnectionConfig {
     private String name;
 
     @Min(1)
-    @Max(100)
+    @Max(Constants.MAX_THREADS_PER_CONNECTION)
     private int threadPoolSize;
 
 }

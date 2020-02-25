@@ -82,62 +82,30 @@ public class UnmanagedBaseActor<Message> {
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
-        val consumerConnection = connectionRegistry.createOrGet(consumerConfig(name, config.getConsumerConfig()));
-        val producerConnection = connectionRegistry.createOrGet(producerConfig(name, config.getProducerConfig()));
+        val consumerConnection = connectionRegistry.createOrGet(consumerConfig(name, config.getConsumer()));
+        val producerConnection = connectionRegistry.createOrGet(producerConfig(name, config.getProducer()));
         this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper);
         this.consumeActor = new UnmanagedConsumer<>(
                 name, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz, handlerFunction,
                 errorCheckFunction);
     }
 
-    private ConnectionConfig producerConfig(String actorName, ProducerConfig producerConfig) {
-        if (producerConfig == null) {
-            return ConnectionConfig.builder()
-                    .name(Constants.DEFAULT_CONNECTION_NAME)
-                    .build();
+    public void start() throws Exception {
+        if (nonNull(publishActor)) {
+            publishActor.start();
         }
-
-        return producerConfig.getConnectionIsolationStrategy().accept(new ConnectionIsolationStrategyVisitor<ConnectionConfig>() {
-            @Override
-            public ConnectionConfig visit(ExclusiveConnectionStrategy strategy) {
-                return ConnectionConfig.builder()
-                        .name(String.format("producer-%s", actorName))
-                        .threadPoolSize(strategy.getThreadPoolSize())
-                        .build();
-            }
-
-            @Override
-            public ConnectionConfig visit(SharedConnectionStrategy strategy) {
-                return ConnectionConfig.builder()
-                        .name(Constants.DEFAULT_CONNECTION_NAME)
-                        .build();
-            }
-        });
+        if (nonNull(consumeActor)) {
+            consumeActor.start();
+        }
     }
 
-    private ConnectionConfig consumerConfig(String actorName, ConsumerConfig consumerConfig) {
-        if (consumerConfig == null) {
-            return ConnectionConfig.builder()
-                    .name(Constants.DEFAULT_CONNECTION_NAME)
-                    .build();
+    public void stop() throws Exception {
+        if (nonNull(publishActor)) {
+            publishActor.stop();
         }
-
-        return consumerConfig.getConnectionIsolationStrategy().accept(new ConnectionIsolationStrategyVisitor<ConnectionConfig>() {
-            @Override
-            public ConnectionConfig visit(ExclusiveConnectionStrategy strategy) {
-                return ConnectionConfig.builder()
-                        .name(String.format("consumer-%s", actorName))
-                        .threadPoolSize(strategy.getThreadPoolSize())
-                        .build();
-            }
-
-            @Override
-            public ConnectionConfig visit(SharedConnectionStrategy strategy) {
-                return ConnectionConfig.builder()
-                        .name(Constants.DEFAULT_CONNECTION_NAME)
-                        .build();
-            }
-        });
+        if (nonNull(consumeActor)) {
+            consumeActor.stop();
+        }
     }
 
     public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
@@ -163,21 +131,50 @@ public class UnmanagedBaseActor<Message> {
         return publishActor;
     }
 
-    public void start() throws Exception {
-        if (nonNull(publishActor)) {
-            publishActor.start();
+    private ConnectionConfig producerConfig(String actorName, ProducerConfig producerConfig) {
+        if (producerConfig == null) {
+            return ConnectionConfig.builder()
+                    .name(Constants.DEFAULT_CONNECTION_NAME)
+                    .build();
         }
-        if (nonNull(consumeActor)) {
-            consumeActor.start();
-        }
+        return connectionConfig(String.format("consumer-%s", actorName),
+                producerConfig.getConnectionIsolationStrategy());
     }
 
-    public void stop() throws Exception {
-        if (nonNull(publishActor)) {
-            publishActor.stop();
+    private ConnectionConfig consumerConfig(String actorName, ConsumerConfig consumerConfig) {
+        if (consumerConfig == null) {
+            return ConnectionConfig.builder()
+                    .name(Constants.DEFAULT_CONNECTION_NAME)
+                    .build();
         }
-        if (nonNull(consumeActor)) {
-            consumeActor.stop();
-        }
+
+        return connectionConfig(String.format("consumer-%s", actorName),
+                consumerConfig.getConnectionIsolationStrategy());
     }
+
+    private ConnectionConfig connectionConfig(String connectionName, ConnectionIsolationStrategy isolationStrategy) {
+        if (isolationStrategy == null) {
+            return ConnectionConfig.builder()
+                    .name(Constants.DEFAULT_CONNECTION_NAME)
+                    .build();
+        }
+
+        return isolationStrategy.accept(new ConnectionIsolationStrategyVisitor<ConnectionConfig>() {
+            @Override
+            public ConnectionConfig visit(ExclusiveConnectionStrategy strategy) {
+                return ConnectionConfig.builder()
+                        .name(connectionName)
+                        .threadPoolSize(strategy.getThreadPoolSize())
+                        .build();
+            }
+
+            @Override
+            public ConnectionConfig visit(SharedConnectionStrategy strategy) {
+                return ConnectionConfig.builder()
+                        .name(Constants.DEFAULT_CONNECTION_NAME)
+                        .build();
+            }
+        });
+    }
+
 }

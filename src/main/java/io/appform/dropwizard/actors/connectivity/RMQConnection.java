@@ -19,7 +19,6 @@ package io.appform.dropwizard.actors.connectivity;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheck;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -28,8 +27,10 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.StandardMetricsCollector;
+import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.dropwizard.lifecycle.Managed;
+import io.dropwizard.setup.Environment;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
@@ -51,15 +52,18 @@ public class RMQConnection implements Managed {
     private Channel channel;
     private final MetricRegistry metricRegistry;
     private final ExecutorService executorService;
+    private final Environment environment;
 
     public RMQConnection(String name,
                          RMQConfig config,
                          MetricRegistry metricRegistry,
-                         ExecutorService executorService) {
+                         ExecutorService executorService,
+                         Environment environment) {
         this.name = name;
         this.config = config;
         this.metricRegistry = metricRegistry;
         this.executorService = executorService;
+        this.environment = environment;
     }
 
 
@@ -67,14 +71,13 @@ public class RMQConnection implements Managed {
     public void start() throws Exception {
         log.info(String.format("Starting RMQ connection [%s]", name));
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setMetricsCollector(new StandardMetricsCollector(metricRegistry, name));
-        if(config.isSecure()) {
+        factory.setMetricsCollector(new StandardMetricsCollector(metricRegistry, metricPrefix(name)));
+        if (config.isSecure()) {
             factory.setUsername(config.getUserName());
             factory.setPassword(config.getPassword());
-            if(Strings.isNullOrEmpty(config.getCertStorePath())) {
+            if (Strings.isNullOrEmpty(config.getCertStorePath())) {
                 factory.useSslProtocol();
-            }
-            else {
+            } else {
                 Preconditions.checkNotNull(config.getCertPassword(), "Cert password is required if cert file path has been provided");
                 KeyStore ks = KeyStore.getInstance("JKS");
                 ks.load(new FileInputStream(config.getCertStorePath()), config.getCertPassword().toCharArray());
@@ -89,8 +92,7 @@ public class RMQConnection implements Managed {
                 factory.useSslProtocol(c);
                 factory.setVirtualHost(config.getUserName());
             }
-        }
-        else {
+        } else {
             factory.setUsername(config.getUserName());
             factory.setPassword(config.getPassword());
         }
@@ -104,7 +106,12 @@ public class RMQConnection implements Managed {
                         .toArray(Address[]::new)
         );
         channel = connection.createChannel();
+        environment.healthChecks().register(String.format("rmqconnection-%s", connection), healthcheck());
         log.info(String.format("Started RMQ connection [%s] ", name));
+    }
+
+    private String metricPrefix(String name) {
+        return String.format("rmqconnection.%s", NamingUtils.sanitizeMetricName(name));
     }
 
     public void ensure(final String queueName,
@@ -115,7 +122,7 @@ public class RMQConnection implements Managed {
     public void ensure(final String queueName,
                        final String exchange,
                        final Map<String, Object> rmqOpts) throws Exception {
-        ensure(queueName, queueName, exchange, rmqOpts);    
+        ensure(queueName, queueName, exchange, rmqOpts);
     }
 
     public void ensure(final String queueName,
@@ -153,19 +160,19 @@ public class RMQConnection implements Managed {
             @Override
             protected Result check() throws Exception {
                 if (connection == null) {
-                    log.warn("RMQ Htalthcheck::No RMQ connection available");
+                    log.warn("RMQ Healthcheck::No RMQ connection available");
                     return Result.unhealthy("No RMQ connection available");
                 }
                 if (!connection.isOpen()) {
-                    log.warn("RMQ Htalthcheck::RMQ connection is not open");
+                    log.warn("RMQ Healthcheck::RMQ connection is not open");
                     return Result.unhealthy("RMQ connection is not open");
                 }
-                if(null == channel) {
-                    log.warn("RMQ Htalthcheck::Producer channel is down");
+                if (null == channel) {
+                    log.warn("RMQ Healthcheck::Producer channel is down");
                     return Result.unhealthy("Producer channel is down");
                 }
-                if(!channel.isOpen()) {
-                    log.warn("RMQ Htalthcheck::Producer channel is closed");
+                if (!channel.isOpen()) {
+                    log.warn("RMQ Healthcheck::Producer channel is closed");
                     return Result.unhealthy("Producer channel is closed");
                 }
                 return Result.healthy();
@@ -175,10 +182,10 @@ public class RMQConnection implements Managed {
 
     @Override
     public void stop() throws Exception {
-        if(null != channel && channel.isOpen()) {
+        if (null != channel && channel.isOpen()) {
             channel.close();
         }
-        if(null != connection && connection.isOpen()) {
+        if (null != connection && connection.isOpen()) {
             connection.close();
         }
     }
@@ -190,8 +197,8 @@ public class RMQConnection implements Managed {
     public Channel newChannel() throws IOException {
         return connection.createChannel();
     }
-    
-    private String getSideline(String name){
+
+    private String getSideline(String name) {
         return String.format("%s_%s", name, "SIDELINE");
     }
 }

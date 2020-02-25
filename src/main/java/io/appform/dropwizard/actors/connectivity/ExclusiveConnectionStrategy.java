@@ -1,6 +1,7 @@
 package io.appform.dropwizard.actors.connectivity;
 
 import io.appform.dropwizard.actors.actor.ConnectionIsolationLevel;
+import io.appform.dropwizard.actors.common.Constants;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -15,7 +16,7 @@ import javax.validation.constraints.Min;
 public class ExclusiveConnectionStrategy extends ConnectionIsolationStrategy {
 
     @Min(1)
-    @Max(100)
+    @Max(Constants.MAX_THREADS_PER_CONNECTION)
     @Builder.Default
     private int threadPoolSize = 10;
 
