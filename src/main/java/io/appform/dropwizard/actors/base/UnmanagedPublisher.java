@@ -104,6 +104,7 @@ public class UnmanagedPublisher<Message> {
                         .put("x-ha-policy", "all")
                         .put("ha-mode", "all")
                         .build());
+        log.info("Created exchange: {}", exchange);
     }
 
     private void ensureDelayedExchange(String exchange) throws IOException {
@@ -120,6 +121,7 @@ public class UnmanagedPublisher<Message> {
                             .put("ha-mode", "all")
                             .put("x-delayed-type", "direct")
                             .build());
+            log.info("Created delayed exchange: {}", exchange);
         }
     }
 

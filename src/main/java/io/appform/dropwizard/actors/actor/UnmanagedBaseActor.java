@@ -18,15 +18,22 @@ package io.appform.dropwizard.actors.actor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
-import io.appform.dropwizard.actors.connectivity.RMQConnection;
-import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
-import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
+import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
+import io.appform.dropwizard.actors.common.Constants;
+import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategy;
+import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategyVisitor;
+import io.appform.dropwizard.actors.connectivity.strategy.DefaultConnectionStrategy;
+import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
+import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.function.Function;
@@ -69,6 +76,42 @@ public class UnmanagedBaseActor<Message> {
                         errorCheckFunction));
     }
 
+    public UnmanagedBaseActor(
+            String name,
+            ActorConfig config,
+            ConnectionRegistry connectionRegistry,
+            ObjectMapper mapper,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            MessageHandlingFunction<Message, Boolean> handlerFunction,
+            Function<Throwable, Boolean> errorCheckFunction) {
+        val consumerConnection = connectionRegistry.createOrGet(consumerConnectionName(config.getConsumer()));
+        val producerConnection = connectionRegistry.createOrGet(producerConnectionName(config.getProducer()));
+        this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper);
+        this.consumeActor = new UnmanagedConsumer<>(
+                name, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz, handlerFunction,
+                errorCheckFunction);
+    }
+
+    public void start() throws Exception {
+        if (nonNull(publishActor)) {
+            publishActor.start();
+        }
+        if (nonNull(consumeActor)) {
+            consumeActor.start();
+        }
+    }
+
+    public void stop() throws Exception {
+        if (nonNull(publishActor)) {
+            publishActor.stop();
+        }
+        if (nonNull(consumeActor)) {
+            consumeActor.stop();
+        }
+    }
+
     public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
         publishActor().publishWithDelay(message, delayMilliseconds);
     }
@@ -92,21 +135,39 @@ public class UnmanagedBaseActor<Message> {
         return publishActor;
     }
 
-    public void start() throws Exception {
-        if (nonNull(publishActor)) {
-            publishActor.start();
+    private String producerConnectionName(ProducerConfig producerConfig) {
+        if (producerConfig == null) {
+            return Constants.DEFAULT_CONNECTION_NAME;
         }
-        if (nonNull(consumeActor)) {
-            consumeActor.start();
-        }
+        return deriveConnectionName(producerConfig.getConnectionIsolationStrategy());
     }
 
-    public void stop() throws Exception {
-        if (nonNull(publishActor)) {
-            publishActor.stop();
+    private String consumerConnectionName(ConsumerConfig consumerConfig) {
+        if (consumerConfig == null) {
+            return Constants.DEFAULT_CONNECTION_NAME;
         }
-        if (nonNull(consumeActor)) {
-            consumeActor.stop();
-        }
+
+        return deriveConnectionName(consumerConfig.getConnectionIsolationStrategy());
     }
+
+    private String deriveConnectionName(ConnectionIsolationStrategy isolationStrategy) {
+        if (isolationStrategy == null) {
+            return Constants.DEFAULT_CONNECTION_NAME;
+        }
+
+        return isolationStrategy.accept(new ConnectionIsolationStrategyVisitor<String>() {
+
+            @Override
+            public String visit(SharedConnectionStrategy strategy) {
+                return strategy.getName();
+            }
+
+            @Override
+            public String visit(DefaultConnectionStrategy strategy) {
+                return Constants.DEFAULT_CONNECTION_NAME;
+            }
+
+        });
+    }
+
 }

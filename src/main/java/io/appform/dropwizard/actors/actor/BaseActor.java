@@ -19,6 +19,7 @@ package io.appform.dropwizard.actors.actor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.MessageProperties;
+import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
@@ -61,6 +62,7 @@ public abstract class BaseActor<Message> implements Managed {
         this.droppedExceptionTypes = droppedExceptionTypes;
     }
 
+    @Deprecated
     protected BaseActor(
             String name,
             ActorConfig config,
@@ -78,6 +80,25 @@ public abstract class BaseActor<Message> implements Managed {
                 this::handle,
                 this::isExceptionIgnorable);
     }
+
+    protected BaseActor(
+            String name,
+            ActorConfig config,
+            ConnectionRegistry connectionRegistry,
+            ObjectMapper mapper,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            Set<Class<?>> droppedExceptionTypes) {
+        this.droppedExceptionTypes
+                = null == droppedExceptionTypes
+                ? Collections.emptySet() : droppedExceptionTypes;
+        actorImpl = new UnmanagedBaseActor<>(name, config, connectionRegistry, mapper, retryStrategyFactory,
+                exceptionHandlingFactory, clazz,
+                this::handle,
+                this::isExceptionIgnorable);
+    }
+
 
     abstract protected boolean handle(Message message) throws Exception;
 
