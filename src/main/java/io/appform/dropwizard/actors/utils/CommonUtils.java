@@ -18,13 +18,13 @@ package io.appform.dropwizard.actors.utils;
 
 import com.google.common.base.Strings;
 import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CommonUtils {
 
     public static boolean isEmpty(Collection collection) {

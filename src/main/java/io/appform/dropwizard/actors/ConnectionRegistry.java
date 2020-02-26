@@ -22,16 +22,13 @@ public class ConnectionRegistry implements Managed {
     private final ConcurrentHashMap<String, RMQConnection> connections;
     private final Environment environment;
     private final ExecutorServiceProvider executorServiceProvider;
-    private final MetricRegistry metricRegistry;
     private final RMQConfig rmqConfig;
 
     public ConnectionRegistry(final Environment environment,
                               final ExecutorServiceProvider executorServiceProvider,
-                              final MetricRegistry metricRegistry,
                               final RMQConfig rmqConfig) {
         this.environment = environment;
         this.executorServiceProvider = executorServiceProvider;
-        this.metricRegistry = metricRegistry;
         this.rmqConfig = rmqConfig;
         this.connections = new ConcurrentHashMap<>();
     }
@@ -41,7 +38,7 @@ public class ConnectionRegistry implements Managed {
             log.info(String.format("Creating new RMQ connection with name [%s]", connection));
             val rmqConnection = new RMQConnection(connection,
                     rmqConfig,
-                    metricRegistry,
+                    environment.metrics(),
                     executorServiceProvider.newFixedThreadPool(String.format("rmqconnection-%s", connection),
                             config.getThreadPoolSize()),
                     environment);

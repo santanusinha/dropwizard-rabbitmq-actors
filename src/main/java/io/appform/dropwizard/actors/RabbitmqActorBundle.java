@@ -16,7 +16,7 @@
 
 package io.appform.dropwizard.actors;
 
-import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Preconditions;
 import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.ConnectionConfig;
@@ -43,21 +43,16 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     @Getter
     private ConnectionRegistry connectionRegistry;
 
-    private ExecutorServiceProvider executorServiceProvider;
+    protected RabbitmqActorBundle() {
 
-    private MetricRegistry metricRegistry;
-
-    protected RabbitmqActorBundle(final MetricRegistry metricRegistry,
-                                  final ExecutorServiceProvider executorServiceProvider) {
-        this.metricRegistry = metricRegistry;
-        this.executorServiceProvider = executorServiceProvider;
     }
 
     @Override
-    public void run(T t, Environment environment) throws Exception {
+    public void run(T t, Environment environment) {
         val config = getConfig(t);
-        this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, metricRegistry,
-                config);
+        val executorServiceProvider = getExecutorServiceProvider(t);
+        Preconditions.checkNotNull(executorServiceProvider, "Null executor service provider provided");
+        this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, config);
         environment.lifecycle().manage(connectionRegistry);
         this.connection = connectionRegistry.createOrGet(ConnectionConfig.builder()
                 .name(Constants.DEFAULT_CONNECTION_NAME)
@@ -73,30 +68,10 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     protected abstract RMQConfig getConfig(T t);
 
     /**
-     * Provides metric registry for instrumenting RMQConnection. If method returns null, default metric registry from
-     * dropwizard environment is picked
-     */
-
-    /**
      * Provides implementation for {@link ExecutorServiceProvider}. Should be overridden if custom executor service
      * implementations needs to be used. For e.g. {@link com.codahale.metrics.InstrumentedExecutorService}.
      */
     protected ExecutorServiceProvider getExecutorServiceProvider(T t) {
         return (name, coreSize) -> Executors.newFixedThreadPool(coreSize);
     }
-
-    private MetricRegistry metrics(Environment environment) {
-        if (this.metricRegistry != null) {
-            return this.metricRegistry;
-        }
-        return environment.metrics();
-    }
-
-    private ExecutorServiceProvider executorServiceProvider() {
-        if (this.executorServiceProvider != null) {
-            return executorServiceProvider;
-        }
-        return (name, coreSize) -> Executors.newFixedThreadPool(coreSize);
-    }
-
 }
