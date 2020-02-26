@@ -22,10 +22,7 @@ import com.codahale.metrics.health.HealthCheck;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
-import com.rabbitmq.client.Address;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.*;
 import com.rabbitmq.client.impl.StandardMetricsCollector;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
@@ -105,6 +102,17 @@ public class RMQConnection implements Managed {
                         .map(broker -> new Address(broker.getHost()))
                         .toArray(Address[]::new)
         );
+        connection.addBlockedListener(new BlockedListener() {
+            @Override
+            public void handleBlocked(String reason) throws IOException {
+                log.warn(String.format("RMQ Connection [%s] is blocked due to [%s]", name, reason));
+            }
+
+            @Override
+            public void handleUnblocked() throws IOException {
+                log.warn(String.format("RMQ Connection [%s] is unblocked now", name));
+            }
+        });
         channel = connection.createChannel();
         environment.healthChecks().register(String.format("rmqconnection-%s", connection), healthcheck());
         log.info(String.format("Started RMQ connection [%s] ", name));
