@@ -61,7 +61,7 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     }
 
     public RMQConnection getConnection() {
-        return connectionRegistry.createOrGet(Constants.DEFAULT_CONNECTION_NAME, rmqConfig.getThreadPoolSize());
+        return connectionRegistry.createOrGet(Constants.DEFAULT_CONNECTION_NAME);
     }
 
     protected abstract RMQConfig getConfig(T t);
