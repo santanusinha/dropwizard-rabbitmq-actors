@@ -38,10 +38,9 @@ import java.util.concurrent.Executors;
 public abstract class RabbitmqActorBundle<T extends Configuration> implements ConfiguredBundle<T> {
 
     @Getter
-    private RMQConnection connection;
-
-    @Getter
     private ConnectionRegistry connectionRegistry;
+
+    private RMQConfig rmqConfig;
 
     protected RabbitmqActorBundle() {
 
@@ -49,20 +48,23 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
 
     @Override
     public void run(T t, Environment environment) {
-        val config = getConfig(t);
+        this.rmqConfig = getConfig(t);
         val executorServiceProvider = getExecutorServiceProvider(t);
         Preconditions.checkNotNull(executorServiceProvider, "Null executor service provider provided");
-        this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, config);
+        this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, rmqConfig);
         environment.lifecycle().manage(connectionRegistry);
-        this.connection = connectionRegistry.createOrGet(ConnectionConfig.builder()
-                .name(Constants.DEFAULT_CONNECTION_NAME)
-                .threadPoolSize(config.getThreadPoolSize())
-                .build());
     }
 
     @Override
     public void initialize(Bootstrap<?> bootstrap) {
 
+    }
+
+    public RMQConnection getConnection() {
+        return connectionRegistry.createOrGet(ConnectionConfig.builder()
+                .name(Constants.DEFAULT_CONNECTION_NAME)
+                .threadPoolSize(rmqConfig.getThreadPoolSize())
+                .build());
     }
 
     protected abstract RMQConfig getConfig(T t);
