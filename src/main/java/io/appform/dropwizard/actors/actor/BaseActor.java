@@ -22,6 +22,8 @@ import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
+import io.appform.dropwizard.actors.base.UnmanagedConsumer;
+import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -44,6 +46,21 @@ public abstract class BaseActor<Message> implements Managed {
     private final UnmanagedBaseActor<Message> actorImpl;
     private final Set<Class<?>> droppedExceptionTypes;
 
+    protected BaseActor(UnmanagedPublisher<Message> publishActor, Set<Class<?>> droppedExceptionTypes) {
+        this(publishActor, null, droppedExceptionTypes);
+    }
+
+    protected BaseActor(UnmanagedConsumer<Message> consumeActor, Set<Class<?>> droppedExceptionTypes) {
+        this(null, consumeActor, droppedExceptionTypes);
+    }
+
+    protected BaseActor(UnmanagedPublisher<Message> produceActor,
+                        UnmanagedConsumer<Message> consumeActor,
+                        Set<Class<?>> droppedExceptionTypes) {
+        actorImpl = new UnmanagedBaseActor<>(produceActor, consumeActor);
+        this.droppedExceptionTypes = droppedExceptionTypes;
+    }
+
     protected BaseActor(
             String name,
             ActorConfig config,
@@ -55,9 +72,11 @@ public abstract class BaseActor<Message> implements Managed {
             Set<Class<?>> droppedExceptionTypes) {
         this.droppedExceptionTypes
                 = null == droppedExceptionTypes
-                    ? Collections.emptySet() : droppedExceptionTypes;
-        actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory,
-                clazz, this::handle, this::isExceptionIgnorable);
+                ? Collections.emptySet() : droppedExceptionTypes;
+        actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory,
+                exceptionHandlingFactory, clazz,
+                this::handle,
+                this::isExceptionIgnorable);
     }
 
     abstract protected boolean handle(Message message) throws Exception;
@@ -93,5 +112,4 @@ public abstract class BaseActor<Message> implements Managed {
     public void stop() throws Exception {
         actorImpl.stop();
     }
-
 }
