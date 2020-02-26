@@ -36,9 +36,9 @@ public class ConnectionRegistry implements Managed {
     public RMQConnection createOrGet(ConnectionConfig config) {
         return connections.computeIfAbsent(config.getName(), connection -> {
             log.info(String.format("Creating new RMQ connection with name [%s]", connection));
-            val rmqConnection = new RMQConnection(connection,
+            val rmqConnection = new RMQConnection(
+                    connection,
                     rmqConfig,
-                    environment.metrics(),
                     executorServiceProvider.newFixedThreadPool(String.format("rmqconnection-%s", connection),
                             config.getThreadPoolSize()),
                     environment);

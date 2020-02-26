@@ -47,18 +47,15 @@ public class RMQConnection implements Managed {
     private final String name;
     private Connection connection;
     private Channel channel;
-    private final MetricRegistry metricRegistry;
     private final ExecutorService executorService;
     private final Environment environment;
 
     public RMQConnection(String name,
                          RMQConfig config,
-                         MetricRegistry metricRegistry,
                          ExecutorService executorService,
                          Environment environment) {
         this.name = name;
         this.config = config;
-        this.metricRegistry = metricRegistry;
         this.executorService = executorService;
         this.environment = environment;
     }
@@ -68,7 +65,7 @@ public class RMQConnection implements Managed {
     public void start() throws Exception {
         log.info(String.format("Starting RMQ connection [%s]", name));
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setMetricsCollector(new StandardMetricsCollector(metricRegistry, metricPrefix(name)));
+        factory.setMetricsCollector(new StandardMetricsCollector(environment.metrics(), metricPrefix(name)));
         if (config.isSecure()) {
             factory.setUsername(config.getUserName());
             factory.setPassword(config.getPassword());
