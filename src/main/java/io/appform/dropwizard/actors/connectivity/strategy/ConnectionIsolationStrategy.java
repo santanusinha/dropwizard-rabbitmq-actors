@@ -1,4 +1,4 @@
-package io.appform.dropwizard.actors.connectivity;
+package io.appform.dropwizard.actors.connectivity.strategy;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -15,8 +15,8 @@ import javax.validation.constraints.NotNull;
 )
 @JsonSubTypes({
         @JsonSubTypes.Type(
-                name = "EXCLUSIVE",
-                value = ExclusiveConnectionStrategy.class
+                name = "DEFAULT",
+                value = DefaultConnectionStrategy.class
         ),
         @JsonSubTypes.Type(
                 name = "SHARED",

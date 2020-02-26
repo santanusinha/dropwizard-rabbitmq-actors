@@ -1,6 +1,6 @@
 package io.appform.dropwizard.actors;
 
-import com.codahale.metrics.MetricRegistry;
+import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.ConnectionConfig;
@@ -12,6 +12,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
@@ -33,14 +34,20 @@ public class ConnectionRegistry implements Managed {
         this.connections = new ConcurrentHashMap<>();
     }
 
-    public RMQConnection createOrGet(ConnectionConfig config) {
-        return connections.computeIfAbsent(config.getName(), connection -> {
-            log.info(String.format("Creating new RMQ connection with name [%s]", connection));
+    public RMQConnection createOrGet(String connectionName) {
+        val threadPoolSize = determineThreadPoolSize(connectionName);
+        return createOrGet(connectionName, threadPoolSize);
+    }
+
+    public RMQConnection createOrGet(String connectionName, int threadPoolSize) {
+        return connections.computeIfAbsent(connectionName, connection -> {
+            log.info(String.format("Creating new RMQ connection with name [%s] having [%d] threads", connection,
+                    threadPoolSize));
             val rmqConnection = new RMQConnection(
                     connection,
                     rmqConfig,
                     executorServiceProvider.newFixedThreadPool(String.format("rmqconnection-%s", connection),
-                            config.getThreadPoolSize()),
+                            threadPoolSize),
                     environment);
             try {
                 rmqConnection.start();
@@ -52,6 +59,17 @@ public class ConnectionRegistry implements Managed {
         });
     }
 
+    private int determineThreadPoolSize(String connectionName) {
+        if (rmqConfig.getConnections() == null) {
+            return Constants.DEFAULT_THREADS_PER_CONNECTION;
+        }
+
+        return rmqConfig.getConnections().stream()
+                .filter(x -> Objects.equals(x.getName(), connectionName))
+                .findAny()
+                .map(ConnectionConfig::getThreadPoolSize)
+                .orElse(Constants.DEFAULT_THREADS_PER_CONNECTION);
+    }
 
     @Override
     public void start() throws Exception {

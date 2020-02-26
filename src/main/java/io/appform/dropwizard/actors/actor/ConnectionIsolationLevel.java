@@ -2,6 +2,13 @@ package io.appform.dropwizard.actors.actor;
 
 public enum ConnectionIsolationLevel {
 
+    DEFAULT {
+        @Override
+        public <T> T accept(ConnectionIsolationVisitor<T> visitor) {
+            return visitor.visitDefault();
+        }
+    },
+
     SHARED {
         @Override
         public <T> T accept(ConnectionIsolationVisitor<T> visitor) {
@@ -23,6 +30,7 @@ public enum ConnectionIsolationLevel {
 
         T visitExclusive();
 
+        T visitDefault();
     }
 
 }

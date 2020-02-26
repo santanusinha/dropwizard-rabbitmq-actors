@@ -16,12 +16,14 @@
 
 package io.appform.dropwizard.actors.config;
 
+import io.appform.dropwizard.actors.connectivity.ConnectionConfig;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.NotEmpty;
 
+import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
@@ -79,5 +81,8 @@ public class RMQConfig {
     private String serverCertStorePath;
 
     private String serverCertPassword;
+
+    @Valid
+    private List<ConnectionConfig> connections;
 
 }

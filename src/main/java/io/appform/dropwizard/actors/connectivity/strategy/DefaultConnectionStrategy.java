@@ -1,7 +1,6 @@
-package io.appform.dropwizard.actors.connectivity;
+package io.appform.dropwizard.actors.connectivity.strategy;
 
 import io.appform.dropwizard.actors.actor.ConnectionIsolationLevel;
-import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -9,11 +8,11 @@ import lombok.ToString;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class SharedConnectionStrategy extends ConnectionIsolationStrategy {
+public class DefaultConnectionStrategy extends ConnectionIsolationStrategy {
 
-    @Builder
-    public SharedConnectionStrategy() {
-        super(ConnectionIsolationLevel.SHARED);
+
+    public DefaultConnectionStrategy() {
+        super(ConnectionIsolationLevel.DEFAULT);
     }
 
     @Override

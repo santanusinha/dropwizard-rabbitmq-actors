@@ -22,7 +22,11 @@ import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.common.Constants;
-import io.appform.dropwizard.actors.connectivity.*;
+import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategy;
+import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategyVisitor;
+import io.appform.dropwizard.actors.connectivity.strategy.DefaultConnectionStrategy;
+import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import lombok.Data;
@@ -82,8 +86,8 @@ public class UnmanagedBaseActor<Message> {
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
-        val consumerConnection = connectionRegistry.createOrGet(consumerConfig(name, config.getConsumer()));
-        val producerConnection = connectionRegistry.createOrGet(producerConfig(name, config.getProducer()));
+        val consumerConnection = connectionRegistry.createOrGet(consumerConnectionName(config.getConsumer()));
+        val producerConnection = connectionRegistry.createOrGet(producerConnectionName(config.getProducer()));
         this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper);
         this.consumeActor = new UnmanagedConsumer<>(
                 name, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz, handlerFunction,
@@ -131,49 +135,38 @@ public class UnmanagedBaseActor<Message> {
         return publishActor;
     }
 
-    private ConnectionConfig producerConfig(String actorName, ProducerConfig producerConfig) {
+    private String producerConnectionName(ProducerConfig producerConfig) {
         if (producerConfig == null) {
-            return ConnectionConfig.builder()
-                    .name(Constants.DEFAULT_CONNECTION_NAME)
-                    .build();
+            return Constants.DEFAULT_CONNECTION_NAME;
         }
-        return connectionConfig(String.format("producer-%s", actorName),
-                producerConfig.getConnectionIsolationStrategy());
+        return deriveConnectionName(producerConfig.getConnectionIsolationStrategy());
     }
 
-    private ConnectionConfig consumerConfig(String actorName, ConsumerConfig consumerConfig) {
+    private String consumerConnectionName(ConsumerConfig consumerConfig) {
         if (consumerConfig == null) {
-            return ConnectionConfig.builder()
-                    .name(Constants.DEFAULT_CONNECTION_NAME)
-                    .build();
+            return Constants.DEFAULT_CONNECTION_NAME;
         }
 
-        return connectionConfig(String.format("consumer-%s", actorName),
-                consumerConfig.getConnectionIsolationStrategy());
+        return deriveConnectionName(consumerConfig.getConnectionIsolationStrategy());
     }
 
-    private ConnectionConfig connectionConfig(String connectionName, ConnectionIsolationStrategy isolationStrategy) {
+    private String deriveConnectionName(ConnectionIsolationStrategy isolationStrategy) {
         if (isolationStrategy == null) {
-            return ConnectionConfig.builder()
-                    .name(Constants.DEFAULT_CONNECTION_NAME)
-                    .build();
+            return Constants.DEFAULT_CONNECTION_NAME;
         }
 
-        return isolationStrategy.accept(new ConnectionIsolationStrategyVisitor<ConnectionConfig>() {
+        return isolationStrategy.accept(new ConnectionIsolationStrategyVisitor<String>() {
+
             @Override
-            public ConnectionConfig visit(ExclusiveConnectionStrategy strategy) {
-                return ConnectionConfig.builder()
-                        .name(connectionName)
-                        .threadPoolSize(strategy.getThreadPoolSize())
-                        .build();
+            public String visit(SharedConnectionStrategy strategy) {
+                return strategy.getName();
             }
 
             @Override
-            public ConnectionConfig visit(SharedConnectionStrategy strategy) {
-                return ConnectionConfig.builder()
-                        .name(Constants.DEFAULT_CONNECTION_NAME)
-                        .build();
+            public String visit(DefaultConnectionStrategy strategy) {
+                return Constants.DEFAULT_CONNECTION_NAME;
             }
+
         });
     }
 
