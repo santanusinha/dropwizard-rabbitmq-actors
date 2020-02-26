@@ -17,11 +17,14 @@
 package io.appform.dropwizard.actors.utils;
 
 import com.google.common.base.Strings;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class CommonUtils {
 
     public static boolean isEmpty(Collection collection) {
@@ -41,6 +44,4 @@ public class CommonUtils {
                 || (null != exception
                 && retriableExceptions.contains(exception.getClass().getSimpleName()));
     }
-
-    private CommonUtils() {}
 }

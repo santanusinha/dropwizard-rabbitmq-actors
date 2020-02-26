@@ -69,4 +69,10 @@ public class ActorConfig {
 
     private ExceptionHandlerConfig exceptionHandlerConfig;
 
+    @Valid
+    private ProducerConfig producer;
+
+    @Valid
+    private ConsumerConfig consumer;
+
 }
