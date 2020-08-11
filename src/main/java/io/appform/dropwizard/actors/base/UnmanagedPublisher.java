@@ -9,10 +9,13 @@ import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlerType;
+import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConfig;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Optional;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
@@ -78,17 +81,28 @@ public class UnmanagedPublisher<Message> {
 
     public void start() throws Exception {
         final String exchange = config.getExchange();
-        final String dlx = config.getExchange() + "_SIDELINE";
+
         if (config.isDelayed()) {
             ensureDelayedExchange(exchange);
         } else {
             ensureExchange(exchange);
         }
-        ensureExchange(dlx);
+        ExceptionHandlerType exceptionHandlerType = Optional.ofNullable(config.getExceptionHandlerConfig())
+                .map(ExceptionHandlerConfig::getType)
+                .orElse(ExceptionHandlerType.SIDELINE);
+        switch (exceptionHandlerType) {
+            case DROP:
+                connection.ensure(queueName, config.getExchange(), connection.rmqOpts());
+                break;
+            case SIDELINE:
+                final String dlx = config.getExchange() + "_SIDELINE";
+                ensureExchange(dlx);
+                connection.ensure(queueName + "_SIDELINE", queueName, dlx);
+                connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx));
+                break;
+        }
 
         this.publishChannel = connection.newChannel();
-        connection.ensure(queueName + "_SIDELINE", queueName, dlx);
-        connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx));
         if (config.getDelayType() == DelayType.TTL) {
             connection.ensure(ttlQueue(queueName), queueName, ttlExchange(config), connection.rmqOpts(exchange));
         }
