@@ -94,6 +94,7 @@ public class RMQConnection implements Managed {
         factory.setTopologyRecoveryEnabled(true);
         factory.setNetworkRecoveryInterval(3000);
         factory.setRequestedHeartbeat(60);
+        factory.setVirtualHost(config.getVirtualHost());
         connection = factory.newConnection(executorService,
                 config.getBrokers().stream()
                         .map(broker -> new Address(broker.getHost()))
