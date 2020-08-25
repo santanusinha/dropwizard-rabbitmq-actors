@@ -16,6 +16,7 @@
 
 package io.appform.dropwizard.actors.actor;
 
+import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConfig;
 import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
 import lombok.*;
@@ -65,5 +66,13 @@ public class ActorConfig {
     @Valid
     @Builder.Default
     private RetryConfig retryConfig = new NoRetryConfig();
+
+    private ExceptionHandlerConfig exceptionHandlerConfig;
+
+    @Valid
+    private ProducerConfig producer;
+
+    @Valid
+    private ConsumerConfig consumer;
 
 }

@@ -1,29 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.appform.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors</artifactId>
-    <ciManagement>
-        <system>Travis CI</system>
-        <url>https://travis-ci.org/panchambharadwaj/dropwizard-rabbitmq-actors</url>
-    </ciManagement>
+    <version>1.3.18-3</version>
     <name>Dropwizard RabbitMQ Bundle</name>
-    <issueManagement>
-        <system>GitHub Issues</system>
-        <url>https://github.com/panchambharadwaj/dropwizard-rabbitmq-actors/issues</url>
-    </issueManagement>
+    <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors</url>
     <description>Provides actor abstraction on RabbitMQ for dropwizard based projects.</description>
     <inceptionYear>2016</inceptionYear>
-
     <scm>
-        <connection>scm:git:https://github.com/panchambharadwaj/dropwizard-rabbitmq-actors.git</connection>
-        <developerConnection>scm:https://github.com/panchambharadwaj/dropwizard-rabbitmq-actors.git
+        <connection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</connection>
+        <developerConnection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git
         </developerConnection>
         <tag>HEAD</tag>
-        <url>https://github.com/panchambharadwaj/dropwizard-rabbitmq-actors.git</url>
+        <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</url>
     </scm>
 
     <licenses>
@@ -35,7 +28,10 @@
         </license>
     </licenses>
 
-    <url>https://github.com/panchambharadwaj/dropwizard-rabbitmq-actors</url>
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors/issues</url>
+    </issueManagement>
 
     <developers>
         <developer>
@@ -49,7 +45,10 @@
         </developer>
     </developers>
 
-    <version>1.3.13-3</version>
+    <ciManagement>
+        <system>Travis CI</system>
+        <url>https://travis-ci.org/santanusinha/dropwizard-rabbitmq-actors</url>
+    </ciManagement>
 
     <distributionManagement>
         <snapshotRepository>
@@ -65,7 +64,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dropwizard.version>1.3.13</dropwizard.version>
+        <dropwizard.version>1.3.18</dropwizard.version>
         <lombok.version>1.18.8</lombok.version>
         <guava.version>28.0-jre</guava.version>
         <junit.version>4.12</junit.version>
@@ -93,6 +92,18 @@
             <artifactId>dropwizard-core</artifactId>
             <version>${dropwizard.version}</version>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-lang3</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- Added this library for java 11 compatibility-->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.8.1</version>
         </dependency>
         <dependency>
             <groupId>com.rabbitmq</groupId>

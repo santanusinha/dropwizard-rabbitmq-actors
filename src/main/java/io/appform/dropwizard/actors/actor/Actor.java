@@ -17,7 +17,9 @@
 package io.appform.dropwizard.actors.actor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -33,21 +35,36 @@ import java.util.Set;
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 @Slf4j
-public abstract class  Actor<MessageType extends Enum<MessageType>, Message> extends BaseActor<Message> {
+public abstract class Actor<MessageType extends Enum<MessageType>, Message> extends BaseActor<Message> {
 
     private MessageType type;
 
+    @Deprecated
     protected Actor(
             MessageType type,
             ActorConfig config,
             RMQConnection connection,
             ObjectMapper mapper,
             RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
-        super(type.name(), config, connection, mapper, retryStrategyFactory, clazz, droppedExceptionTypes);
+        super(type.name(), config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory,
+                clazz, droppedExceptionTypes);
         this.type = type;
     }
 
-
+    protected Actor(
+            MessageType type,
+            ActorConfig config,
+            ConnectionRegistry connectionRegistry,
+            ObjectMapper mapper,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            Set<Class<?>> droppedExceptionTypes) {
+        super(type.name(), config, connectionRegistry, mapper, retryStrategyFactory, exceptionHandlingFactory,
+                clazz, droppedExceptionTypes);
+        this.type = type;
+    }
 }

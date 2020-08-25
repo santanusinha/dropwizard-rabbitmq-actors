@@ -16,11 +16,13 @@
 
 package io.appform.dropwizard.actors;
 
-import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Preconditions;
+import io.appform.dropwizard.actors.common.Constants;
+import io.appform.dropwizard.actors.config.RMQConfig;
+import io.appform.dropwizard.actors.connectivity.ConnectionConfig;
+import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
-import io.appform.dropwizard.actors.config.RMQConfig;
-import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import lombok.Getter;
@@ -36,30 +38,21 @@ import java.util.concurrent.Executors;
 public abstract class RabbitmqActorBundle<T extends Configuration> implements ConfiguredBundle<T> {
 
     @Getter
-    private RMQConnection connection;
+    private ConnectionRegistry connectionRegistry;
 
-    private ExecutorServiceProvider executorServiceProvider;
-
-    private MetricRegistry metricRegistry;
+    private RMQConfig rmqConfig;
 
     protected RabbitmqActorBundle() {
 
     }
 
-    protected RabbitmqActorBundle(MetricRegistry metricRegistry, ExecutorServiceProvider executorServiceProvider) {
-        this.metricRegistry = metricRegistry;
-        this.executorServiceProvider = executorServiceProvider;
-    }
-
     @Override
-    public void run(T t, Environment environment) throws Exception {
-        val config = getConfig(t);
-        val metrics = metrics(environment);
-        val executorServiceProvide = executorServiceProvider();
-        connection = new RMQConnection(config, metrics,
-                executorServiceProvide.newFixedThreadPool("rabbitmq-actors", config.getThreadPoolSize()));
-        environment.lifecycle().manage(connection);
-        environment.healthChecks().register("rabbitmq-actors", connection.healthcheck());
+    public void run(T t, Environment environment) {
+        this.rmqConfig = getConfig(t);
+        val executorServiceProvider = getExecutorServiceProvider(t);
+        Preconditions.checkNotNull(executorServiceProvider, "Null executor service provider provided");
+        this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, rmqConfig);
+        environment.lifecycle().manage(connectionRegistry);
     }
 
     @Override
@@ -67,12 +60,11 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
 
     }
 
-    protected abstract RMQConfig getConfig(T t);
+    public RMQConnection getConnection() {
+        return connectionRegistry.createOrGet(Constants.DEFAULT_CONNECTION_NAME);
+    }
 
-    /**
-     * Provides metric registry for instrumenting RMQConnection. If method returns null, default metric registry from
-     * dropwizard environment is picked
-     */
+    protected abstract RMQConfig getConfig(T t);
 
     /**
      * Provides implementation for {@link ExecutorServiceProvider}. Should be overridden if custom executor service
@@ -81,20 +73,4 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     protected ExecutorServiceProvider getExecutorServiceProvider(T t) {
         return (name, coreSize) -> Executors.newFixedThreadPool(coreSize);
     }
-
-
-    private MetricRegistry metrics(Environment environment) {
-        if (this.metricRegistry != null) {
-            return this.metricRegistry;
-        }
-        return environment.metrics();
-    }
-
-    private ExecutorServiceProvider executorServiceProvider() {
-        if (this.executorServiceProvider != null) {
-            return executorServiceProvider;
-        }
-        return (name, coreSize) -> Executors.newFixedThreadPool(coreSize);
-    }
-
 }
