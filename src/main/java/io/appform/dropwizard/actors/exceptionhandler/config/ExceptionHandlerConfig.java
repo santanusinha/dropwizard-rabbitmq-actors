@@ -10,7 +10,8 @@ import lombok.ToString;
 /**
  * Created by kanika.khetawat on 04/02/20
  */
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type", defaultImpl = SidelineConfig.class)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type",
+        defaultImpl = SidelineConfig.class)
 @JsonSubTypes({
         @JsonSubTypes.Type(name = "SIDELINE", value = SidelineConfig.class),
         @JsonSubTypes.Type(name = "DROP", value = DropConfig.class)

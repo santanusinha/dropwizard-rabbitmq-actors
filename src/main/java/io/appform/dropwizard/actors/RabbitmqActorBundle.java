@@ -19,7 +19,6 @@ package io.appform.dropwizard.actors;
 import com.google.common.base.Preconditions;
 import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.config.RMQConfig;
-import io.appform.dropwizard.actors.connectivity.ConnectionConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;

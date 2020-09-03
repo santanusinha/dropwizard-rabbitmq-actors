@@ -17,12 +17,15 @@
 
 package io.appform.dropwizard.actors.connectivity;
 
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheck;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
-import com.rabbitmq.client.*;
+import com.rabbitmq.client.Address;
+import com.rabbitmq.client.BlockedListener;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.StandardMetricsCollector;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
@@ -45,10 +48,10 @@ public class RMQConnection implements Managed {
     @Getter
     private final RMQConfig config;
     private final String name;
-    private Connection connection;
-    private Channel channel;
     private final ExecutorService executorService;
     private final Environment environment;
+    private Connection connection;
+    private Channel channel;
 
     public RMQConnection(String name,
                          RMQConfig config,
@@ -72,12 +75,14 @@ public class RMQConnection implements Managed {
             if (Strings.isNullOrEmpty(config.getCertStorePath())) {
                 factory.useSslProtocol();
             } else {
-                Preconditions.checkNotNull(config.getCertPassword(), "Cert password is required if cert file path has been provided");
+                Preconditions.checkNotNull(config.getCertPassword(),
+                        "Cert password is required if cert file path has been provided");
                 KeyStore ks = KeyStore.getInstance("JKS");
                 ks.load(new FileInputStream(config.getCertStorePath()), config.getCertPassword().toCharArray());
 
                 KeyStore tks = KeyStore.getInstance("JKS");
-                tks.load(new FileInputStream(config.getServerCertStorePath()), config.getServerCertPassword().toCharArray());
+                tks.load(new FileInputStream(config.getServerCertStorePath()),
+                        config.getServerCertPassword().toCharArray());
                 SSLContext c = SSLContexts.custom()
                         .useProtocol("TLSv1.2")
                         .loadTrustMaterial(tks, new TrustSelfSignedStrategy())
@@ -101,12 +106,12 @@ public class RMQConnection implements Managed {
         );
         connection.addBlockedListener(new BlockedListener() {
             @Override
-            public void handleBlocked(String reason) throws IOException {
+            public void handleBlocked(String reason) {
                 log.warn(String.format("RMQ Connection [%s] is blocked due to [%s]", name, reason));
             }
 
             @Override
-            public void handleUnblocked() throws IOException {
+            public void handleUnblocked() {
                 log.warn(String.format("RMQ Connection [%s] is unblocked now", name));
             }
         });
@@ -163,7 +168,7 @@ public class RMQConnection implements Managed {
     public HealthCheck healthcheck() {
         return new HealthCheck() {
             @Override
-            protected Result check() throws Exception {
+            protected Result check() {
                 if (connection == null) {
                     log.warn("RMQ Healthcheck::No RMQ connection available");
                     return Result.unhealthy("No RMQ connection available");
@@ -195,7 +200,7 @@ public class RMQConnection implements Managed {
         }
     }
 
-    public Channel channel() throws IOException {
+    public Channel channel() {
         return channel;
     }
 

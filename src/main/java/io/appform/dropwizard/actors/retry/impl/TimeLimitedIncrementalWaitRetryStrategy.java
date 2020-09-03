@@ -38,8 +38,10 @@ public class TimeLimitedIncrementalWaitRetryStrategy extends RetryStrategy {
                         StopStrategies.stopAfterDelay(config.getMaxTime().toMilliseconds(), TimeUnit.MILLISECONDS))
                 .withBlockStrategy(BlockStrategies.threadSleepStrategy())
                 .withWaitStrategy(
-                        WaitStrategies.incrementingWait(config.getInitialWaitTime().toMilliseconds(), TimeUnit.MILLISECONDS,
-                                config.getWaitIncrement().toMilliseconds(), TimeUnit.MILLISECONDS))
+                        WaitStrategies.incrementingWait(config.getInitialWaitTime().toMilliseconds(),
+                                TimeUnit.MILLISECONDS,
+                                config.getWaitIncrement().toMilliseconds(),
+                                TimeUnit.MILLISECONDS))
                 .build());
     }
 }
