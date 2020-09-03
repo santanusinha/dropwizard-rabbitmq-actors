@@ -94,7 +94,7 @@ public class RMQConnection implements Managed {
         factory.setTopologyRecoveryEnabled(true);
         factory.setNetworkRecoveryInterval(3000);
         factory.setRequestedHeartbeat(60);
-        if (config.getVirtualHost() != null && !Strings.isNullOrEmpty(config.getVirtualHost())) {
+        if (!Strings.isNullOrEmpty(config.getVirtualHost())) {
             factory.setVirtualHost(config.getVirtualHost());
         }
         connection = factory.newConnection(executorService,
