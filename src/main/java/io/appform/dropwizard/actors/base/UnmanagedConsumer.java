@@ -37,7 +37,7 @@ public class UnmanagedConsumer<Message> {
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
 
-    private List<Handler> handlers = Lists.newArrayList();
+    private final List<Handler> handlers = Lists.newArrayList();
 
     public UnmanagedConsumer(
             String name,
@@ -64,6 +64,29 @@ public class UnmanagedConsumer<Message> {
 
     private boolean handle(Message message) throws Exception {
         return handlerFunction.apply(message);
+    }
+
+    public void start() throws Exception {
+        for (int i = 1; i <= config.getConcurrency(); i++) {
+            Channel consumeChannel = connection.newChannel();
+            final Handler handler = new Handler(consumeChannel, mapper, clazz, prefetchCount);
+            final String tag = consumeChannel.basicConsume(queueName, false, handler);
+            handler.setTag(tag);
+            handlers.add(handler);
+            log.info("Started consumer {} of type {}", i, name);
+        }
+    }
+
+    public void stop() {
+        handlers.forEach(handler -> {
+            try {
+                final Channel channel = handler.getChannel();
+                channel.basicCancel(handler.getTag());
+                channel.close();
+            } catch (Exception e) {
+                log.error(String.format("Error cancelling consumer: %s", handler.getTag()), e);
+            }
+        });
     }
 
     private class Handler extends DefaultConsumer {
@@ -96,7 +119,7 @@ public class UnmanagedConsumer<Message> {
                 } else {
                     getChannel().basicReject(envelope.getDeliveryTag(), false);
                 }
-            } catch (Throwable t) {
+            } catch (Exception t) {
                 log.error("Error processing message...", t);
                 if (errorCheckFunction.apply(t)) {
                     log.warn("Acked message due to exception: ", t);
@@ -109,29 +132,6 @@ public class UnmanagedConsumer<Message> {
                 }
             }
         }
-    }
-
-    public void start() throws Exception {
-        for (int i = 1; i <= config.getConcurrency(); i++) {
-            Channel consumeChannel = connection.newChannel();
-            final Handler handler = new Handler(consumeChannel, mapper, clazz, prefetchCount);
-            final String tag = consumeChannel.basicConsume(queueName, false, handler);
-            handler.setTag(tag);
-            handlers.add(handler);
-            log.info("Started consumer {} of type {}", i, name);
-        }
-    }
-
-    public void stop() throws Exception {
-        handlers.forEach(handler -> {
-            try {
-                final Channel channel = handler.getChannel();
-                channel.basicCancel(handler.getTag());
-                channel.close();
-            } catch (Exception e) {
-                log.error(String.format("Error cancelling consumer: %s", handler.getTag()), e);
-            }
-        });
     }
 
 }

@@ -142,7 +142,7 @@ public class UnmanagedPublisher<Message> {
         }
     }
 
-    protected final RMQConnection connection() throws Exception {
+    protected final RMQConnection connection() {
         return connection;
     }
 

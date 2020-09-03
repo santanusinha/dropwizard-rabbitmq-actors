@@ -54,7 +54,10 @@ public class TimeLimitedExponentialWaitRetryConfig extends RetryConfig {
     }
 
     @Builder
-    public TimeLimitedExponentialWaitRetryConfig(Duration maxTime, Duration maxTimeBetweenRetries, long multipier, Set<String> retriableExceptions) {
+    public TimeLimitedExponentialWaitRetryConfig(final Duration maxTime,
+                                                 final Duration maxTimeBetweenRetries,
+                                                 final long multipier,
+                                                 final Set<String> retriableExceptions) {
         super(RetryType.TIME_LIMITED_EXPONENTIAL_BACKOFF, retriableExceptions);
         this.maxTime = maxTime;
         this.maxTimeBetweenRetries = maxTimeBetweenRetries;

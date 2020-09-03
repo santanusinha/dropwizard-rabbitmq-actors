@@ -14,12 +14,6 @@ public enum ConnectionIsolationLevel {
         public <T> T accept(ConnectionIsolationVisitor<T> visitor) {
             return visitor.visitShared();
         }
-    },
-    EXCLUSIVE {
-        @Override
-        public <T> T accept(ConnectionIsolationVisitor<T> visitor) {
-            return visitor.visitExclusive();
-        }
     };
 
     public abstract <T> T accept(ConnectionIsolationVisitor<T> visitor);
@@ -27,8 +21,6 @@ public enum ConnectionIsolationLevel {
     public interface ConnectionIsolationVisitor<T> {
 
         T visitShared();
-
-        T visitExclusive();
 
         T visitDefault();
     }

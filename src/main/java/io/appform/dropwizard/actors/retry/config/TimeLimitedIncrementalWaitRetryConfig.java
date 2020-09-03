@@ -52,7 +52,8 @@ public class TimeLimitedIncrementalWaitRetryConfig extends RetryConfig {
     }
 
     @Builder
-    public TimeLimitedIncrementalWaitRetryConfig(Duration maxTime, Duration initialWaitTime, Duration waitIncrement, Set<String> retriableExceptions) {
+    public TimeLimitedIncrementalWaitRetryConfig(Duration maxTime, Duration initialWaitTime, Duration waitIncrement,
+                                                 Set<String> retriableExceptions) {
         super(RetryType.TIME_LIMITED_INCREMENTAL_WAIT, retriableExceptions);
         this.maxTime = maxTime;
         this.initialWaitTime = initialWaitTime;

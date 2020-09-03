@@ -72,8 +72,8 @@ public class UnmanagedBaseActor<Message> {
             Function<Throwable, Boolean> errorCheckFunction) {
         this(new UnmanagedPublisher<>(name, config, connection, mapper),
                 new UnmanagedConsumer<>(
-                        name, config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz, handlerFunction,
-                        errorCheckFunction));
+                        name, config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
+                        handlerFunction, errorCheckFunction));
     }
 
     public UnmanagedBaseActor(
@@ -90,8 +90,8 @@ public class UnmanagedBaseActor<Message> {
         val producerConnection = connectionRegistry.createOrGet(producerConnectionName(config.getProducer()));
         this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper);
         this.consumeActor = new UnmanagedConsumer<>(
-                name, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz, handlerFunction,
-                errorCheckFunction);
+                name, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
+                handlerFunction, errorCheckFunction);
     }
 
     public void start() throws Exception {
