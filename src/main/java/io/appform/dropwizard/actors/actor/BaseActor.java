@@ -100,7 +100,7 @@ public abstract class BaseActor<Message> implements Managed {
     }
 
 
-    abstract protected boolean handle(Message message, boolean redelivered) throws Exception;
+    abstract protected boolean handle(Message message, boolean isRedelivered) throws Exception;
 
     protected boolean isExceptionIgnorable(Throwable t) {
         return droppedExceptionTypes
