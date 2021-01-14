@@ -31,7 +31,7 @@ public class UnmanagedConsumer<Message> {
     private final ObjectMapper mapper;
     private final Class<? extends Message> clazz;
     private final int prefetchCount;
-    private final MessageHandlingFunction<Message, Boolean> handlerFunction;
+    private final MessageHandlingFunction<Message, Boolean, Boolean> handlerFunction;
     private final Function<Throwable, Boolean> errorCheckFunction;
     private final String queueName;
     private final RetryStrategy retryStrategy;
@@ -47,7 +47,7 @@ public class UnmanagedConsumer<Message> {
             RetryStrategyFactory retryStrategyFactory,
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
-            MessageHandlingFunction<Message, Boolean> handlerFunction,
+            MessageHandlingFunction<Message, Boolean, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
         this.name = name;
         this.config = config;
@@ -62,8 +62,8 @@ public class UnmanagedConsumer<Message> {
         this.exceptionHandler = exceptionHandlingFactory.create(config.getExceptionHandlerConfig());
     }
 
-    private boolean handle(Message message) throws Exception {
-        return handlerFunction.apply(message);
+    private boolean handle(Message message, boolean isRedelivered) throws Exception {
+        return handlerFunction.apply(message, isRedelivered);
     }
 
     private class Handler extends DefaultConsumer {
@@ -90,7 +90,7 @@ public class UnmanagedConsumer<Message> {
                                    AMQP.BasicProperties properties, byte[] body) throws IOException {
             try {
                 final Message message = mapper.readValue(body, clazz);
-                boolean success = retryStrategy.execute(() -> handle(message));
+                boolean success = retryStrategy.execute(() -> handle(message, envelope.isRedeliver()));
                 if (success) {
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
                 } else {

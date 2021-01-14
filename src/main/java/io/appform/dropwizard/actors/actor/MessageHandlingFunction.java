@@ -20,6 +20,6 @@ package io.appform.dropwizard.actors.actor;
  *
  */
 @FunctionalInterface
-public interface MessageHandlingFunction<T,R> {
-    R apply(T param) throws Exception;
+public interface MessageHandlingFunction<T, X, R> {
+    R apply(T param1, X param2) throws Exception;
 }
