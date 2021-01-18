@@ -100,7 +100,8 @@ public abstract class BaseActor<Message> implements Managed {
     }
 
 
-    abstract protected boolean handle(Message message, boolean isRedelivered) throws Exception;
+    abstract protected boolean handle(Message message,
+                                      io.appform.dropwizard.actors.actor.MessageProperties messageProperties) throws Exception;
 
     protected boolean isExceptionIgnorable(Throwable t) {
         return droppedExceptionTypes

@@ -68,7 +68,7 @@ public class UnmanagedBaseActor<Message> {
             RetryStrategyFactory retryStrategyFactory,
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
-            MessageHandlingFunction<Message, Boolean, Boolean> handlerFunction,
+            MessageHandlingFunction<Message, MessageProperties, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
         this(new UnmanagedPublisher<>(name, config, connection, mapper),
                 new UnmanagedConsumer<>(
@@ -84,7 +84,7 @@ public class UnmanagedBaseActor<Message> {
             RetryStrategyFactory retryStrategyFactory,
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
-            MessageHandlingFunction<Message, Boolean, Boolean> handlerFunction,
+            MessageHandlingFunction<Message, MessageProperties, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
         val consumerConnection = connectionRegistry.createOrGet(consumerConnectionName(config.getConsumer()));
         val producerConnection = connectionRegistry.createOrGet(producerConnectionName(config.getProducer()));
