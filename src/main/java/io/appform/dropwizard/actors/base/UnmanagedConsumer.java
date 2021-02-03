@@ -113,7 +113,7 @@ public class UnmanagedConsumer<Message> {
 
         private MessageProperties messageProperties(final Envelope envelope) {
             return MessageProperties.builder()
-                    .isRedelivered(envelope.isRedeliver())
+                    .redelivered(envelope.isRedeliver())
                     .build();
         }
     }

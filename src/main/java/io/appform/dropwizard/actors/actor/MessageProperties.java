@@ -9,5 +9,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MessageProperties {
 
-    private boolean isRedelivered;
+    private boolean redelivered;
 }
