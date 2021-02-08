@@ -99,9 +99,8 @@ public abstract class BaseActor<Message> implements Managed {
                 this::isExceptionIgnorable);
     }
 
-
     abstract protected boolean handle(Message message,
-                                      io.appform.dropwizard.actors.actor.MessageProperties messageProperties) throws Exception;
+                                      MessageMetaData messageMetaData) throws Exception;
 
     protected boolean isExceptionIgnorable(Throwable t) {
         return droppedExceptionTypes

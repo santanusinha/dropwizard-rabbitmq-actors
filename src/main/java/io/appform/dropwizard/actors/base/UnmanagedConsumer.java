@@ -8,7 +8,7 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
-import io.appform.dropwizard.actors.actor.MessageProperties;
+import io.appform.dropwizard.actors.actor.MessageMetaData;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
@@ -32,7 +32,7 @@ public class UnmanagedConsumer<Message> {
     private final ObjectMapper mapper;
     private final Class<? extends Message> clazz;
     private final int prefetchCount;
-    private final MessageHandlingFunction<Message, MessageProperties, Boolean> handlerFunction;
+    private final MessageHandlingFunction<Message, MessageMetaData, Boolean> handlerFunction;
     private final Function<Throwable, Boolean> errorCheckFunction;
     private final String queueName;
     private final RetryStrategy retryStrategy;
@@ -48,7 +48,7 @@ public class UnmanagedConsumer<Message> {
             RetryStrategyFactory retryStrategyFactory,
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
-            MessageHandlingFunction<Message, MessageProperties, Boolean> handlerFunction,
+            MessageHandlingFunction<Message, MessageMetaData, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
         this.name = name;
         this.config = config;
@@ -63,8 +63,8 @@ public class UnmanagedConsumer<Message> {
         this.exceptionHandler = exceptionHandlingFactory.create(config.getExceptionHandlerConfig());
     }
 
-    private boolean handle(Message message, MessageProperties messageProperties) throws Exception {
-        return handlerFunction.apply(message, messageProperties);
+    private boolean handle(Message message, MessageMetaData messageMetaData) throws Exception {
+        return handlerFunction.apply(message, messageMetaData);
     }
 
     private class Handler extends DefaultConsumer {
@@ -111,10 +111,8 @@ public class UnmanagedConsumer<Message> {
             }
         }
 
-        private MessageProperties messageProperties(final Envelope envelope) {
-            return MessageProperties.builder()
-                    .redelivered(envelope.isRedeliver())
-                    .build();
+        private MessageMetaData messageProperties(final Envelope envelope) {
+            return new MessageMetaData(envelope.isRedeliver());
         }
     }
 
