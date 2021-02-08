@@ -99,10 +99,16 @@ public abstract class BaseActor<Message> implements Managed {
                 this::isExceptionIgnorable);
     }
 
+    /*
+        Override this method in your code for custom implementation.
+     */
     protected boolean handle(Message message, MessageMetadata messageMetadata) {
         return handle(message);
     }
 
+    /*
+        Override this method in your code for custom implementation.
+     */
     protected boolean handle(Message message) {
         throw new UnsupportedOperationException("Either implement this method, or implement the handle(message, messageMetadata) method");
     }
