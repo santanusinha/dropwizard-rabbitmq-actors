@@ -3,11 +3,11 @@ package io.appform.dropwizard.actors.actor;
 import lombok.Data;
 
 @Data
-public final class MessageMetaData {
+public final class MessageMetadata {
 
     private boolean redelivered;
 
-    public MessageMetaData(final boolean redelivered) {
+    public MessageMetadata(final boolean redelivered) {
         this.redelivered = redelivered;
     }
 }

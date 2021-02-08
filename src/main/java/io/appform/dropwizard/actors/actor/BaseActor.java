@@ -99,8 +99,13 @@ public abstract class BaseActor<Message> implements Managed {
                 this::isExceptionIgnorable);
     }
 
-    abstract protected boolean handle(Message message,
-                                      MessageMetaData messageMetaData) throws Exception;
+    protected boolean handle(Message message, MessageMetadata messageMetadata) {
+        return handle(message);
+    }
+
+    protected boolean handle(Message message) {
+        throw new UnsupportedOperationException("Either implement this method, or implement the handle(message, messageMetadata) method");
+    }
 
     protected boolean isExceptionIgnorable(Throwable t) {
         return droppedExceptionTypes
