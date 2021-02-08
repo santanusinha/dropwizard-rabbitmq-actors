@@ -37,6 +37,7 @@ import javax.net.ssl.SSLContext;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyStore;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
@@ -163,6 +164,33 @@ public class RMQConnection implements Managed {
                 .build();
     }
 
+    public Map<String, Object> rmqOpts(boolean enableQueueTTL, int ttl) {
+        Map<String, Object> ttlOpts = getTTLOpts(enableQueueTTL, ttl);
+        return ImmutableMap.<String, Object>builder()
+                .putAll(ttlOpts)
+                .put("x-ha-policy", "all")
+                .put("ha-mode", "all")
+                .build();
+    }
+
+    public Map<String, Object> rmqOpts(String deadLetterExchange, boolean enableQueueTTL, int ttl) {
+        Map<String, Object> ttlOpts = getTTLOpts(enableQueueTTL, ttl);
+        return ImmutableMap.<String, Object>builder()
+                .putAll(ttlOpts)
+                .put("x-ha-policy", "all")
+                .put("ha-mode", "all")
+                .put("x-dead-letter-exchange", deadLetterExchange)
+                .build();
+    }
+
+    private Map<String, Object> getTTLOpts(boolean enableQueueTTL, int ttl) {
+        Map<String, Object> ttlOpts = new HashMap<>();
+        if (enableQueueTTL) {
+            ttlOpts.put("x-expires", ttl);
+        }
+
+        return ttlOpts;
+    }
     public HealthCheck healthcheck() {
         return new HealthCheck() {
             @Override

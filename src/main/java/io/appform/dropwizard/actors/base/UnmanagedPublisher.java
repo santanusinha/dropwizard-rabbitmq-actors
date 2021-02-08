@@ -30,7 +30,7 @@ public class UnmanagedPublisher<Message> {
             ActorConfig config,
             RMQConnection connection,
             ObjectMapper mapper) {
-        this.name = name;
+        this.name = NamingUtils.prefixWithNamespace(name);
         this.config = config;
         this.connection = connection;
         this.mapper = mapper;
@@ -87,10 +87,10 @@ public class UnmanagedPublisher<Message> {
         ensureExchange(dlx);
 
         this.publishChannel = connection.newChannel();
-        connection.ensure(queueName + "_SIDELINE", queueName, dlx);
-        connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx));
+        connection.ensure(queueName + "_SIDELINE", queueName, dlx, connection.rmqOpts(enableQueueTTL, ttl));
+        connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx, enableQueueTTL, ttl));
         if (config.getDelayType() == DelayType.TTL) {
-            connection.ensure(ttlQueue(queueName), queueName, ttlExchange(config), connection.rmqOpts(exchange));
+            connection.ensure(ttlQueue(queueName), queueName, ttlExchange(config), connection.rmqOpts(exchange, enableQueueTTL, ttl));
         }
     }
 

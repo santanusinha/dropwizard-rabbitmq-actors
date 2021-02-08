@@ -1,16 +1,28 @@
 package io.appform.dropwizard.actors.base.utils;
 
+import io.appform.dropwizard.actors.utils.CommonUtils;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class NamingUtils {
 
+    public static final String FEATURE_ENV_NAME = "feature_env_name";
+
     public static String queueName(String prefix, String name) {
-        return String.format("%s.%s", prefix, name);
+        String namespaced = prefixWithNamespace(name);
+        return String.format("%s.%s", prefix, namespaced);
     }
 
     public static String sanitizeMetricName(String metric) {
         return metric == null ? null : metric.replaceAll("[^A-Za-z\\-0-9]", "").toLowerCase();
+    }
+
+    public static String prefixWithNamespace(String name) {
+        String namespace = System.getenv(FEATURE_ENV_NAME);
+        if (CommonUtils.isEmpty(namespace)) {
+            return name;
+        }
+        return String.format("%s.%s", namespace, name);
     }
 }
