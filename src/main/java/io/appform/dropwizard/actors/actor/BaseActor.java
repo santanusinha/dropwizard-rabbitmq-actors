@@ -109,6 +109,7 @@ public abstract class BaseActor<Message> implements Managed {
     /*
         Override this method in your code for custom implementation.
      */
+    @Deprecated
     protected boolean handle(Message message) {
         throw new UnsupportedOperationException("Either implement this method, or implement the handle(message, messageMetadata) method");
     }
