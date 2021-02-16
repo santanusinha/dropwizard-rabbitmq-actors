@@ -37,6 +37,7 @@ import javax.net.ssl.SSLContext;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyStore;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -164,8 +165,8 @@ public class RMQConnection implements Managed {
                 .build();
     }
 
-    public Map<String, Object> rmqOpts(boolean enableQueueTTL, int ttl) {
-        Map<String, Object> ttlOpts = getTTLOpts(enableQueueTTL, ttl);
+    public Map<String, Object> rmqOpts(boolean enableQueueTTL, Duration ttl) {
+        final Map<String, Object> ttlOpts = getTTLOpts(enableQueueTTL, ttl);
         return ImmutableMap.<String, Object>builder()
                 .putAll(ttlOpts)
                 .put("x-ha-policy", "all")
@@ -173,8 +174,8 @@ public class RMQConnection implements Managed {
                 .build();
     }
 
-    public Map<String, Object> rmqOpts(String deadLetterExchange, boolean enableQueueTTL, int ttl) {
-        Map<String, Object> ttlOpts = getTTLOpts(enableQueueTTL, ttl);
+    public Map<String, Object> rmqOpts(String deadLetterExchange, boolean enableQueueTTL, Duration ttl) {
+        final Map<String, Object> ttlOpts = getTTLOpts(enableQueueTTL, ttl);
         return ImmutableMap.<String, Object>builder()
                 .putAll(ttlOpts)
                 .put("x-ha-policy", "all")
@@ -183,10 +184,10 @@ public class RMQConnection implements Managed {
                 .build();
     }
 
-    private Map<String, Object> getTTLOpts(boolean enableQueueTTL, int ttl) {
-        Map<String, Object> ttlOpts = new HashMap<>();
+    private Map<String, Object> getTTLOpts(boolean enableQueueTTL, Duration ttl) {
+        final Map<String, Object> ttlOpts = new HashMap<>();
         if (enableQueueTTL) {
-            ttlOpts.put("x-expires", ttl);
+            ttlOpts.put("x-expires", ttl.getSeconds()*1000);
         }
 
         return ttlOpts;

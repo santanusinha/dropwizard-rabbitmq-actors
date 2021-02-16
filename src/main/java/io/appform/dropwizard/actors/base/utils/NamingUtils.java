@@ -7,10 +7,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class NamingUtils {
 
-    public static final String FEATURE_ENV_NAME = "feature_env_name";
+    public static final String FEATURE_ENV_NAME = "FEATURE_ENV_NAME";
 
     public static String queueName(String prefix, String name) {
-        String namespaced = prefixWithNamespace(name);
+        final String namespaced = prefixWithNamespace(name);
         return String.format("%s.%s", prefix, namespaced);
     }
 
@@ -19,7 +19,7 @@ public class NamingUtils {
     }
 
     public static String prefixWithNamespace(String name) {
-        String namespace = System.getenv(FEATURE_ENV_NAME);
+        final String namespace = System.getenv(FEATURE_ENV_NAME);
         if (CommonUtils.isEmpty(namespace)) {
             return name;
         }

@@ -26,6 +26,7 @@ import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
+import java.time.Duration;
 
 /**
  * Configuration for an actor
@@ -70,9 +71,9 @@ public class ActorConfig {
     @Builder.Default
     private boolean queueTTLEnabled = false;
 
-    // TTL in milliseconds
+    // TTL in seconds
     @Builder.Default
-    private int ttl = 1800000;
+    private Duration ttl = Duration.ofSeconds(1800);
 
     private ExceptionHandlerConfig exceptionHandlerConfig;
 
