@@ -68,6 +68,7 @@
         <lombok.version>1.18.8</lombok.version>
         <guava.version>28.0-jre</guava.version>
         <junit.version>4.12</junit.version>
+        <test.container.version>1.0.3</test.container.version>
     </properties>
 
     <dependencyManagement>
@@ -129,7 +130,36 @@
             <version>${dropwizard.version}</version>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>com.phonepe.testcontainer</groupId>
+            <artifactId>testcontainer-commons</artifactId>
+            <version>${test.container.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.phonepe.testcontainer</groupId>
+            <artifactId>testcontainer-rabbitmq</artifactId>
+            <version>${test.container.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>4.0.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.9.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.stefanbirkner</groupId>
+            <artifactId>system-rules</artifactId>
+            <version>1.19.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

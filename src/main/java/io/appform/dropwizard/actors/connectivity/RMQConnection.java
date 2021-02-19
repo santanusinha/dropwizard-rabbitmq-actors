@@ -17,7 +17,6 @@
 
 package io.appform.dropwizard.actors.connectivity;
 
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheck;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -101,7 +100,7 @@ public class RMQConnection implements Managed {
         }
         connection = factory.newConnection(executorService,
                 config.getBrokers().stream()
-                        .map(broker -> new Address(broker.getHost()))
+                        .map(broker -> new Address(broker.getHost(), broker.getPort()))
                         .toArray(Address[]::new)
         );
         connection.addBlockedListener(new BlockedListener() {
