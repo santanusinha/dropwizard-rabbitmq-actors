@@ -68,7 +68,7 @@
         <lombok.version>1.18.8</lombok.version>
         <guava.version>28.0-jre</guava.version>
         <junit.version>4.12</junit.version>
-        <test.container.version>1.0.3</test.container.version>
+        <test.container.version>1.0.4</test.container.version>
     </properties>
 
     <dependencyManagement>
@@ -131,14 +131,14 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.phonepe.testcontainer</groupId>
-            <artifactId>testcontainer-commons</artifactId>
+            <groupId>io.appform.testcontainer</groupId>
+            <artifactId>junit-testcontainer-commons</artifactId>
             <version>${test.container.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.phonepe.testcontainer</groupId>
-            <artifactId>testcontainer-rabbitmq</artifactId>
+            <groupId>io.appform.testcontainer</groupId>
+            <artifactId>junit-testcontainer-rabbitmq</artifactId>
             <version>${test.container.version}</version>
             <scope>test</scope>
         </dependency>

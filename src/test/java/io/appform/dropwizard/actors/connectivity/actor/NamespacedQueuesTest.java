@@ -2,13 +2,13 @@ package io.appform.dropwizard.actors.connectivity.actor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.phonepe.testcontainer.rabbitmq.RabbitMQStatusCheck;
-import com.phonepe.testcontainer.rabbitmq.config.RabbitMQContainerConfiguration;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.config.Broker;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.testcontainers.rabbitmq.RabbitMQStatusCheck;
+import io.appform.testcontainers.rabbitmq.config.RabbitMQContainerConfiguration;
 import io.dropwizard.testing.junit.DropwizardAppRule;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Credentials;
