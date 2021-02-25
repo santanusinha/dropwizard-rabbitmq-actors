@@ -2,6 +2,7 @@ package io.appform.dropwizard.actors.connectivity.actor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.appform.dropwizard.actors.QueueTtlConfig;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.config.Broker;
@@ -62,7 +63,7 @@ public class NamespacedQueuesTest {
         config = getRMQConfig(rabbitMQContainer);
 
         RMQConnection connection = new RMQConnection("test-conn", config,
-                Executors.newSingleThreadExecutor(), app.getEnvironment());
+                Executors.newSingleThreadExecutor(), app.getEnvironment(), QueueTtlConfig.builder().build());
         connection.start();
 
         ActorConfig actorConfig = new ActorConfig();
@@ -76,7 +77,7 @@ public class NamespacedQueuesTest {
         if (response != null) {
             JsonNode jsonNode = objectMapper.readTree(response.body().string());
             if (jsonNode.isArray()) {
-                for (JsonNode json: jsonNode) {
+                for (JsonNode json : jsonNode) {
                     String queueName = json.get("name").asText();
                     Assert.assertTrue(queueName.contains(FEATURE_ENV_NAME));
                 }
@@ -92,7 +93,7 @@ public class NamespacedQueuesTest {
         config = getRMQConfig(rabbitMQContainer);
 
         RMQConnection connection = new RMQConnection("test-conn", config,
-                Executors.newSingleThreadExecutor(), app.getEnvironment());
+                Executors.newSingleThreadExecutor(), app.getEnvironment(), QueueTtlConfig.builder().build());
         connection.start();
 
         ActorConfig actorConfig = new ActorConfig();

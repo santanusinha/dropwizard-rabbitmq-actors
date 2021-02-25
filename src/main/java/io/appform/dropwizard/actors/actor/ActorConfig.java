@@ -68,13 +68,6 @@ public class ActorConfig {
     @Builder.Default
     private RetryConfig retryConfig = new NoRetryConfig();
 
-    @Builder.Default
-    private boolean queueTTLEnabled = false;
-
-    // TTL in seconds
-    @Builder.Default
-    private Duration ttl = Duration.ofSeconds(1800);
-
     private ExceptionHandlerConfig exceptionHandlerConfig;
 
     @Valid
