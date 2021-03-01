@@ -8,6 +8,7 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
+import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
@@ -62,8 +63,8 @@ public class UnmanagedConsumer<Message> {
         this.exceptionHandler = exceptionHandlingFactory.create(config.getExceptionHandlerConfig());
     }
 
-    private boolean handle(Message message) throws Exception {
-        return handlerFunction.apply(message);
+    private boolean handle(Message message, MessageMetadata messageMetadata) throws Exception {
+        return handlerFunction.apply(message, messageMetadata);
     }
 
     private class Handler extends DefaultConsumer {
@@ -90,7 +91,7 @@ public class UnmanagedConsumer<Message> {
                                    AMQP.BasicProperties properties, byte[] body) throws IOException {
             try {
                 final Message message = mapper.readValue(body, clazz);
-                boolean success = retryStrategy.execute(() -> handle(message));
+                boolean success = retryStrategy.execute(() -> handle(message, messageProperties(envelope)));
                 if (success) {
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
                 } else {
@@ -108,6 +109,10 @@ public class UnmanagedConsumer<Message> {
                     getChannel().basicReject(envelope.getDeliveryTag(), false);
                 }
             }
+        }
+
+        private MessageMetadata messageProperties(final Envelope envelope) {
+            return new MessageMetadata(envelope.isRedeliver());
         }
     }
 
