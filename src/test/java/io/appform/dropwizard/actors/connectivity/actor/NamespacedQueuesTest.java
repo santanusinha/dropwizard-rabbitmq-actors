@@ -2,7 +2,7 @@ package io.appform.dropwizard.actors.connectivity.actor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.appform.dropwizard.actors.QueueTtlConfig;
+import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.config.Broker;
@@ -63,7 +63,7 @@ public class NamespacedQueuesTest {
         config = getRMQConfig(rabbitMQContainer);
 
         RMQConnection connection = new RMQConnection("test-conn", config,
-                Executors.newSingleThreadExecutor(), app.getEnvironment(), QueueTtlConfig.builder().build());
+                Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build());
         connection.start();
 
         ActorConfig actorConfig = new ActorConfig();
@@ -93,7 +93,7 @@ public class NamespacedQueuesTest {
         config = getRMQConfig(rabbitMQContainer);
 
         RMQConnection connection = new RMQConnection("test-conn", config,
-                Executors.newSingleThreadExecutor(), app.getEnvironment(), QueueTtlConfig.builder().build());
+                Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build());
         connection.start();
 
         ActorConfig actorConfig = new ActorConfig();

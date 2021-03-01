@@ -11,7 +11,7 @@ import java.time.Duration;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class QueueTtlConfig {
+public class TtlConfig {
 
     private boolean ttlEnabled;
 

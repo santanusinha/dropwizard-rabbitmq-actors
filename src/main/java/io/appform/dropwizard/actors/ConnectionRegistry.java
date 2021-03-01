@@ -24,12 +24,12 @@ public class ConnectionRegistry implements Managed {
     private final Environment environment;
     private final ExecutorServiceProvider executorServiceProvider;
     private final RMQConfig rmqConfig;
-    private QueueTtlConfig ttlConfig;
+    private TtlConfig ttlConfig;
 
     public ConnectionRegistry(final Environment environment,
                               final ExecutorServiceProvider executorServiceProvider,
                               final RMQConfig rmqConfig,
-                              final QueueTtlConfig ttlConfig) {
+                              final TtlConfig ttlConfig) {
         this.environment = environment;
         this.executorServiceProvider = executorServiceProvider;
         this.rmqConfig = rmqConfig;

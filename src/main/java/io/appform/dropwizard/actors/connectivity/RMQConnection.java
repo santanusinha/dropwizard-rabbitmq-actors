@@ -27,7 +27,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.StandardMetricsCollector;
-import io.appform.dropwizard.actors.QueueTtlConfig;
+import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.dropwizard.lifecycle.Managed;
@@ -54,14 +54,14 @@ public class RMQConnection implements Managed {
     private Channel channel;
     private final ExecutorService executorService;
     private final Environment environment;
-    private QueueTtlConfig ttlConfig;
+    private TtlConfig ttlConfig;
 
 
     public RMQConnection(final String name,
                          final RMQConfig config,
                          final ExecutorService executorService,
                          final Environment environment,
-                         final QueueTtlConfig ttlConfig) {
+                         final TtlConfig ttlConfig) {
         this.name = name;
         this.config = config;
         this.executorService = executorService;
@@ -113,12 +113,12 @@ public class RMQConnection implements Managed {
         );
         connection.addBlockedListener(new BlockedListener() {
             @Override
-            public void handleBlocked(String reason) throws IOException {
+            public void handleBlocked(String reason) {
                 log.warn(String.format("RMQ Connection [%s] is blocked due to [%s]", name, reason));
             }
 
             @Override
-            public void handleUnblocked() throws IOException {
+            public void handleUnblocked() {
                 log.warn(String.format("RMQ Connection [%s] is unblocked now", name));
             }
         });
@@ -132,8 +132,9 @@ public class RMQConnection implements Managed {
     }
 
     public void ensure(final String queueName,
-                       final String exchange) throws Exception {
-        ensure(queueName, queueName, exchange, rmqOpts());
+                       final String exchange,
+                       final TtlConfig ttlConfig) throws Exception {
+        ensure(queueName, queueName, exchange, rmqOpts(ttlConfig));
     }
 
     public void ensure(final String queueName,
@@ -144,8 +145,9 @@ public class RMQConnection implements Managed {
 
     public void ensure(final String queueName,
                        final String routingQueue,
-                       final String exchange) throws Exception {
-        ensure(queueName, routingQueue, exchange, rmqOpts());
+                       final String exchange,
+                       final TtlConfig ttlConfig) throws Exception {
+        ensure(queueName, routingQueue, exchange, rmqOpts(ttlConfig));
     }
 
     public void ensure(final String queueName,
@@ -157,8 +159,8 @@ public class RMQConnection implements Managed {
         log.info("Created queue: {} bound to {}", queueName, exchange);
     }
 
-    public Map<String, Object> rmqOpts() {
-        final Map<String, Object> ttlOpts = getTTLOpts();
+    public Map<String, Object> rmqOpts(final TtlConfig ttlConfig) {
+        final Map<String, Object> ttlOpts = getActorTTLOpts(ttlConfig);
         return ImmutableMap.<String, Object>builder()
                 .putAll(ttlOpts)
                 .put("x-ha-policy", "all")
@@ -166,8 +168,9 @@ public class RMQConnection implements Managed {
                 .build();
     }
 
-    public Map<String, Object> rmqOpts(String deadLetterExchange) {
-        final Map<String, Object> ttlOpts = getTTLOpts();
+    public Map<String, Object> rmqOpts(final String deadLetterExchange,
+                                       final TtlConfig ttlConfig) {
+        final Map<String, Object> ttlOpts = getActorTTLOpts(ttlConfig);
         return ImmutableMap.<String, Object>builder()
                 .putAll(ttlOpts)
                 .put("x-ha-policy", "all")
@@ -176,12 +179,18 @@ public class RMQConnection implements Managed {
                 .build();
     }
 
-    private Map<String, Object> getTTLOpts() {
+    private Map<String, Object> getActorTTLOpts(final TtlConfig ttlConfig) {
+        if (ttlConfig != null) {
+            return getTTLOpts(ttlConfig);
+        }
+        return getTTLOpts(this.ttlConfig);
+    }
+
+    private Map<String, Object> getTTLOpts(final TtlConfig ttlConfig) {
         final Map<String, Object> ttlOpts = new HashMap<>();
-        if (ttlConfig.isTtlEnabled()) {
+        if (ttlConfig != null && ttlConfig.isTtlEnabled()) {
             ttlOpts.put("x-expires", ttlConfig.getTtl().getSeconds() * 1000);
         }
-
         return ttlOpts;
     }
 

@@ -52,11 +52,11 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
         val ttlConfig = ttlConfig();
         Preconditions.checkNotNull(executorServiceProvider, "Null executor service provider provided");
         this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, rmqConfig,
-                ttlConfig == null ? QueueTtlConfig.builder().build(): ttlConfig);
+                ttlConfig == null ? TtlConfig.builder().build(): ttlConfig);
         environment.lifecycle().manage(connectionRegistry);
     }
 
-    protected abstract QueueTtlConfig ttlConfig();
+    protected abstract TtlConfig ttlConfig();
 
     @Override
     public void initialize(Bootstrap<?> bootstrap) {

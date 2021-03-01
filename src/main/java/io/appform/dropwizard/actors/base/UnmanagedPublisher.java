@@ -88,15 +88,15 @@ public class UnmanagedPublisher<Message> {
 
         this.publishChannel = connection.newChannel();
         connection.ensure(queueName + "_SIDELINE", queueName, dlx,
-                connection.rmqOpts());
+                connection.rmqOpts(config.getTtlConfig()));
         connection.ensure(queueName,
                 config.getExchange(),
-                connection.rmqOpts(dlx));
+                connection.rmqOpts(dlx, config.getTtlConfig()));
         if (config.getDelayType() == DelayType.TTL) {
             connection.ensure(ttlQueue(queueName),
                     queueName,
                     ttlExchange(config),
-                    connection.rmqOpts(exchange));
+                    connection.rmqOpts(exchange, config.getTtlConfig()));
         }
     }
 
