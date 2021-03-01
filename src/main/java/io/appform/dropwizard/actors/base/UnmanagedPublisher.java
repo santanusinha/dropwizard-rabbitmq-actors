@@ -10,6 +10,7 @@ import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -88,15 +89,15 @@ public class UnmanagedPublisher<Message> {
 
         this.publishChannel = connection.newChannel();
         connection.ensure(queueName + "_SIDELINE", queueName, dlx,
-                connection.rmqOpts(config.getTtlConfig()));
+                connection.rmqOpts(config));
         connection.ensure(queueName,
                 config.getExchange(),
-                connection.rmqOpts(dlx, config.getTtlConfig()));
+                connection.rmqOpts(dlx, config));
         if (config.getDelayType() == DelayType.TTL) {
             connection.ensure(ttlQueue(queueName),
                     queueName,
                     ttlExchange(config),
-                    connection.rmqOpts(exchange, config.getTtlConfig()));
+                    connection.rmqOpts(exchange, config));
         }
     }
 
@@ -148,7 +149,7 @@ public class UnmanagedPublisher<Message> {
         }
     }
 
-    protected final RMQConnection connection() throws Exception {
+    protected final RMQConnection connection() {
         return connection;
     }
 

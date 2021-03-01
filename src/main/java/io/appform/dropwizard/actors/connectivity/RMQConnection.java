@@ -28,6 +28,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.StandardMetricsCollector;
 import io.appform.dropwizard.actors.TtlConfig;
+import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.dropwizard.lifecycle.Managed;
@@ -133,21 +134,8 @@ public class RMQConnection implements Managed {
 
     public void ensure(final String queueName,
                        final String exchange,
-                       final TtlConfig ttlConfig) throws Exception {
-        ensure(queueName, queueName, exchange, rmqOpts(ttlConfig));
-    }
-
-    public void ensure(final String queueName,
-                       final String exchange,
                        final Map<String, Object> rmqOpts) throws Exception {
         ensure(queueName, queueName, exchange, rmqOpts);
-    }
-
-    public void ensure(final String queueName,
-                       final String routingQueue,
-                       final String exchange,
-                       final TtlConfig ttlConfig) throws Exception {
-        ensure(queueName, routingQueue, exchange, rmqOpts(ttlConfig));
     }
 
     public void ensure(final String queueName,
@@ -159,8 +147,8 @@ public class RMQConnection implements Managed {
         log.info("Created queue: {} bound to {}", queueName, exchange);
     }
 
-    public Map<String, Object> rmqOpts(final TtlConfig ttlConfig) {
-        final Map<String, Object> ttlOpts = getActorTTLOpts(ttlConfig);
+    public Map<String, Object> rmqOpts(final ActorConfig actorConfig) {
+        final Map<String, Object> ttlOpts = getActorTTLOpts(actorConfig.getTtlConfig());
         return ImmutableMap.<String, Object>builder()
                 .putAll(ttlOpts)
                 .put("x-ha-policy", "all")
@@ -169,8 +157,8 @@ public class RMQConnection implements Managed {
     }
 
     public Map<String, Object> rmqOpts(final String deadLetterExchange,
-                                       final TtlConfig ttlConfig) {
-        final Map<String, Object> ttlOpts = getActorTTLOpts(ttlConfig);
+                                       final ActorConfig actorConfig) {
+        final Map<String, Object> ttlOpts = getActorTTLOpts(actorConfig.getTtlConfig());
         return ImmutableMap.<String, Object>builder()
                 .putAll(ttlOpts)
                 .put("x-ha-policy", "all")
@@ -229,7 +217,7 @@ public class RMQConnection implements Managed {
         }
     }
 
-    public Channel channel() throws IOException {
+    public Channel channel() {
         return channel;
     }
 
