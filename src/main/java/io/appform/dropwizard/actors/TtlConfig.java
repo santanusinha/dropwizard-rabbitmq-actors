@@ -15,6 +15,6 @@ public class TtlConfig {
 
     private boolean ttlEnabled;
 
-    private Duration ttl;
+    private Duration ttl = Duration.ofSeconds(1800);
 
 }

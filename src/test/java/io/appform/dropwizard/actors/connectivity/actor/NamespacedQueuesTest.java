@@ -24,6 +24,7 @@ import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.testcontainers.containers.GenericContainer;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -36,7 +37,7 @@ public class NamespacedQueuesTest {
     private static final String RABBITMQ_DOCKER_IMAGE = "rabbitmq:3-management";
     private static final String RABBITMQ_USERNAME = "guest";
     private static final String RABBITMQ_PASSWORD = "guest";
-    private static final String FEATURE_ENV_NAME = "feature1";
+    private static final String NAMESPACE_ENV_NAME = "namespace1";
 
     @ClassRule
     public static final DropwizardAppRule<RabbitMQBundleTestAppConfiguration> app =
@@ -57,7 +58,7 @@ public class NamespacedQueuesTest {
      */
     @Test
     public void testQueuesAreNamespacedWhenFeatureEnvIsSet() throws Exception {
-        environmentVariables.set("FEATURE_ENV_NAME", FEATURE_ENV_NAME);
+        environmentVariables.set("NAMESPACE_ENV_NAME", NAMESPACE_ENV_NAME);
         GenericContainer rabbitMQContainer = rabbitMQContainer();
         mappedManagementPort = rabbitMQContainer.getMappedPort(RABBITMQ_MANAGEMENT_PORT);
         config = getRMQConfig(rabbitMQContainer);
@@ -79,11 +80,11 @@ public class NamespacedQueuesTest {
             if (jsonNode.isArray()) {
                 for (JsonNode json : jsonNode) {
                     String queueName = json.get("name").asText();
-                    Assert.assertTrue(queueName.contains(FEATURE_ENV_NAME));
+                    Assert.assertTrue(queueName.contains(NAMESPACE_ENV_NAME));
                 }
             }
+            response.close();
         }
-        response.close();
     }
 
     @Test
@@ -109,11 +110,41 @@ public class NamespacedQueuesTest {
             if (jsonNode.isArray()) {
                 for (JsonNode json : jsonNode) {
                     String queueName = json.get("name").asText();
-                    Assert.assertFalse(queueName.contains(FEATURE_ENV_NAME));
+                    Assert.assertFalse(queueName.contains(NAMESPACE_ENV_NAME));
                 }
             }
+            response.close();
         }
-        response.close();
+    }
+
+    @Test
+    public void testQueuesAreRemovedAfterTtl() throws Exception {
+        GenericContainer rabbitMQContainer = rabbitMQContainer();
+        mappedManagementPort = rabbitMQContainer.getMappedPort(RABBITMQ_MANAGEMENT_PORT);
+        config = getRMQConfig(rabbitMQContainer);
+
+        TtlConfig ttlConfig = TtlConfig.builder()
+                .ttlEnabled(true)
+                .ttl(Duration.ofSeconds(5))
+                .build();
+        RMQConnection connection = new RMQConnection("test-conn", config,
+                Executors.newSingleThreadExecutor(), app.getEnvironment(), ttlConfig);
+        connection.start();
+
+        ActorConfig actorConfig = new ActorConfig();
+        actorConfig.setExchange("test-exchange-1");
+        UnmanagedPublisher publisher = new UnmanagedPublisher<>(
+                "publisher-1", actorConfig, connection, null);
+        publisher.start();
+
+        Thread.sleep(5000);
+        Response response = sendRequest("/api/queues");
+        if (response != null) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(response.body().string());
+            Assert.assertTrue(jsonNode.size() == 0);
+            response.close();
+        }
     }
 
     private Response sendRequest(String endpoint) {
