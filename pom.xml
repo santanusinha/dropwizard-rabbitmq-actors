@@ -43,6 +43,14 @@
                 <role>developer</role>
             </roles>
         </developer>
+        <developer>
+            <id>namanmishra91</id>
+            <name>Naman Mishra</name>
+            <email>namanmishra1991@gmail.com</email>
+            <roles>
+                <role>developer</role>
+            </roles>
+        </developer>
     </developers>
 
     <ciManagement>
