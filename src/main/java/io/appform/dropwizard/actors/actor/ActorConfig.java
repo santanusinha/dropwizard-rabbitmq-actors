@@ -16,6 +16,7 @@
 
 package io.appform.dropwizard.actors.actor;
 
+import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConfig;
 import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
@@ -26,7 +27,6 @@ import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
-import java.time.Duration;
 
 /**
  * Configuration for an actor
@@ -68,13 +68,6 @@ public class ActorConfig {
     @Builder.Default
     private RetryConfig retryConfig = new NoRetryConfig();
 
-    @Builder.Default
-    private boolean queueTTLEnabled = false;
-
-    // TTL in seconds
-    @Builder.Default
-    private Duration ttl = Duration.ofSeconds(1800);
-
     private ExceptionHandlerConfig exceptionHandlerConfig;
 
     @Valid
@@ -82,5 +75,8 @@ public class ActorConfig {
 
     @Valid
     private ConsumerConfig consumer;
+
+    @Valid
+    private TtlConfig ttlConfig;
 
 }

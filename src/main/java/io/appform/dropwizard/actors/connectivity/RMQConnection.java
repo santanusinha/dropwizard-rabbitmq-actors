@@ -21,8 +21,14 @@ import com.codahale.metrics.health.HealthCheck;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
-import com.rabbitmq.client.*;
+import com.rabbitmq.client.Address;
+import com.rabbitmq.client.BlockedListener;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.StandardMetricsCollector;
+import io.appform.dropwizard.actors.TtlConfig;
+import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.dropwizard.lifecycle.Managed;
@@ -36,7 +42,6 @@ import javax.net.ssl.SSLContext;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyStore;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -50,15 +55,19 @@ public class RMQConnection implements Managed {
     private Channel channel;
     private final ExecutorService executorService;
     private final Environment environment;
+    private TtlConfig ttlConfig;
 
-    public RMQConnection(String name,
-                         RMQConfig config,
-                         ExecutorService executorService,
-                         Environment environment) {
+
+    public RMQConnection(final String name,
+                         final RMQConfig config,
+                         final ExecutorService executorService,
+                         final Environment environment,
+                         final TtlConfig ttlConfig) {
         this.name = name;
         this.config = config;
         this.executorService = executorService;
         this.environment = environment;
+        this.ttlConfig = ttlConfig;
     }
 
 
@@ -105,12 +114,12 @@ public class RMQConnection implements Managed {
         );
         connection.addBlockedListener(new BlockedListener() {
             @Override
-            public void handleBlocked(String reason) throws IOException {
+            public void handleBlocked(String reason) {
                 log.warn(String.format("RMQ Connection [%s] is blocked due to [%s]", name, reason));
             }
 
             @Override
-            public void handleUnblocked() throws IOException {
+            public void handleUnblocked() {
                 log.warn(String.format("RMQ Connection [%s] is unblocked now", name));
             }
         });
@@ -124,20 +133,9 @@ public class RMQConnection implements Managed {
     }
 
     public void ensure(final String queueName,
-                       final String exchange) throws Exception {
-        ensure(queueName, queueName, exchange, rmqOpts());
-    }
-
-    public void ensure(final String queueName,
                        final String exchange,
                        final Map<String, Object> rmqOpts) throws Exception {
         ensure(queueName, queueName, exchange, rmqOpts);
-    }
-
-    public void ensure(final String queueName,
-                       final String routingQueue,
-                       final String exchange) throws Exception {
-        ensure(queueName, routingQueue, exchange, rmqOpts());
     }
 
     public void ensure(final String queueName,
@@ -149,23 +147,8 @@ public class RMQConnection implements Managed {
         log.info("Created queue: {} bound to {}", queueName, exchange);
     }
 
-    public Map<String, Object> rmqOpts() {
-        return ImmutableMap.<String, Object>builder()
-                .put("x-ha-policy", "all")
-                .put("ha-mode", "all")
-                .build();
-    }
-
-    public Map<String, Object> rmqOpts(String deadLetterExchange) {
-        return ImmutableMap.<String, Object>builder()
-                .put("x-ha-policy", "all")
-                .put("ha-mode", "all")
-                .put("x-dead-letter-exchange", deadLetterExchange)
-                .build();
-    }
-
-    public Map<String, Object> rmqOpts(boolean enableQueueTTL, Duration ttl) {
-        final Map<String, Object> ttlOpts = getTTLOpts(enableQueueTTL, ttl);
+    public Map<String, Object> rmqOpts(final ActorConfig actorConfig) {
+        final Map<String, Object> ttlOpts = getActorTTLOpts(actorConfig.getTtlConfig());
         return ImmutableMap.<String, Object>builder()
                 .putAll(ttlOpts)
                 .put("x-ha-policy", "all")
@@ -173,8 +156,9 @@ public class RMQConnection implements Managed {
                 .build();
     }
 
-    public Map<String, Object> rmqOpts(String deadLetterExchange, boolean enableQueueTTL, Duration ttl) {
-        final Map<String, Object> ttlOpts = getTTLOpts(enableQueueTTL, ttl);
+    public Map<String, Object> rmqOpts(final String deadLetterExchange,
+                                       final ActorConfig actorConfig) {
+        final Map<String, Object> ttlOpts = getActorTTLOpts(actorConfig.getTtlConfig());
         return ImmutableMap.<String, Object>builder()
                 .putAll(ttlOpts)
                 .put("x-ha-policy", "all")
@@ -183,14 +167,21 @@ public class RMQConnection implements Managed {
                 .build();
     }
 
-    private Map<String, Object> getTTLOpts(boolean enableQueueTTL, Duration ttl) {
-        final Map<String, Object> ttlOpts = new HashMap<>();
-        if (enableQueueTTL) {
-            ttlOpts.put("x-expires", ttl.getSeconds()*1000);
+    private Map<String, Object> getActorTTLOpts(final TtlConfig ttlConfig) {
+        if (ttlConfig != null) {
+            return getTTLOpts(ttlConfig);
         }
+        return getTTLOpts(this.ttlConfig);
+    }
 
+    private Map<String, Object> getTTLOpts(final TtlConfig ttlConfig) {
+        final Map<String, Object> ttlOpts = new HashMap<>();
+        if (ttlConfig != null && ttlConfig.isTtlEnabled()) {
+            ttlOpts.put("x-expires", ttlConfig.getTtl().getSeconds() * 1000);
+        }
         return ttlOpts;
     }
+
     public HealthCheck healthcheck() {
         return new HealthCheck() {
             @Override
@@ -226,7 +217,7 @@ public class RMQConnection implements Managed {
         }
     }
 
-    public Channel channel() throws IOException {
+    public Channel channel() {
         return channel;
     }
 
