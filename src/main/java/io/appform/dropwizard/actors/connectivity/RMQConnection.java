@@ -167,21 +167,6 @@ public class RMQConnection implements Managed {
                 .build();
     }
 
-    private Map<String, Object> getActorTTLOpts(final TtlConfig ttlConfig) {
-        if (ttlConfig != null) {
-            return getTTLOpts(ttlConfig);
-        }
-        return getTTLOpts(this.ttlConfig);
-    }
-
-    private Map<String, Object> getTTLOpts(final TtlConfig ttlConfig) {
-        final Map<String, Object> ttlOpts = new HashMap<>();
-        if (ttlConfig != null && ttlConfig.isTtlEnabled()) {
-            ttlOpts.put("x-expires", ttlConfig.getTtl().getSeconds() * 1000);
-        }
-        return ttlOpts;
-    }
-
     public HealthCheck healthcheck() {
         return new HealthCheck() {
             @Override
@@ -227,5 +212,20 @@ public class RMQConnection implements Managed {
 
     private String getSideline(String name) {
         return String.format("%s_%s", name, "SIDELINE");
+    }
+
+    private Map<String, Object> getActorTTLOpts(final TtlConfig ttlConfig) {
+        if (ttlConfig != null) {
+            return getTTLOpts(ttlConfig);
+        }
+        return getTTLOpts(this.ttlConfig);
+    }
+
+    private Map<String, Object> getTTLOpts(final TtlConfig ttlConfig) {
+        final Map<String, Object> ttlOpts = new HashMap<>();
+        if (ttlConfig != null && ttlConfig.isTtlEnabled()) {
+            ttlOpts.put("x-expires", ttlConfig.getTtl().getSeconds() * 1000);
+        }
+        return ttlOpts;
     }
 }
