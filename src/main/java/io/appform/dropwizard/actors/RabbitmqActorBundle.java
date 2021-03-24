@@ -19,7 +19,6 @@ package io.appform.dropwizard.actors;
 import com.google.common.base.Preconditions;
 import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.config.RMQConfig;
-import io.appform.dropwizard.actors.connectivity.ConnectionConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
@@ -50,10 +49,14 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     public void run(T t, Environment environment) {
         this.rmqConfig = getConfig(t);
         val executorServiceProvider = getExecutorServiceProvider(t);
+        val ttlConfig = ttlConfig();
         Preconditions.checkNotNull(executorServiceProvider, "Null executor service provider provided");
-        this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, rmqConfig);
+        this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, rmqConfig,
+                ttlConfig == null ? TtlConfig.builder().build(): ttlConfig);
         environment.lifecycle().manage(connectionRegistry);
     }
+
+    protected abstract TtlConfig ttlConfig();
 
     @Override
     public void initialize(Bootstrap<?> bootstrap) {
