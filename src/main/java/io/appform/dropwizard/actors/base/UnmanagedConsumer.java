@@ -50,7 +50,7 @@ public class UnmanagedConsumer<Message> {
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
-        this.name = name;
+        this.name = NamingUtils.prefixWithNamespace(name);
         this.config = config;
         this.connection = connection;
         this.mapper = mapper;
