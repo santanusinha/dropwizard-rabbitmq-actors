@@ -143,6 +143,7 @@ public class UnmanagedPublisher<Message> {
     public void stop() throws Exception {
         try {
             publishChannel.close();
+            log.info("Publisher channel {} closed.", name);
         } catch (Exception e) {
             log.error(String.format("Error closing publisher:%s", name), e);
             throw e;
