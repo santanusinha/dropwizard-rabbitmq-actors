@@ -10,7 +10,6 @@ import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -143,9 +142,9 @@ public class UnmanagedPublisher<Message> {
     public void stop() throws Exception {
         try {
             publishChannel.close();
-            log.info("Publisher channel {} closed.", name);
+            log.info("Publisher channel {} closed for queue {}", name, queueName);
         } catch (Exception e) {
-            log.error(String.format("Error closing publisher:%s", name), e);
+            log.error(String.format("Error closing publisher:%s queue:%s", name, queueName), e);
             throw e;
         }
     }
