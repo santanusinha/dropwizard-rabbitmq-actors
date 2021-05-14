@@ -16,6 +16,7 @@
 
 package io.appform.dropwizard.actors.actor;
 
+import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConfig;
 import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
@@ -74,5 +75,8 @@ public class ActorConfig {
 
     @Valid
     private ConsumerConfig consumer;
+
+    @Valid
+    private TtlConfig ttlConfig;
 
 }

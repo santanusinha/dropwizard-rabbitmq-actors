@@ -50,7 +50,7 @@ public class UnmanagedConsumer<Message> {
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
-        this.name = name;
+        this.name = NamingUtils.prefixWithNamespace(name);
         this.config = config;
         this.connection = connection;
         this.mapper = mapper;
@@ -133,6 +133,7 @@ public class UnmanagedConsumer<Message> {
                 final Channel channel = handler.getChannel();
                 channel.basicCancel(handler.getTag());
                 channel.close();
+                log.info("Consumer channel {} closed.", name);
             } catch (Exception e) {
                 log.error(String.format("Error cancelling consumer: %s", handler.getTag()), e);
             }
