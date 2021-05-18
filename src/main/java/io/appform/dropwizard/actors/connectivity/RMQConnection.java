@@ -54,7 +54,10 @@ public class RMQConnection implements Managed {
     private Connection connection;
     private Channel channel;
     private final ExecutorService executorService;
+
+    @Getter
     private final Environment environment;
+
     private TtlConfig ttlConfig;
 
 

@@ -20,12 +20,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.ConnectionRegistry;
+import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.dropwizard.lifecycle.Managed;
+import io.dropwizard.setup.Environment;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -34,6 +36,7 @@ import org.apache.commons.lang3.ClassUtils;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * This is a managed wrapper for {@link UnmanagedBaseActor} this is managed and therefore started by D/W.
@@ -46,6 +49,10 @@ public abstract class BaseActor<Message> implements Managed {
 
     private final UnmanagedBaseActor<Message> actorImpl;
     private final Set<Class<?>> droppedExceptionTypes;
+
+    private String name;
+    private AtomicBoolean actorActive;
+    private Environment environment;
 
     protected BaseActor(UnmanagedPublisher<Message> publishActor, Set<Class<?>> droppedExceptionTypes) {
         this(publishActor, null, droppedExceptionTypes);
@@ -60,6 +67,8 @@ public abstract class BaseActor<Message> implements Managed {
                         Set<Class<?>> droppedExceptionTypes) {
         actorImpl = new UnmanagedBaseActor<>(produceActor, consumeActor);
         this.droppedExceptionTypes = droppedExceptionTypes;
+        this.actorActive = new AtomicBoolean(false);
+        addShutDownHook();
     }
 
     @Deprecated
@@ -79,6 +88,10 @@ public abstract class BaseActor<Message> implements Managed {
                 exceptionHandlingFactory, clazz,
                 this::handle,
                 this::isExceptionIgnorable);
+        this.name = NamingUtils.queueName(config.getPrefix(), name);
+        this.actorActive = new AtomicBoolean(false);
+        this.environment = connection.getEnvironment();
+        addShutDownHook();
     }
 
     protected BaseActor(
@@ -97,6 +110,10 @@ public abstract class BaseActor<Message> implements Managed {
                 exceptionHandlingFactory, clazz,
                 this::handle,
                 this::isExceptionIgnorable);
+        this.name = NamingUtils.queueName(config.getPrefix(), name);
+        this.actorActive = new AtomicBoolean(false);
+        this.environment = connectionRegistry.getEnvironment();
+        addShutDownHook();
     }
 
     /*
@@ -139,10 +156,21 @@ public abstract class BaseActor<Message> implements Managed {
     @Override
     public void start() throws Exception {
         actorImpl.start();
+        this.actorActive.compareAndSet(false, true);
     }
 
     @Override
     public void stop() throws Exception {
         actorImpl.stop();
+        this.actorActive.compareAndSet(true, false);
+    }
+
+    private void addShutDownHook() {
+        Thread hook = new Thread(() -> {
+            if (actorActive.get()) {
+                log.info("Actor not closed properly, {}", name);
+            }
+        });
+        Runtime.getRuntime().addShutdownHook(hook);
     }
 }
