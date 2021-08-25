@@ -10,6 +10,8 @@ import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
+import io.appform.dropwizard.actors.compression.CompressionAlgorithm;
+import io.appform.dropwizard.actors.compression.CompressionProvider;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
@@ -90,6 +92,12 @@ public class UnmanagedConsumer<Message> {
         public void handleDelivery(String consumerTag, Envelope envelope,
                                    AMQP.BasicProperties properties, byte[] body) throws IOException {
             try {
+                if (properties.getHeaders().containsKey("X-CompressionType")) {
+                    log.info("Compressed message length: {}", body.length);
+                    body = CompressionProvider.decompress(body, (CompressionAlgorithm) properties.getHeaders()
+                            .get("X-CompressionType"));
+                    log.info("Decompressed message length: {}", body.length);
+                }
                 final Message message = mapper.readValue(body, clazz);
                 boolean success = retryStrategy.execute(() -> handle(message, messageProperties(envelope)));
                 if (success) {
