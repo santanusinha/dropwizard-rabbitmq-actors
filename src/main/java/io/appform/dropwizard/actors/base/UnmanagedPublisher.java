@@ -49,7 +49,9 @@ public class UnmanagedPublisher<Message> {
 
         val properties = new AMQP.BasicProperties.Builder();
 
-        if (config.getCompressionConfig() != null && config.getCompressionConfig().isEnableCompression()) {
+        if (config.getCompressionConfig() != null &&
+                config.getCompressionConfig().isEnableCompression() &&
+                config.getCompressionConfig().getCompressionAlgorithm() != null) {
             properties.headers(ImmutableMap.of("X-CompressionType",
                     config.getCompressionConfig().getCompressionAlgorithm()));
         }
