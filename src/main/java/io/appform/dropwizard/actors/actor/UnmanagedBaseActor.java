@@ -22,6 +22,7 @@ import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.common.Constants;
+import io.appform.dropwizard.actors.compression.CompressionProvider;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategy;
 import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategyVisitor;

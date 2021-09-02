@@ -2,13 +2,15 @@ package io.appform.dropwizard.actors.base;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
+import io.appform.dropwizard.actors.base.helper.MessageBodyHelper;
+import io.appform.dropwizard.actors.base.helper.PropertiesHelper;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
-import io.appform.dropwizard.actors.compression.CompressionAlgorithm;
 import io.appform.dropwizard.actors.compression.CompressionProvider;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import lombok.extern.slf4j.Slf4j;
@@ -16,10 +18,9 @@ import lombok.val;
 import lombok.var;
 
 import java.io.IOException;
-import java.util.Collections;
 
 @Slf4j
-public class UnmanagedPublisher<Message> {
+public class UnmanagedPublisher<Message>{
 
     private final String name;
     private final ActorConfig config;
@@ -28,6 +29,11 @@ public class UnmanagedPublisher<Message> {
     private final String queueName;
 
     private Channel publishChannel;
+    private final PropertiesHelper propertiesHelper;
+    private final MessageBodyHelper messageBodyHelper;
+
+    private final boolean compressionEnabled;
+    private final boolean ttlDelayEnabled;
 
     public UnmanagedPublisher(
             String name,
@@ -39,6 +45,15 @@ public class UnmanagedPublisher<Message> {
         this.connection = connection;
         this.mapper = mapper;
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
+
+        this.propertiesHelper = new PropertiesHelper(config);
+        this.messageBodyHelper = new MessageBodyHelper();
+
+        this.compressionEnabled = config.getCompressionConfig() != null &&
+                config.getCompressionConfig().isEnableCompression() &&
+                config.getCompressionConfig().getCompressionAlgorithm() != null;
+
+        this.ttlDelayEnabled = config.getDelayType() == DelayType.TTL;
     }
 
     public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
@@ -47,52 +62,20 @@ public class UnmanagedPublisher<Message> {
             log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
         }
 
-        val properties = new AMQP.BasicProperties.Builder();
+        val properties = createPropertiesWithDelay(delayMilliseconds);
+        val exchange = ttlDelayEnabled ? ttlExchange(config) : config.getExchange();
+        val messageBody = createMessageBody(message, properties);
 
-        if (config.getCompressionConfig() != null &&
-                config.getCompressionConfig().isEnableCompression() &&
-                config.getCompressionConfig().getCompressionAlgorithm() != null) {
-            properties.headers(ImmutableMap.of("X-CompressionType",
-                    config.getCompressionConfig().getCompressionAlgorithm()));
-        }
-
-
-        if (config.getDelayType() == DelayType.TTL) {
-            publishChannel.basicPublish(ttlExchange(config),
-                    queueName,
-                    properties.expiration(String.valueOf(delayMilliseconds))
-                            .deliveryMode(2)
-                            .build(),
-                    mapper().writeValueAsBytes(message));
-        } else {
-            publish(message, properties.headers(Collections.singletonMap("x-delay", delayMilliseconds))
-                    .deliveryMode(2)
-                    .build());
-        }
+        publishChannel.basicPublish(exchange, queueName, properties, messageBody);
     }
 
     public final void publish(Message message) throws Exception {
-        if (config.getCompressionConfig() != null && config.getCompressionConfig().isEnableCompression()) {
-            val properties = new AMQP.BasicProperties.Builder()
-                    .headers(ImmutableMap.of("X-CompressionType", config.getCompressionConfig().getCompressionAlgorithm()))
-                    .deliveryMode(MessageProperties.MINIMAL_PERSISTENT_BASIC.getDeliveryMode())
-                    .build();
-
-            publish(message, properties);
-        }
-
         publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
     }
 
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
-        var byteMessage = mapper().writeValueAsBytes(message);
-        if (properties.getHeaders().containsKey("X-CompressionType")) {
-            log.info("Decompressed message length: {}", byteMessage.length);
-            byteMessage = CompressionProvider.compress(byteMessage, (CompressionAlgorithm) properties.getHeaders()
-                    .get("X-CompressionType"));
-            log.info("Compressed message length: {}", byteMessage.length);
-        }
-        publishChannel.basicPublish(config.getExchange(), queueName, properties, byteMessage);
+        val messageBody = createMessageBody(message, addMessageHeaders(properties));
+        publishChannel.basicPublish(config.getExchange(), queueName, properties, messageBody);
     }
 
     public final long pendingMessagesCount() {
@@ -183,5 +166,26 @@ public class UnmanagedPublisher<Message> {
 
     protected final ObjectMapper mapper() {
         return mapper;
+    }
+
+    private AMQP.BasicProperties createPropertiesWithDelay(final long delayMilliseconds) {
+        val properties = new AMQP.BasicProperties.Builder();
+        val compressionHeader = propertiesHelper.addCompressionHeader(Maps.newHashMap(), compressionEnabled);
+        val delayHeaders = propertiesHelper.addDelayHeader(compressionHeader, ttlDelayEnabled, delayMilliseconds);
+
+        properties.headers(delayHeaders);
+        return propertiesHelper.setDelayProperties(properties, ttlDelayEnabled, delayMilliseconds).build();
+    }
+
+    private AMQP.BasicProperties addMessageHeaders(final AMQP.BasicProperties properties) {
+        propertiesHelper.addCompressionHeader(properties.getHeaders(), compressionEnabled);
+        return properties;
+    }
+
+    private byte[] createMessageBody(final Message message,
+                                     final AMQP.BasicProperties properties) throws Exception {
+
+        var byteMessage = mapper().writeValueAsBytes(message);
+        return messageBodyHelper.compressMessage(byteMessage, properties);
     }
 }

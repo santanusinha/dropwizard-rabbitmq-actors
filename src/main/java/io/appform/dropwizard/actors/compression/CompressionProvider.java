@@ -8,10 +8,8 @@ import java.util.zip.GZIPOutputStream;
 
 public class CompressionProvider {
 
-    public static byte[] compress(byte[] data, CompressionAlgorithm compressionAlgorithm) throws IOException {
-
+    public byte[] compress(byte[] data, CompressionAlgorithm compressionAlgorithm) throws IOException {
         return compressionAlgorithm.visit(new CompressionAlgorithmVisitor<byte[]>() {
-
             @Override
             public byte[] visitGzip() throws IOException {
                 return compressUsingGzip(data);
@@ -24,11 +22,8 @@ public class CompressionProvider {
         });
     }
 
-
-    public static byte[] decompress(byte[] data, CompressionAlgorithm compressionAlgorithm) throws IOException {
-
+    public byte[] decompress(byte[] data, CompressionAlgorithm compressionAlgorithm) throws IOException {
         return compressionAlgorithm.visit(new CompressionAlgorithmVisitor<byte[]>() {
-
             @Override
             public byte[] visitGzip() throws IOException {
                 return CompressionUtil.decompressGzipByteArray(data);
@@ -41,7 +36,7 @@ public class CompressionProvider {
         });
     }
 
-    private static byte[] compressUsingGzip(byte[] input) throws IOException {
+    private byte[] compressUsingGzip(byte[] input) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream(input.length);
         GZIPOutputStream gzip = new GZIPOutputStream(bos);
         gzip.write(input);
