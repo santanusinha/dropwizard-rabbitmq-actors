@@ -62,7 +62,8 @@ public class UnmanagedPublisher<Message>{
             log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
         }
 
-        val properties = createPropertiesWithDelay(delayMilliseconds);
+        val properties = propertiesHelper.createPropertiesWithDelay(delayMilliseconds, compressionEnabled,
+                ttlDelayEnabled);
         val exchange = ttlDelayEnabled ? ttlExchange(config) : config.getExchange();
         val messageBody = createMessageBody(message, properties);
 
@@ -74,7 +75,7 @@ public class UnmanagedPublisher<Message>{
     }
 
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
-        val messageBody = createMessageBody(message, addMessageHeaders(properties));
+        val messageBody = createMessageBody(message, propertiesHelper.addMessageHeaders(properties, compressionEnabled));
         publishChannel.basicPublish(config.getExchange(), queueName, properties, messageBody);
     }
 
@@ -166,20 +167,6 @@ public class UnmanagedPublisher<Message>{
 
     protected final ObjectMapper mapper() {
         return mapper;
-    }
-
-    private AMQP.BasicProperties createPropertiesWithDelay(final long delayMilliseconds) {
-        val properties = new AMQP.BasicProperties.Builder();
-        val compressionHeader = propertiesHelper.addCompressionHeader(Maps.newHashMap(), compressionEnabled);
-        val delayHeaders = propertiesHelper.addDelayHeader(compressionHeader, ttlDelayEnabled, delayMilliseconds);
-
-        properties.headers(delayHeaders);
-        return propertiesHelper.setDelayProperties(properties, ttlDelayEnabled, delayMilliseconds).build();
-    }
-
-    private AMQP.BasicProperties addMessageHeaders(final AMQP.BasicProperties properties) {
-        propertiesHelper.addCompressionHeader(properties.getHeaders(), compressionEnabled);
-        return properties;
     }
 
     private byte[] createMessageBody(final Message message,

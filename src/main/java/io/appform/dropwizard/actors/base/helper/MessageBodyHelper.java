@@ -17,7 +17,7 @@ public class MessageBodyHelper {
     public byte[] decompressMessage(final byte[] message,
                                     final AMQP.BasicProperties properties) throws IOException {
 
-        if (properties.getHeaders().containsKey(COMPRESSION_TYPE)) {
+        if (properties.getHeaders() != null && properties.getHeaders().containsKey(COMPRESSION_TYPE)) {
             return compressionProvider.decompress(message, (CompressionAlgorithm) properties.getHeaders()
                     .get(COMPRESSION_TYPE));
         }
@@ -27,7 +27,7 @@ public class MessageBodyHelper {
     public byte[] compressMessage(final byte[] message,
                                   final AMQP.BasicProperties properties) throws IOException {
 
-        if (properties.getHeaders().containsKey(COMPRESSION_TYPE)) {
+        if (properties.getHeaders() != null && properties.getHeaders().containsKey(COMPRESSION_TYPE)) {
             return compressionProvider.compress(message, (CompressionAlgorithm) properties.getHeaders()
                     .get(COMPRESSION_TYPE));
         }
