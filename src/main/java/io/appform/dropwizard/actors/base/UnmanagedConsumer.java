@@ -9,7 +9,9 @@ import com.rabbitmq.client.Envelope;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
+import io.appform.dropwizard.actors.base.helper.MessageBodyHelper;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
+import io.appform.dropwizard.actors.compression.CompressionProvider;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
@@ -18,6 +20,8 @@ import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import lombok.var;
 
 import java.io.IOException;
 import java.util.List;
@@ -37,6 +41,7 @@ public class UnmanagedConsumer<Message> {
     private final String queueName;
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
+    private final MessageBodyHelper messageBodyHelper;
 
     private List<Handler> handlers = Lists.newArrayList();
 
@@ -61,6 +66,7 @@ public class UnmanagedConsumer<Message> {
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
         this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());
         this.exceptionHandler = exceptionHandlingFactory.create(config.getExceptionHandlerConfig());
+        this.messageBodyHelper = new MessageBodyHelper();
     }
 
     private boolean handle(Message message, MessageMetadata messageMetadata) throws Exception {
@@ -90,7 +96,7 @@ public class UnmanagedConsumer<Message> {
         public void handleDelivery(String consumerTag, Envelope envelope,
                                    AMQP.BasicProperties properties, byte[] body) throws IOException {
             try {
-                final Message message = mapper.readValue(body, clazz);
+                final Message message = createMessage(body, properties);
                 boolean success = retryStrategy.execute(() -> handle(message, messageProperties(envelope)));
                 if (success) {
                     getChannel().basicAck(envelope.getDeliveryTag(), false);
@@ -138,6 +144,12 @@ public class UnmanagedConsumer<Message> {
                 log.error(String.format("Error cancelling consumer: %s", handler.getTag()), e);
             }
         });
+    }
+
+    private Message createMessage(final byte[] body,
+                                  AMQP.BasicProperties properties) throws Exception {
+        val modifiedMessageBody = messageBodyHelper.decompressMessage(body, properties);
+        return mapper.readValue(modifiedMessageBody, clazz);
     }
 
 }
