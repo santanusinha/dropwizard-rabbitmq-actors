@@ -32,7 +32,7 @@ public class PropertiesHelper {
     }
 
     public AMQP.BasicProperties addMessageHeaders(final AMQP.BasicProperties properties,
-                                                   final boolean compressionEnabled) {
+                                                  final boolean compressionEnabled) {
         if (properties.getHeaders() == null) {
             // have to do this since AMQP.BasicProperties doesn't have any setter methods
             val headers = addCompressionHeader(Maps.newHashMap(), compressionEnabled);
