@@ -120,7 +120,12 @@ public class UnmanagedConsumer<Message> {
         for (int i = 1; i <= config.getConcurrency(); i++) {
             Channel consumeChannel = connection.newChannel();
             final Handler handler = new Handler(consumeChannel, mapper, clazz, prefetchCount);
-            final String tag = consumeChannel.basicConsume(queueName, false, handler);
+            String queueNameForConsumption;
+            if (config.isSharded()) {
+                queueNameForConsumption = NamingUtils.getShardedQueueName(queueName, i % config.getShardCount());
+            } else {
+                queueNameForConsumption = queueName;
+            } final String tag = consumeChannel.basicConsume(queueNameForConsumption, false, handler);
             handler.setTag(tag);
             handlers.add(handler);
             log.info("Started consumer {} of type {}", i, name);

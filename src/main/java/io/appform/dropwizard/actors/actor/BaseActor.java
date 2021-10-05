@@ -20,11 +20,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.ConnectionRegistry;
+import io.appform.dropwizard.actors.base.UnmanagedConsumer;
+import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.appform.dropwizard.actors.base.UnmanagedConsumer;
-import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -128,8 +128,16 @@ public abstract class BaseActor<Message> implements Managed {
         publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
     }
 
+    public final void publish(Message message, String routingKey) throws Exception {
+        actorImpl.publish(message, routingKey, MessageProperties.MINIMAL_PERSISTENT_BASIC);
+    }
+
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
         actorImpl.publish(message, properties);
+    }
+
+    public final void publish(Message message, String routingKey, AMQP.BasicProperties properties) throws Exception {
+        actorImpl.publish(message, routingKey, properties);
     }
 
     public final long pendingMessagesCount() {

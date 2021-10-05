@@ -120,8 +120,16 @@ public class UnmanagedBaseActor<Message> {
         publishActor().publish(message);
     }
 
+    public final void publish(Message message, String routingKey) throws Exception {
+        publishActor().publish(message, routingKey);
+    }
+
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
         publishActor().publish(message, properties);
+    }
+
+    public final void publish(Message message, String routingKey, AMQP.BasicProperties properties) throws Exception {
+        publishActor().publish(message, routingKey, properties);
     }
 
     public final long pendingMessagesCount() {

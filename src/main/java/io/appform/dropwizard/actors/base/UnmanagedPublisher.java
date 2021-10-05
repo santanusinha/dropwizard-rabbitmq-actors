@@ -2,6 +2,7 @@ package io.appform.dropwizard.actors.base;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.hash.Hashing;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.MessageProperties;
@@ -10,9 +11,10 @@ import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
+import org.apache.commons.lang3.RandomUtils;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 @Slf4j
@@ -64,8 +66,38 @@ public class UnmanagedPublisher<Message> {
         publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
     }
 
+    public final void publish(Message message, String routingKey) throws Exception {
+        publish(message, routingKey, MessageProperties.MINIMAL_PERSISTENT_BASIC);
+    }
+
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
-        publishChannel.basicPublish(config.getExchange(), queueName, properties, mapper().writeValueAsBytes(message));
+        String routingKey;
+        if (config.isSharded()) {
+            routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
+        } else {
+            routingKey = queueName;
+        }
+        publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
+    }
+
+    public final void publish(Message message, String routingKey, AMQP.BasicProperties properties) throws Exception {
+        if (config.isSharded()) {
+            routingKey = NamingUtils.getShardedQueueName(queueName, getShardId(routingKey));
+        }
+        publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
+    }
+
+    private final int getShardId() {
+        return RandomUtils.nextInt(0, config.getShardCount());
+    }
+
+    private final int getShardId(String routingKey) {
+        int hashKey = Hashing.murmur3_128()
+                .hashString(routingKey, StandardCharsets.UTF_8)
+                .asInt();
+        hashKey *= hashKey < 0 ? -1 : 1;
+
+        return hashKey % config.getShardCount();
     }
 
     public final long pendingMessagesCount() {
@@ -90,15 +122,22 @@ public class UnmanagedPublisher<Message> {
         this.publishChannel = connection.newChannel();
         connection.ensure(queueName + "_SIDELINE", queueName, dlx,
                 connection.rmqOpts(config));
-        connection.ensure(queueName,
-                config.getExchange(),
-                connection.rmqOpts(dlx, config));
+        if (config.isSharded()) {
+            int bound = config.getShardCount();
+            for (int shardId = 0; shardId < bound; shardId++) {
+                connection.ensure(queueName + "_" + shardId, config.getExchange(), connection.rmqOpts(dlx, config));
+            }
+        } else {
+            connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx, config));
+        }
+
         if (config.getDelayType() == DelayType.TTL) {
             connection.ensure(ttlQueue(queueName),
                     queueName,
                     ttlExchange(config),
                     connection.rmqOpts(exchange, config));
         }
+
     }
 
     private void ensureExchange(String exchange) throws IOException {
