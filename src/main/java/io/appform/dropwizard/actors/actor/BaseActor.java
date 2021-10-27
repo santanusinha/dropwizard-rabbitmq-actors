@@ -136,6 +136,10 @@ public abstract class BaseActor<Message> implements Managed {
         return actorImpl.pendingMessagesCount();
     }
 
+    public final long pendingSidelineMessagesCount() {
+        return actorImpl.pendingSidelineMessagesCount();
+    }
+
     @Override
     public void start() throws Exception {
         actorImpl.start();
