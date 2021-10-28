@@ -90,7 +90,7 @@ public class RMQConnection implements Managed {
                 KeyStore tks = KeyStore.getInstance("JKS");
                 tks.load(new FileInputStream(config.getServerCertStorePath()), config.getServerCertPassword().toCharArray());
                 SSLContext c = SSLContexts.custom()
-                        .useProtocol("TLSv1.2")
+                        .setProtocol("TLSv1.2")
                         .loadTrustMaterial(tks, new TrustSelfSignedStrategy())
                         .loadKeyMaterial(ks, config.getCertPassword().toCharArray(), (aliases, socket) -> "clientcert")
                         .build();
