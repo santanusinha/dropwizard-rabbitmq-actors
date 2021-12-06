@@ -72,6 +72,8 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     /**
      * Provides implementation for {@link ExecutorServiceProvider}. Should be overridden if custom executor service
      * implementations needs to be used. For e.g. {@link com.codahale.metrics.InstrumentedExecutorService}.
+     * @param t param to accept custom config
+     * @return io.appform.dropwizard.actors.ExecutorServiceProvider
      */
     protected ExecutorServiceProvider getExecutorServiceProvider(T t) {
         return (name, coreSize) -> Executors.newFixedThreadPool(coreSize);
