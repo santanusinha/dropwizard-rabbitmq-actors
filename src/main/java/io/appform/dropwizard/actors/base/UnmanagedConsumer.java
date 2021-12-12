@@ -33,8 +33,11 @@ public class UnmanagedConsumer<Message> {
 
     private List<Handler<Message>> handlers = Lists.newArrayList();
 
-    public UnmanagedConsumer(final String name, final ActorConfig config, final RMQConnection connection,
-                             final ObjectMapper mapper, final RetryStrategyFactory retryStrategyFactory,
+    public UnmanagedConsumer(final String name,
+                             final ActorConfig config,
+                             final RMQConnection connection,
+                             final ObjectMapper mapper,
+                             final RetryStrategyFactory retryStrategyFactory,
                              final ExceptionHandlingFactory exceptionHandlingFactory,
                              final Class<? extends Message> clazz,
                              final MessageHandlingFunction<Message, Boolean> handlerFunction,
@@ -63,7 +66,8 @@ public class UnmanagedConsumer<Message> {
                 queueNameForConsumption = NamingUtils.getShardedQueueName(queueName, i % config.getShardCount());
             } else {
                 queueNameForConsumption = queueName;
-            } final String tag = consumeChannel.basicConsume(queueNameForConsumption, false, handler);
+            }
+            final String tag = consumeChannel.basicConsume(queueNameForConsumption, false, handler);
             handler.setTag(tag);
             handlers.add(handler);
             log.info("Started consumer {} of type {}", i, name);
