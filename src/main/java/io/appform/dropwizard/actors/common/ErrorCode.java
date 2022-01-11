@@ -20,5 +20,6 @@ package io.appform.dropwizard.actors.common;
  * Error codes
  */
 public enum ErrorCode {
-    INTERNAL_ERROR
+    INTERNAL_ERROR,
+    CONFIG_ERROR
 }

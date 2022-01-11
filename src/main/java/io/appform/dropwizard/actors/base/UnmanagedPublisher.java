@@ -134,7 +134,8 @@ public class UnmanagedPublisher<Message> {
         if (config.isSharded()) {
             int bound = config.getShardCount();
             for (int shardId = 0; shardId < bound; shardId++) {
-                connection.ensure(queueName + "_" + shardId, config.getExchange(), connection.rmqOpts(dlx, config));
+                connection.ensure(NamingUtils.getShardedQueueName(queueName, shardId), config.getExchange(),
+                                  connection.rmqOpts(dlx, config));
             }
         } else {
             connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx, config));

@@ -22,6 +22,8 @@ import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.common.Constants;
+import io.appform.dropwizard.actors.common.ErrorCode;
+import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategy;
 import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategyVisitor;
@@ -86,6 +88,7 @@ public class UnmanagedBaseActor<Message> {
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
+        validateActorConfig(config);
         val consumerConnection = connectionRegistry.createOrGet(consumerConnectionName(config.getConsumer()));
         val producerConnection = connectionRegistry.createOrGet(producerConnectionName(config.getProducer()));
         this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper);
@@ -180,6 +183,15 @@ public class UnmanagedBaseActor<Message> {
             }
 
         });
+    }
+
+    private void validateActorConfig(ActorConfig actorConfig) {
+        if (actorConfig.isSharded() && actorConfig.getConcurrency() % actorConfig.getShardCount() != 0) {
+            throw new RabbitmqActorException(ErrorCode.CONFIG_ERROR,
+                                             "Invalid config. Concurrency should be multiple of shard count for " +
+                                                     "sharded queue " + actorConfig.getExchange());
+
+        }
     }
 
 }
