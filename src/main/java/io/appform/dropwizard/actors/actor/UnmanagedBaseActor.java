@@ -69,11 +69,12 @@ public class UnmanagedBaseActor<Message> {
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
+            MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
         this(new UnmanagedPublisher<>(name, config, connection, mapper),
                 new UnmanagedConsumer<>(
                         name, config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz, handlerFunction,
-                        errorCheckFunction));
+                        expiredMessageHandlingFunction, errorCheckFunction));
     }
 
     public UnmanagedBaseActor(
@@ -85,13 +86,14 @@ public class UnmanagedBaseActor<Message> {
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
+            MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
         val consumerConnection = connectionRegistry.createOrGet(consumerConnectionName(config.getConsumer()));
         val producerConnection = connectionRegistry.createOrGet(producerConnectionName(config.getProducer()));
         this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper);
         this.consumeActor = new UnmanagedConsumer<>(
                 name, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz, handlerFunction,
-                errorCheckFunction);
+                expiredMessageHandlingFunction, errorCheckFunction);
     }
 
     public void start() throws Exception {

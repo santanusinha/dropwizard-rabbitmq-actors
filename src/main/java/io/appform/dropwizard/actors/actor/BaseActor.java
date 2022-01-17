@@ -78,6 +78,7 @@ public abstract class BaseActor<Message> implements Managed {
         actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory,
                 exceptionHandlingFactory, clazz,
                 this::handle,
+                this::handleExpiredMessages,
                 this::isExceptionIgnorable);
     }
 
@@ -96,6 +97,7 @@ public abstract class BaseActor<Message> implements Managed {
         actorImpl = new UnmanagedBaseActor<>(name, config, connectionRegistry, mapper, retryStrategyFactory,
                 exceptionHandlingFactory, clazz,
                 this::handle,
+                this::handleExpiredMessages,
                 this::isExceptionIgnorable);
     }
 
@@ -104,6 +106,13 @@ public abstract class BaseActor<Message> implements Managed {
      */
     protected boolean handle(Message message, MessageMetadata messageMetadata) throws Exception {
         return handle(message);
+    }
+
+    /*
+        Override this method in your code in case you want to handle the expired messages separately
+     */
+    protected boolean handleExpiredMessages(Message message, MessageMetadata messageMetadata) throws Exception {
+        return true;
     }
 
     /*

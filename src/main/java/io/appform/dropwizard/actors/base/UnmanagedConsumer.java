@@ -25,7 +25,9 @@ public class UnmanagedConsumer<Message> {
     private final ObjectMapper mapper;
     private final Class<? extends Message> clazz;
     private final int prefetchCount;
+    private final long expiryInMs;
     private final MessageHandlingFunction<Message, Boolean> handlerFunction;
+    private final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction;
     private final Function<Throwable, Boolean> errorCheckFunction;
     private final String queueName;
     private final RetryStrategy retryStrategy;
@@ -41,6 +43,7 @@ public class UnmanagedConsumer<Message> {
                              final ExceptionHandlingFactory exceptionHandlingFactory,
                              final Class<? extends Message> clazz,
                              final MessageHandlingFunction<Message, Boolean> handlerFunction,
+                             final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
                              final Function<Throwable, Boolean> errorCheckFunction) {
         this.name = NamingUtils.prefixWithNamespace(name);
         this.config = config;
@@ -48,7 +51,9 @@ public class UnmanagedConsumer<Message> {
         this.mapper = mapper;
         this.clazz = clazz;
         this.prefetchCount = config.getPrefetchCount();
+        this.expiryInMs = config.getExpiryInMs();
         this.handlerFunction = handlerFunction;
+        this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
         this.errorCheckFunction = errorCheckFunction;
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
         this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());
@@ -59,7 +64,7 @@ public class UnmanagedConsumer<Message> {
         for (int i = 1; i <= config.getConcurrency(); i++) {
             Channel consumeChannel = connection.newChannel();
             final Handler<Message> handler = new Handler<>(consumeChannel, mapper, clazz,
-                    prefetchCount, errorCheckFunction, retryStrategy, exceptionHandler, handlerFunction);
+                    prefetchCount, expiryInMs, errorCheckFunction, retryStrategy, exceptionHandler, handlerFunction, expiredMessageHandlingFunction);
             final String tag = consumeChannel.basicConsume(queueName, false, handler);
             handler.setTag(tag);
             handlers.add(handler);

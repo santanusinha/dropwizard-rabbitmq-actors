@@ -79,4 +79,6 @@ public class ActorConfig {
     @Valid
     private TtlConfig ttlConfig;
 
+    private long expiryInMs;
+
 }
