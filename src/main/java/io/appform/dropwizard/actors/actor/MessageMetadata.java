@@ -8,6 +8,6 @@ import lombok.Data;
 public final class MessageMetadata {
 
     private boolean redelivered;
-    private long delayInMs;
+    private Long delayInMs;
 
 }

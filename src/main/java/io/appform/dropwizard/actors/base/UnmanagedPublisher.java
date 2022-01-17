@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
@@ -13,7 +12,10 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Collections;
+
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_TYPE_TEXT;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
@@ -50,22 +52,28 @@ public class UnmanagedPublisher<Message> {
                     new AMQP.BasicProperties.Builder()
                             .expiration(String.valueOf(delayMilliseconds))
                             .deliveryMode(2)
+                            .headers(ImmutableMap.of(MESSAGE_TYPE_TEXT, MessageType.WRAPPED_TEXT))
                             .build(),
-                    mapper().writeValueAsBytes(message));
+                    wrapAndSerializeMessage(message));
         } else {
             publish(message, new AMQP.BasicProperties.Builder()
                     .headers(Collections.singletonMap("x-delay", delayMilliseconds))
                     .deliveryMode(2)
+                    .headers(ImmutableMap.of(MESSAGE_TYPE_TEXT, MessageType.WRAPPED_TEXT))
                     .build());
         }
     }
 
     public final void publish(Message message) throws Exception {
-        publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
+        val properties = new AMQP.BasicProperties.Builder()
+                .deliveryMode(2)
+                .headers(ImmutableMap.of(MESSAGE_TYPE_TEXT, MessageType.WRAPPED_TEXT))
+                .build();
+        publish(message, properties);
     }
 
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
-        publishChannel.basicPublish(config.getExchange(), queueName, properties, mapper().writeValueAsBytes(message));
+        publishChannel.basicPublish(config.getExchange(), queueName, properties, wrapAndSerializeMessage(message));
     }
 
     public final long pendingMessagesCount() {
@@ -147,6 +155,14 @@ public class UnmanagedPublisher<Message> {
 
     private String ttlQueue(String queueName) {
         return String.format("%s_TTL", queueName);
+    }
+
+    private byte[] wrapAndSerializeMessage(final Message message) throws Exception {
+        val messageWrapper = MessageWrapper.<Message>builder()
+                .message(message)
+                .publishTimeStamp(Instant.now().toEpochMilli())
+                .build();
+        return mapper().writeValueAsBytes(messageWrapper);
     }
 
     public void stop() throws Exception {

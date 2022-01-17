@@ -12,4 +12,6 @@ public class Constants {
 
     public static final int MAX_THREADS_PER_CONNECTION = 300;
 
+    public static final String MESSAGE_TYPE_TEXT = "messageType";
+
 }
