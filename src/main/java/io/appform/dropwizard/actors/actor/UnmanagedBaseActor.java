@@ -88,7 +88,6 @@ public class UnmanagedBaseActor<Message> {
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
-        validateActorConfig(config);
         val consumerConnection = connectionRegistry.createOrGet(consumerConnectionName(config.getConsumer()));
         val producerConnection = connectionRegistry.createOrGet(producerConnectionName(config.getProducer()));
         this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper);
@@ -184,14 +183,4 @@ public class UnmanagedBaseActor<Message> {
 
         });
     }
-
-    private void validateActorConfig(ActorConfig actorConfig) {
-        if (actorConfig.isSharded() && actorConfig.getConcurrency() % actorConfig.getShardCount() != 0) {
-            throw new RabbitmqActorException(ErrorCode.CONFIG_ERROR,
-                                             "Invalid config. Concurrency should be multiple of shard count for " +
-                                                     "sharded queue " + actorConfig.getExchange());
-
-        }
-    }
-
 }

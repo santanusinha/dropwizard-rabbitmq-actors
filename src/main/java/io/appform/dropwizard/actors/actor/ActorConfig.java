@@ -20,7 +20,13 @@ import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConfig;
 import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
-import lombok.*;
+import io.dropwizard.validation.ValidationMethod;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Max;
@@ -86,6 +92,11 @@ public class ActorConfig {
 
     public boolean isSharded() {
         return Objects.nonNull(shardCount);
+    }
+
+    @ValidationMethod(message = "Concurrency should be multiple of shard count for sharded queue.")
+    public boolean isValid() {
+        return !isSharded() || getConcurrency() % getShardCount() == 0;
     }
 
 }
