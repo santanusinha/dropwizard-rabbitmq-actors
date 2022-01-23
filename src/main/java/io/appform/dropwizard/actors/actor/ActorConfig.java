@@ -95,7 +95,7 @@ public class ActorConfig {
     }
 
     @ValidationMethod(message = "Concurrency should be multiple of shard count for sharded queue.")
-    public boolean isValid() {
+    public boolean isValidSharding() {
         return !isSharded() || getConcurrency() % getShardCount() == 0;
     }
 
