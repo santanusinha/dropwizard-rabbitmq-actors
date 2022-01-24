@@ -131,7 +131,7 @@ public abstract class BaseActor<Message> implements Managed {
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
         actorImpl.publish(message, properties);
     }
-    
+
     public final long pendingMessagesCount() {
         return actorImpl.pendingMessagesCount();
     }

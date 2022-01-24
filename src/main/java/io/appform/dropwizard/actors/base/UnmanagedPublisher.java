@@ -66,10 +66,6 @@ public class UnmanagedPublisher<Message> {
         publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
     }
 
-    public final void publish(Message message, String routingKey) throws Exception {
-        publish(message, routingKey, MessageProperties.MINIMAL_PERSISTENT_BASIC);
-    }
-
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
         String routingKey;
         if (config.isSharded()) {
@@ -80,24 +76,8 @@ public class UnmanagedPublisher<Message> {
         publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
     }
 
-    public final void publish(Message message, String routingKey, AMQP.BasicProperties properties) throws Exception {
-        if (config.isSharded()) {
-            routingKey = NamingUtils.getShardedQueueName(queueName, getShardId(routingKey));
-        }
-        publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
-    }
-
     private final int getShardId() {
         return RandomUtils.nextInt(0, config.getShardCount());
-    }
-
-    private final int getShardId(String routingKey) {
-        int hashKey = Hashing.murmur3_128()
-                .hashString(routingKey, StandardCharsets.UTF_8)
-                .asInt();
-        hashKey *= hashKey < 0 ? -1 : 1;
-
-        return hashKey % config.getShardCount();
     }
 
     public final long pendingMessagesCount() {

@@ -122,10 +122,6 @@ public class UnmanagedBaseActor<Message> {
         publishActor().publish(message);
     }
 
-    public final void publish(Message message, String routingKey) throws Exception {
-        publishActor().publish(message, routingKey);
-    }
-
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
         publishActor().publish(message, properties);
     }
