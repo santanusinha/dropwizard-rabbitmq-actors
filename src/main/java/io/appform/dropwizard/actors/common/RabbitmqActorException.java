@@ -30,12 +30,6 @@ public class RabbitmqActorException extends RuntimeException {
     private final ErrorCode errorCode;
 
     @Builder
-    public RabbitmqActorException(ErrorCode errorCode, String message) {
-        super(message);
-        this.errorCode = errorCode;
-    }
-
-    @Builder
     public RabbitmqActorException(ErrorCode errorCode, String message, Throwable cause) {
         super(message, cause);
         this.errorCode = errorCode;

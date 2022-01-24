@@ -2,7 +2,6 @@ package io.appform.dropwizard.actors.base;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.hash.Hashing;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.MessageProperties;
@@ -14,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomUtils;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 @Slf4j
@@ -127,7 +125,6 @@ public class UnmanagedPublisher<Message> {
                     ttlExchange(config),
                     connection.rmqOpts(exchange, config));
         }
-
     }
 
     private void ensureExchange(String exchange) throws IOException {
