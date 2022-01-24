@@ -128,18 +128,10 @@ public abstract class BaseActor<Message> implements Managed {
         publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
     }
 
-    public final void publish(Message message, String routingKey) throws Exception {
-        actorImpl.publish(message, routingKey, MessageProperties.MINIMAL_PERSISTENT_BASIC);
-    }
-
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
         actorImpl.publish(message, properties);
     }
-
-    public final void publish(Message message, String routingKey, AMQP.BasicProperties properties) throws Exception {
-        actorImpl.publish(message, routingKey, properties);
-    }
-
+    
     public final long pendingMessagesCount() {
         return actorImpl.pendingMessagesCount();
     }
