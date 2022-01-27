@@ -58,9 +58,16 @@ public class UnmanagedConsumer<Message> {
     public void start() throws Exception {
         for (int i = 1; i <= config.getConcurrency(); i++) {
             Channel consumeChannel = connection.newChannel();
-            final Handler<Message> handler = new Handler<>(consumeChannel, mapper, clazz,
-                    prefetchCount, errorCheckFunction, retryStrategy, exceptionHandler, handlerFunction);
-            final String tag = consumeChannel.basicConsume(queueName, false, handler);
+            final Handler<Message> handler =
+                    new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction, retryStrategy,
+                                  exceptionHandler, handlerFunction);
+            String queueNameForConsumption;
+            if (config.isSharded()) {
+                queueNameForConsumption = NamingUtils.getShardedQueueName(queueName, i % config.getShardCount());
+            } else {
+                queueNameForConsumption = queueName;
+            }
+            final String tag = consumeChannel.basicConsume(queueNameForConsumption, false, handler);
             handler.setTag(tag);
             handlers.add(handler);
             log.info("Started consumer {} of type {}", i, name);
