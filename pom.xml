@@ -6,15 +6,14 @@
 
     <groupId>io.appform.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors</artifactId>
-    <version>2.0.23-4</version>
+    <version>2.0.28</version>
     <name>Dropwizard RabbitMQ Bundle</name>
     <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors</url>
     <description>Provides actor abstraction on RabbitMQ for dropwizard based projects.</description>
     <inceptionYear>2016</inceptionYear>
     <scm>
         <connection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</connection>
-        <developerConnection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git
-        </developerConnection>
+        <developerConnection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</developerConnection>
         <tag>HEAD</tag>
         <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</url>
     </scm>
@@ -51,6 +50,22 @@
                 <role>developer</role>
             </roles>
         </developer>
+        <developer>
+            <id>r0goyal</id>
+            <name>Rishabh Goyal</name>
+            <email>rgoyal2191@gmail.com</email>
+            <roles>
+                <role>developer</role>
+            </roles>
+        </developer>
+        <developer>
+            <id>vidhyashankar.m</id>
+            <name>Vidhyashankar M</name>
+            <email>vidhyashankar.it@gmail.com</email>
+            <roles>
+                <role>developer</role>
+            </roles>
+        </developer>
     </developers>
 
     <ciManagement>
@@ -72,10 +87,12 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dropwizard.version>2.0.25</dropwizard.version>
+        <dropwizard.version>2.0.28</dropwizard.version>
         <lombok.version>1.18.22</lombok.version>
         <guava.version>31.0.1-jre</guava.version>
         <test.container.version>1.0.6</test.container.version>
+        <okhttp.version>4.9.3</okhttp.version>
+        <amqp-client.version>5.14.1</amqp-client.version>
     </properties>
 
     <dependencyManagement>
@@ -116,7 +133,7 @@
         <dependency>
             <groupId>com.rabbitmq</groupId>
             <artifactId>amqp-client</artifactId>
-            <version>5.13.0</version>
+            <version>${amqp-client.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -158,7 +175,7 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>4.9.2</version>
+            <version>${okhttp.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
