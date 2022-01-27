@@ -77,6 +77,8 @@
         <guava.version>28.0-jre</guava.version>
         <junit.version>4.12</junit.version>
         <test.container.version>1.0.4</test.container.version>
+        <function.metrics.version>1.0.12</function.metrics.version>
+        <aspectj.rt.version>1.9.7</aspectj.rt.version>
     </properties>
 
     <dependencyManagement>
@@ -90,6 +92,16 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+            <version>${aspectj.rt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.appform.functionmetrics</groupId>
+            <artifactId>function-metrics</artifactId>
+            <version>${function.metrics.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>

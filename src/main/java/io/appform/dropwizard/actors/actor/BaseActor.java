@@ -16,6 +16,7 @@
 
 package io.appform.dropwizard.actors.actor;
 
+import com.codahale.metrics.annotation.Metric;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.MessageProperties;
@@ -25,6 +26,8 @@ import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
+import io.appform.functionmetrics.MetricTerm;
+import io.appform.functionmetrics.MonitoredFunction;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -77,7 +80,7 @@ public abstract class BaseActor<Message> implements Managed {
                 ? Collections.emptySet() : droppedExceptionTypes;
         actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory,
                 exceptionHandlingFactory, clazz,
-                this::handle,
+                (param, messageMetadata) -> handle(name, param, messageMetadata),
                 this::isExceptionIgnorable);
     }
 
@@ -95,14 +98,15 @@ public abstract class BaseActor<Message> implements Managed {
                 ? Collections.emptySet() : droppedExceptionTypes;
         actorImpl = new UnmanagedBaseActor<>(name, config, connectionRegistry, mapper, retryStrategyFactory,
                 exceptionHandlingFactory, clazz,
-                this::handle,
+                (param, messageMetadata) -> handle(name, param, messageMetadata),
                 this::isExceptionIgnorable);
     }
 
     /*
         Override this method in your code for custom implementation.
      */
-    protected boolean handle(Message message, MessageMetadata messageMetadata) throws Exception {
+    @MonitoredFunction
+    protected boolean handle(@MetricTerm String name, Message message, MessageMetadata messageMetadata) throws Exception {
         return handle(message);
     }
 
