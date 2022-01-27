@@ -72,6 +72,9 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <lombok.version>1.18.8</lombok.version>
+        <function.metrics.version>1.0.12</function.metrics.version>
+        <aspectj.rt.version>1.9.7</aspectj.rt.version>
         <dropwizard.version>2.0.25</dropwizard.version>
         <lombok.version>1.18.22</lombok.version>
         <guava.version>31.0.1-jre</guava.version>
@@ -89,6 +92,16 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+            <version>${aspectj.rt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.appform.functionmetrics</groupId>
+            <artifactId>function-metrics</artifactId>
+            <version>${function.metrics.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
