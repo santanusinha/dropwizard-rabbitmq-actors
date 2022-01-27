@@ -128,6 +128,10 @@ public class UnmanagedBaseActor<Message> {
         return publishActor().pendingMessagesCount();
     }
 
+    public final long pendingSidelineMessagesCount() {
+        return publishActor().pendingSidelineMessagesCount();
+    }
+
     private UnmanagedPublisher<Message> publishActor() {
         if (isNull(publishActor)) {
             throw new NotImplementedException("PublishActor is not initialized");

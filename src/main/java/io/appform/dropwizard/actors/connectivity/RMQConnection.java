@@ -45,6 +45,7 @@ import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.UUID;
 
 @Slf4j
 public class RMQConnection implements Managed {
@@ -89,7 +90,7 @@ public class RMQConnection implements Managed {
                 KeyStore tks = KeyStore.getInstance("JKS");
                 tks.load(new FileInputStream(config.getServerCertStorePath()), config.getServerCertPassword().toCharArray());
                 SSLContext c = SSLContexts.custom()
-                        .useProtocol("TLSv1.2")
+                        .setProtocol("TLSv1.2")
                         .loadTrustMaterial(tks, new TrustSelfSignedStrategy())
                         .loadKeyMaterial(ks, config.getCertPassword().toCharArray(), (aliases, socket) -> "clientcert")
                         .build();
@@ -124,7 +125,7 @@ public class RMQConnection implements Managed {
             }
         });
         channel = connection.createChannel();
-        environment.healthChecks().register(String.format("rmqconnection-%s", connection), healthcheck());
+        environment.healthChecks().register(String.format("rmqconnection-%s-%s", connection, UUID.randomUUID().toString()), healthcheck());
         log.info(String.format("Started RMQ connection [%s] ", name));
     }
 

@@ -76,6 +76,15 @@ public class UnmanagedPublisher<Message> {
         return Long.MAX_VALUE;
     }
 
+    public final long pendingSidelineMessagesCount() {
+        try {
+            return publishChannel.messageCount(queueName + "_SIDELINE");
+        } catch (IOException e) {
+            log.error("Issue getting message count. Will return max", e);
+        }
+        return Long.MAX_VALUE;
+    }
+
     public void start() throws Exception {
         final String exchange = config.getExchange();
         final String dlx = config.getExchange() + "_SIDELINE";
