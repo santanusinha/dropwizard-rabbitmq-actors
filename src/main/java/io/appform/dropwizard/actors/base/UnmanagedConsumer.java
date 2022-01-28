@@ -31,7 +31,7 @@ public class UnmanagedConsumer<Message> {
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
 
-    private List<Handler<Message>> handlers = Lists.newArrayList();
+    private final List<Handler<Message>> handlers = Lists.newArrayList();
 
     public UnmanagedConsumer(final String name,
                              final ActorConfig config,
@@ -86,5 +86,4 @@ public class UnmanagedConsumer<Message> {
             }
         });
     }
-
 }

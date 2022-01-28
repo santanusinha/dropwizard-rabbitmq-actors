@@ -37,8 +37,10 @@ public class CountLimitedIncrementalWaitRetryStrategy extends RetryStrategy {
                 .withStopStrategy(StopStrategies.stopAfterAttempt(config.getMaxAttempts()))
                 .withBlockStrategy(BlockStrategies.threadSleepStrategy())
                 .withWaitStrategy(
-                        WaitStrategies.incrementingWait(config.getInitialWaitTime().toMilliseconds(), TimeUnit.MILLISECONDS,
-                                config.getWaitIncrement().toMilliseconds(), TimeUnit.MILLISECONDS))
+                        WaitStrategies.incrementingWait(config.getInitialWaitTime().toMilliseconds(),
+                                TimeUnit.MILLISECONDS,
+                                config.getWaitIncrement().toMilliseconds(),
+                                TimeUnit.MILLISECONDS))
                 .build());
     }
 }

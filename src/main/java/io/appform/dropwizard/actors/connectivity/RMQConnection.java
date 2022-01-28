@@ -44,19 +44,19 @@ import java.io.IOException;
 import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 
 @Slf4j
 public class RMQConnection implements Managed {
     @Getter
     private final RMQConfig config;
     private final String name;
-    private Connection connection;
-    private Channel channel;
     private final ExecutorService executorService;
     private final Environment environment;
-    private TtlConfig ttlConfig;
+    private final TtlConfig ttlConfig;
+    private Connection connection;
+    private Channel channel;
 
 
     public RMQConnection(final String name,
@@ -83,12 +83,14 @@ public class RMQConnection implements Managed {
             if (Strings.isNullOrEmpty(config.getCertStorePath())) {
                 factory.useSslProtocol();
             } else {
-                Preconditions.checkNotNull(config.getCertPassword(), "Cert password is required if cert file path has been provided");
+                Preconditions.checkNotNull(config.getCertPassword(),
+                        "Cert password is required if cert file path has been provided");
                 KeyStore ks = KeyStore.getInstance("JKS");
                 ks.load(new FileInputStream(config.getCertStorePath()), config.getCertPassword().toCharArray());
 
                 KeyStore tks = KeyStore.getInstance("JKS");
-                tks.load(new FileInputStream(config.getServerCertStorePath()), config.getServerCertPassword().toCharArray());
+                tks.load(new FileInputStream(config.getServerCertStorePath()),
+                        config.getServerCertPassword().toCharArray());
                 SSLContext c = SSLContexts.custom()
                         .setProtocol("TLSv1.2")
                         .loadTrustMaterial(tks, new TrustSelfSignedStrategy())
@@ -125,7 +127,7 @@ public class RMQConnection implements Managed {
             }
         });
         channel = connection.createChannel();
-        environment.healthChecks().register(String.format("rmqconnection-%s-%s", connection, UUID.randomUUID().toString()), healthcheck());
+        environment.healthChecks().register(String.format("rmqconnection-%s-%s", connection, UUID.randomUUID()), healthcheck());
         log.info(String.format("Started RMQ connection [%s] ", name));
     }
 
@@ -171,7 +173,7 @@ public class RMQConnection implements Managed {
     public HealthCheck healthcheck() {
         return new HealthCheck() {
             @Override
-            protected Result check() throws Exception {
+            protected Result check() {
                 if (connection == null) {
                     log.warn("RMQ Healthcheck::No RMQ connection available");
                     return Result.unhealthy("No RMQ connection available");
