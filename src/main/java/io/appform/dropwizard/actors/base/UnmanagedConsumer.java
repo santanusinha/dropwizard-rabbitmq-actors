@@ -80,9 +80,9 @@ public class UnmanagedConsumer<Message> {
                 final Channel channel = handler.getChannel();
                 channel.basicCancel(handler.getTag());
                 channel.close();
-                log.info("Consumer channel {} closed.", name);
+                log.info("Consumer channel closed for [{}] with prefix [{}]", name, config.getPrefix());
             } catch (Exception e) {
-                log.error(String.format("Error cancelling consumer: %s", handler.getTag()), e);
+                log.error(String.format("Error closing consumer channel [%s] for [%s] with prefix [%s]", handler.getTag(), name, config.getPrefix()), e);
             }
         });
     }

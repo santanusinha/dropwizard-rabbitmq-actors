@@ -169,9 +169,9 @@ public class UnmanagedPublisher<Message> {
     public void stop() throws Exception {
         try {
             publishChannel.close();
-            log.info("Publisher channel {} closed.", name);
+            log.info("Publisher channel closed for [{}] with prefix [{}]", name, config.getPrefix());
         } catch (Exception e) {
-            log.error(String.format("Error closing publisher:%s", name), e);
+            log.error(String.format("Error closing publisher channel for [%s] with prefix [%s]", name, config.getPrefix()), e);
             throw e;
         }
     }
