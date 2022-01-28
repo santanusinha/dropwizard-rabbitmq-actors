@@ -24,13 +24,16 @@ public class ConnectionRegistry implements Managed {
     private final Environment environment;
     private final ExecutorServiceProvider executorServiceProvider;
     private final RMQConfig rmqConfig;
+    private TtlConfig ttlConfig;
 
     public ConnectionRegistry(final Environment environment,
                               final ExecutorServiceProvider executorServiceProvider,
-                              final RMQConfig rmqConfig) {
+                              final RMQConfig rmqConfig,
+                              final TtlConfig ttlConfig) {
         this.environment = environment;
         this.executorServiceProvider = executorServiceProvider;
         this.rmqConfig = rmqConfig;
+        this.ttlConfig = ttlConfig;
         this.connections = new ConcurrentHashMap<>();
     }
 
@@ -48,7 +51,7 @@ public class ConnectionRegistry implements Managed {
                     rmqConfig,
                     executorServiceProvider.newFixedThreadPool(String.format("rmqconnection-%s", connection),
                             threadPoolSize),
-                    environment);
+                    environment, ttlConfig);
             try {
                 rmqConnection.start();
             } catch (Exception e) {
@@ -60,6 +63,10 @@ public class ConnectionRegistry implements Managed {
     }
 
     private int determineThreadPoolSize(String connectionName) {
+        if (Objects.equals(connectionName, Constants.DEFAULT_CONNECTION_NAME)) {
+            return rmqConfig.getThreadPoolSize();
+        }
+
         if (rmqConfig.getConnections() == null) {
             return Constants.DEFAULT_THREADS_PER_CONNECTION;
         }

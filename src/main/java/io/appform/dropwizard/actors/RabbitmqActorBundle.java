@@ -49,10 +49,14 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     public void run(T t, Environment environment) {
         this.rmqConfig = getConfig(t);
         val executorServiceProvider = getExecutorServiceProvider(t);
+        val ttlConfig = ttlConfig();
         Preconditions.checkNotNull(executorServiceProvider, "Null executor service provider provided");
-        this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, rmqConfig);
+        this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, rmqConfig,
+                ttlConfig == null ? TtlConfig.builder().build(): ttlConfig);
         environment.lifecycle().manage(connectionRegistry);
     }
+
+    protected abstract TtlConfig ttlConfig();
 
     @Override
     public void initialize(Bootstrap<?> bootstrap) {
@@ -60,7 +64,7 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     }
 
     public RMQConnection getConnection() {
-        return connectionRegistry.createOrGet(Constants.DEFAULT_CONNECTION_NAME, rmqConfig.getThreadPoolSize());
+        return connectionRegistry.createOrGet(Constants.DEFAULT_CONNECTION_NAME);
     }
 
     protected abstract RMQConfig getConfig(T t);
@@ -68,6 +72,8 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     /**
      * Provides implementation for {@link ExecutorServiceProvider}. Should be overridden if custom executor service
      * implementations needs to be used. For e.g. {@link com.codahale.metrics.InstrumentedExecutorService}.
+     * @param t param to accept custom config
+     * @return io.appform.dropwizard.actors.ExecutorServiceProvider
      */
     protected ExecutorServiceProvider getExecutorServiceProvider(T t) {
         return (name, coreSize) -> Executors.newFixedThreadPool(coreSize);

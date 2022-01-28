@@ -99,8 +99,20 @@ public abstract class BaseActor<Message> implements Managed {
                 this::isExceptionIgnorable);
     }
 
+    /*
+        Override this method in your code for custom implementation.
+     */
+    protected boolean handle(Message message, MessageMetadata messageMetadata) throws Exception {
+        return handle(message);
+    }
 
-    abstract protected boolean handle(Message message);
+    /*
+        Override this method in your code for custom implementation.
+     */
+    @Deprecated
+    protected boolean handle(Message message) throws Exception {
+        throw new UnsupportedOperationException("Either implement this method, or implement the handle(message, messageMetadata) method");
+    }
 
     protected boolean isExceptionIgnorable(Throwable t) {
         return droppedExceptionTypes
@@ -122,6 +134,10 @@ public abstract class BaseActor<Message> implements Managed {
 
     public final long pendingMessagesCount() {
         return actorImpl.pendingMessagesCount();
+    }
+
+    public final long pendingSidelineMessagesCount() {
+        return actorImpl.pendingSidelineMessagesCount();
     }
 
     @Override

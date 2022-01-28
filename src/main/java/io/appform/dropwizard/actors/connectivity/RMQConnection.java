@@ -27,6 +27,8 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.StandardMetricsCollector;
+import io.appform.dropwizard.actors.TtlConfig;
+import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.dropwizard.lifecycle.Managed;
@@ -40,8 +42,10 @@ import javax.net.ssl.SSLContext;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyStore;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.UUID;
 
 @Slf4j
 public class RMQConnection implements Managed {
@@ -50,17 +54,21 @@ public class RMQConnection implements Managed {
     private final String name;
     private final ExecutorService executorService;
     private final Environment environment;
+    private final TtlConfig ttlConfig;
     private Connection connection;
     private Channel channel;
 
-    public RMQConnection(String name,
-                         RMQConfig config,
-                         ExecutorService executorService,
-                         Environment environment) {
+
+    public RMQConnection(final String name,
+                         final RMQConfig config,
+                         final ExecutorService executorService,
+                         final Environment environment,
+                         final TtlConfig ttlConfig) {
         this.name = name;
         this.config = config;
         this.executorService = executorService;
         this.environment = environment;
+        this.ttlConfig = ttlConfig;
     }
 
 
@@ -84,7 +92,7 @@ public class RMQConnection implements Managed {
                 tks.load(new FileInputStream(config.getServerCertStorePath()),
                         config.getServerCertPassword().toCharArray());
                 SSLContext c = SSLContexts.custom()
-                        .useProtocol("TLSv1.2")
+                        .setProtocol("TLSv1.2")
                         .loadTrustMaterial(tks, new TrustSelfSignedStrategy())
                         .loadKeyMaterial(ks, config.getCertPassword().toCharArray(), (aliases, socket) -> "clientcert")
                         .build();
@@ -99,9 +107,12 @@ public class RMQConnection implements Managed {
         factory.setTopologyRecoveryEnabled(true);
         factory.setNetworkRecoveryInterval(3000);
         factory.setRequestedHeartbeat(60);
+        if (!Strings.isNullOrEmpty(config.getVirtualHost())) {
+            factory.setVirtualHost(config.getVirtualHost());
+        }
         connection = factory.newConnection(executorService,
                 config.getBrokers().stream()
-                        .map(broker -> new Address(broker.getHost()))
+                        .map(broker -> new Address(broker.getHost(), broker.getPort()))
                         .toArray(Address[]::new)
         );
         connection.addBlockedListener(new BlockedListener() {
@@ -116,7 +127,7 @@ public class RMQConnection implements Managed {
             }
         });
         channel = connection.createChannel();
-        environment.healthChecks().register(String.format("rmqconnection-%s", connection), healthcheck());
+        environment.healthChecks().register(String.format("rmqconnection-%s-%s", connection, UUID.randomUUID()), healthcheck());
         log.info(String.format("Started RMQ connection [%s] ", name));
     }
 
@@ -125,20 +136,9 @@ public class RMQConnection implements Managed {
     }
 
     public void ensure(final String queueName,
-                       final String exchange) throws Exception {
-        ensure(queueName, queueName, exchange, rmqOpts());
-    }
-
-    public void ensure(final String queueName,
                        final String exchange,
                        final Map<String, Object> rmqOpts) throws Exception {
         ensure(queueName, queueName, exchange, rmqOpts);
-    }
-
-    public void ensure(final String queueName,
-                       final String routingQueue,
-                       final String exchange) throws Exception {
-        ensure(queueName, routingQueue, exchange, rmqOpts());
     }
 
     public void ensure(final String queueName,
@@ -150,15 +150,20 @@ public class RMQConnection implements Managed {
         log.info("Created queue: {} bound to {}", queueName, exchange);
     }
 
-    public Map<String, Object> rmqOpts() {
+    public Map<String, Object> rmqOpts(final ActorConfig actorConfig) {
+        final Map<String, Object> ttlOpts = getActorTTLOpts(actorConfig.getTtlConfig());
         return ImmutableMap.<String, Object>builder()
+                .putAll(ttlOpts)
                 .put("x-ha-policy", "all")
                 .put("ha-mode", "all")
                 .build();
     }
 
-    public Map<String, Object> rmqOpts(String deadLetterExchange) {
+    public Map<String, Object> rmqOpts(final String deadLetterExchange,
+                                       final ActorConfig actorConfig) {
+        final Map<String, Object> ttlOpts = getActorTTLOpts(actorConfig.getTtlConfig());
         return ImmutableMap.<String, Object>builder()
+                .putAll(ttlOpts)
                 .put("x-ha-policy", "all")
                 .put("ha-mode", "all")
                 .put("x-dead-letter-exchange", deadLetterExchange)
@@ -210,5 +215,20 @@ public class RMQConnection implements Managed {
 
     private String getSideline(String name) {
         return String.format("%s_%s", name, "SIDELINE");
+    }
+
+    private Map<String, Object> getActorTTLOpts(final TtlConfig ttlConfig) {
+        if (ttlConfig != null) {
+            return getTTLOpts(ttlConfig);
+        }
+        return getTTLOpts(this.ttlConfig);
+    }
+
+    private Map<String, Object> getTTLOpts(final TtlConfig ttlConfig) {
+        final Map<String, Object> ttlOpts = new HashMap<>();
+        if (ttlConfig != null && ttlConfig.isTtlEnabled()) {
+            ttlOpts.put("x-expires", ttlConfig.getTtl().getSeconds() * 1000);
+        }
+        return ttlOpts;
     }
 }
