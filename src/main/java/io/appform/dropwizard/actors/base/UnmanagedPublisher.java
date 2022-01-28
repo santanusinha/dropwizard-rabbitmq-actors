@@ -10,6 +10,7 @@ import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.RandomUtils;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -64,12 +65,31 @@ public class UnmanagedPublisher<Message> {
     }
 
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
-        publishChannel.basicPublish(config.getExchange(), queueName, properties, mapper().writeValueAsBytes(message));
+        String routingKey;
+        if (config.isSharded()) {
+            routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
+        } else {
+            routingKey = queueName;
+        }
+        publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
+    }
+
+    private final int getShardId() {
+        return RandomUtils.nextInt(0, config.getShardCount());
     }
 
     public final long pendingMessagesCount() {
         try {
             return publishChannel.messageCount(queueName);
+        } catch (IOException e) {
+            log.error("Issue getting message count. Will return max", e);
+        }
+        return Long.MAX_VALUE;
+    }
+
+    public final long pendingSidelineMessagesCount() {
+        try {
+            return publishChannel.messageCount(queueName + "_SIDELINE");
         } catch (IOException e) {
             log.error("Issue getting message count. Will return max", e);
         }
@@ -89,9 +109,16 @@ public class UnmanagedPublisher<Message> {
         this.publishChannel = connection.newChannel();
         connection.ensure(queueName + "_SIDELINE", queueName, dlx,
                 connection.rmqOpts(config));
-        connection.ensure(queueName,
-                config.getExchange(),
-                connection.rmqOpts(dlx, config));
+        if (config.isSharded()) {
+            int bound = config.getShardCount();
+            for (int shardId = 0; shardId < bound; shardId++) {
+                connection.ensure(NamingUtils.getShardedQueueName(queueName, shardId), config.getExchange(),
+                                  connection.rmqOpts(dlx, config));
+            }
+        } else {
+            connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx, config));
+        }
+
         if (config.getDelayType() == DelayType.TTL) {
             connection.ensure(ttlQueue(queueName),
                     queueName,

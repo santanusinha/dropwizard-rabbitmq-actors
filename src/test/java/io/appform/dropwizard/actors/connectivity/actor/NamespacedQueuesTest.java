@@ -10,14 +10,16 @@ import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.testcontainers.rabbitmq.RabbitMQStatusCheck;
 import io.appform.testcontainers.rabbitmq.config.RabbitMQContainerConfiguration;
-import io.dropwizard.testing.junit.DropwizardAppRule;
+import io.dropwizard.testing.junit5.DropwizardAppExtension;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.ClassRule;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
@@ -39,9 +41,20 @@ public class NamespacedQueuesTest {
     private static final String RABBITMQ_PASSWORD = "guest";
     private static final String NAMESPACE_ENV_NAME = "namespace1";
 
-    @ClassRule
-    public static final DropwizardAppRule<RabbitMQBundleTestAppConfiguration> app =
-            new DropwizardAppRule<>(RabbitMQBundleTestApplication.class);
+    public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app =
+            new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class);
+
+    @BeforeClass
+    @SneakyThrows
+    public static void beforeMethod() {
+        app.before();
+    }
+
+    @AfterClass
+    @SneakyThrows
+    public static void afterMethod() {
+        app.after();
+    }
 
     @Rule
     public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
@@ -137,7 +150,7 @@ public class NamespacedQueuesTest {
                 "publisher-1", actorConfig, connection, null);
         publisher.start();
 
-        Thread.sleep(5000);
+        Thread.sleep(10000);
         Response response = sendRequest("/api/queues");
         if (response != null) {
             ObjectMapper objectMapper = new ObjectMapper();
@@ -175,7 +188,7 @@ public class NamespacedQueuesTest {
                         .withEnv("RABBITMQ_DEFAULT_PASS", RABBITMQ_PASSWORD)
                         .withExposedPorts(containerConfiguration.getPort())
                         .waitingFor(new RabbitMQStatusCheck(containerConfiguration))
-                        .withStartupTimeout(containerConfiguration.getTimeoutDuration());
+                        .withStartupTimeout(Duration.ofSeconds(30));
 
         rabbitMQ = rabbitMQ.withStartupCheckStrategy(new IsRunningStartupCheckStrategyWithDelay());
         rabbitMQ.start();
