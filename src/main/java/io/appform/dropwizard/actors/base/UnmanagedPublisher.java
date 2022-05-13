@@ -81,7 +81,7 @@ public class UnmanagedPublisher<Message> {
     public final long pendingMessagesCount() {
         try {
             if (config.isSharded()) {
-                int messageCount  = 0 ;
+                long messageCount  = 0 ;
                 for (int i = 0; i < config.getShardCount(); i++) {
                     String shardedQueueName = NamingUtils.getShardedQueueName(queueName, i);
                     messageCount += publishChannel.messageCount(shardedQueueName);
