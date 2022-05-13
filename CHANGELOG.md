@@ -1,7 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [1.3.18-2]
+## 2.0.28-1
+- Fixed pending count for sharded queues
+
+## 1.3.18-2
 ### Added
 - BlockedListener for RMQ connections. Logs added to indicate connection blockage.
 - Support for separate producer/consumer connections. 
