@@ -80,7 +80,17 @@ public class UnmanagedPublisher<Message> {
 
     public final long pendingMessagesCount() {
         try {
-            return publishChannel.messageCount(queueName);
+            if (config.isSharded()) {
+                int messageCount  = 0 ;
+                for (int i = 0; i < config.getShardCount(); i++) {
+                    String shardedQueueName = NamingUtils.getShardedQueueName(queueName, i);
+                    messageCount += publishChannel.messageCount(shardedQueueName);
+                }
+                return messageCount;
+            }
+            else {
+                return publishChannel.messageCount(queueName);
+            }
         } catch (IOException e) {
             log.error("Issue getting message count. Will return max", e);
         }
