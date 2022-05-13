@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## 20.0.28-1
+## 2.0.28-1
 - Fixed pending count for sharded queues
 
 ## 1.3.18-2
