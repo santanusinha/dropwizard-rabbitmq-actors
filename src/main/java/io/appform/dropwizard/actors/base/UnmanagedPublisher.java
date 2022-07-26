@@ -109,7 +109,7 @@ public class UnmanagedPublisher<Message> {
     public void start() throws Exception {
         final String exchange = config.getExchange();
         final String dlx = config.getExchange() + "_SIDELINE";
-        if(config.isDelayed()) {
+        if (config.isDelayed()) {
             ensureDelayedExchange(exchange);
         } else {
             ensureExchange(exchange);
