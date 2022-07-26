@@ -156,6 +156,7 @@ public class UnmanagedPublisher<Message> {
 
     private void ensureDelayedExchange(String exchange) throws IOException {
         if (config.getDelayType() == DelayType.TTL) {
+            ensureExchange(config.getExchange());
             ensureExchange(ttlExchange(config));
         } else {
             connection.channel().exchangeDeclare(
