@@ -109,8 +109,12 @@ public class UnmanagedPublisher<Message> {
     public void start() throws Exception {
         final String exchange = config.getExchange();
         final String dlx = config.getExchange() + "_SIDELINE";
-        if (config.isDelayed()) {
-            ensureDelayedExchange(exchange);
+        // For Exchange type delay with TTL, we require two exchanges to be created,
+        // 1. main_exchange
+        // 2. <main_exchange>_TTL
+        if (config.getDelayType() == DelayType.TTL) {
+            ensureExchange(config.getExchange());
+            ensureExchange(ttlExchange(config));
         } else {
             ensureExchange(exchange);
         }
