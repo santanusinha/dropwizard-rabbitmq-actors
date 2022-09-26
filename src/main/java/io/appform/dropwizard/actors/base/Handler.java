@@ -10,9 +10,21 @@ import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
+import io.appform.dropwizard.actors.tracing.HeadersMapExtractAdapter;
+import io.appform.dropwizard.actors.tracing.HeadersMapInjectAdapter;
+import io.appform.dropwizard.actors.tracing.SpanDecorator;
+import io.opentracing.References;
+import io.opentracing.Scope;
+import io.opentracing.Span;
+import io.opentracing.SpanContext;
+import io.opentracing.Tracer;
+import io.opentracing.propagation.Format;
+import io.opentracing.tag.Tags;
+import io.opentracing.util.GlobalTracer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 import java.io.IOException;
 import java.util.function.Function;
@@ -58,12 +70,18 @@ public class Handler<Message> extends DefaultConsumer {
                                AMQP.BasicProperties properties, byte[] body) throws IOException {
         try {
             final Message message = mapper.readValue(body, clazz);
-            boolean success = retryStrategy.execute(() -> handle(message, messageProperties(envelope)));
+            val tracer = GlobalTracer.get();
+            Span childSpan = buildChildSpan(properties, tracer);
+            try (Scope scope = tracer.scopeManager().activate(childSpan)) {
+                boolean success = retryStrategy.execute(() -> handle(message, messageProperties(envelope)));
 
-            if (success) {
-                getChannel().basicAck(envelope.getDeliveryTag(), false);
-            } else {
-                getChannel().basicReject(envelope.getDeliveryTag(), false);
+                if (success) {
+                    getChannel().basicAck(envelope.getDeliveryTag(), false);
+                } else {
+                    getChannel().basicReject(envelope.getDeliveryTag(), false);
+                }
+            } finally {
+                childSpan.finish();
             }
         } catch (Throwable t) {
             log.error("Error processing message...", t);
@@ -81,5 +99,44 @@ public class Handler<Message> extends DefaultConsumer {
 
     private MessageMetadata messageProperties(final Envelope envelope) {
         return new MessageMetadata(envelope.isRedeliver());
+    }
+
+    public static Span buildChildSpan(AMQP.BasicProperties props, Tracer tracer) {
+        Tracer.SpanBuilder spanBuilder = tracer.buildSpan("receive")
+                .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CONSUMER);
+
+
+        SpanContext parentContext = extract(props, tracer);
+        if (parentContext != null) {
+            spanBuilder.addReference(References.FOLLOWS_FROM, parentContext);
+        }
+
+        Span span = spanBuilder.start();
+        SpanDecorator.onResponse(span);
+
+        try {
+            if (props.getHeaders() != null) {
+                tracer.inject(span.context(), Format.Builtin.TEXT_MAP,
+                        new HeadersMapInjectAdapter(props.getHeaders()));
+            }
+        } catch (Exception e) {
+            // Ignore. Headers can be immutable. Waiting for a proper fix.
+        }
+
+        return span;
+    }
+
+    public static SpanContext extract(AMQP.BasicProperties props, Tracer tracer) {
+        SpanContext spanContext = tracer
+                .extract(Format.Builtin.TEXT_MAP, new HeadersMapExtractAdapter(props.getHeaders()));
+        if (spanContext != null) {
+            return spanContext;
+        }
+
+        Span span = tracer.activeSpan();
+        if (span != null) {
+            return span.context();
+        }
+        return null;
     }
 }

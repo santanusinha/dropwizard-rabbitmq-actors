@@ -9,11 +9,24 @@ import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.tracing.HeadersMapExtractAdapter;
+import io.appform.dropwizard.actors.tracing.HeadersMapInjectAdapter;
+import io.appform.dropwizard.actors.tracing.SpanDecorator;
+import io.opentracing.Scope;
+import io.opentracing.Span;
+import io.opentracing.SpanContext;
+import io.opentracing.Tracer;
+import io.opentracing.propagation.Format;
+import io.opentracing.tag.Tags;
+import io.opentracing.util.GlobalTracer;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.lang3.RandomUtils;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
@@ -64,14 +77,21 @@ public class UnmanagedPublisher<Message> {
         publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
     }
 
-    public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
+    public final void publish(Message message, AMQP.BasicProperties props) throws Exception {
         String routingKey;
         if (config.isSharded()) {
             routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
         } else {
             routingKey = queueName;
         }
-        publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
+        val tracer = GlobalTracer.get();
+        Span span = buildSpan(config.getExchange(), routingKey, props, tracer);
+        try (Scope scope = tracer.scopeManager().activate(span)) {
+            AMQP.BasicProperties properties = inject(props, span, tracer);
+            publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
+        } finally {
+            span.finish();
+        }
     }
 
     private final int getShardId() {
@@ -81,14 +101,13 @@ public class UnmanagedPublisher<Message> {
     public final long pendingMessagesCount() {
         try {
             if (config.isSharded()) {
-                long messageCount  = 0 ;
+                long messageCount = 0;
                 for (int i = 0; i < config.getShardCount(); i++) {
                     String shardedQueueName = NamingUtils.getShardedQueueName(queueName, i);
                     messageCount += publishChannel.messageCount(shardedQueueName);
                 }
                 return messageCount;
-            }
-            else {
+            } else {
                 return publishChannel.messageCount(queueName);
             }
         } catch (IOException e) {
@@ -123,7 +142,7 @@ public class UnmanagedPublisher<Message> {
             int bound = config.getShardCount();
             for (int shardId = 0; shardId < bound; shardId++) {
                 connection.ensure(NamingUtils.getShardedQueueName(queueName, shardId), config.getExchange(),
-                                  connection.rmqOpts(dlx, config));
+                        connection.rmqOpts(dlx, config));
             }
         } else {
             connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx, config));
@@ -192,5 +211,61 @@ public class UnmanagedPublisher<Message> {
 
     protected final ObjectMapper mapper() {
         return mapper;
+    }
+
+    private static Span buildSpan(final String exchange,
+                                 final String routingKey,
+                                 final AMQP.BasicProperties props,
+                                 final Tracer tracer) {
+        Tracer.SpanBuilder spanBuilder = tracer.buildSpan("send")
+                .ignoreActiveSpan()
+                .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_PRODUCER)
+                .withTag("routingKey", routingKey);
+
+        SpanContext spanContext = null;
+
+        if (props != null && props.getHeaders() != null) {
+            // just in case if span context was injected manually to props in basicPublish
+            spanContext = tracer.extract(Format.Builtin.TEXT_MAP,
+                    new HeadersMapExtractAdapter(props.getHeaders()));
+        }
+
+        if (spanContext == null) {
+            Span parentSpan = tracer.activeSpan();
+            if (parentSpan != null) {
+                spanContext = parentSpan.context();
+            }
+        }
+
+        if (spanContext != null) {
+            spanBuilder.asChildOf(spanContext);
+        }
+
+        Span span = spanBuilder.start();
+        SpanDecorator.onRequest(exchange, span);
+
+        return span;
+    }
+
+    private static AMQP.BasicProperties inject(AMQP.BasicProperties properties, Span span,
+                                              Tracer tracer) {
+
+        // Headers of AMQP.BasicProperties is unmodifiableMap therefore we build new AMQP.BasicProperties
+        // with injected span context into headers
+        Map<String, Object> headers = new HashMap<>();
+
+        tracer.inject(span.context(), Format.Builtin.TEXT_MAP, new HeadersMapInjectAdapter(headers));
+
+        if (properties == null) {
+            return new AMQP.BasicProperties().builder().headers(headers).build();
+        }
+
+        if (properties.getHeaders() != null) {
+            headers.putAll(properties.getHeaders());
+        }
+
+        return properties.builder()
+                .headers(headers)
+                .build();
     }
 }
