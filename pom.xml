@@ -5,33 +5,33 @@
     <modelVersion>4.0.0</modelVersion>
     <packaging>pom</packaging>
 
-    <!--    <parent>-->
-    <!--        <groupId>com.phonepe</groupId>-->
-    <!--        <artifactId>pp-parent-pom</artifactId>-->
-    <!--        <version>0.57</version>-->
-    <!--    </parent>-->
+    <parent>
+        <groupId>com.phonepe</groupId>
+        <artifactId>pp-parent-pom</artifactId>
+        <version>0.57</version>
+    </parent>
 
-    <groupId>io.appform.dropwizard.actors.test</groupId>
+    <groupId>com.phonepe.platform.rabbitmq.actor.test</groupId>
     <artifactId>dropwizard-rabbitmq-actors-test</artifactId>
-    <version>2.0.28-6</version>
+    <version>2.0.28-7-SNAPSHOT</version>
 
-<!--        <repositories>-->
-<!--            <repository>-->
-<!--                <id>clojars</id>-->
-<!--                <name>Clojars repository</name>-->
-<!--                <url>https://repo.clojars.org</url>-->
-<!--            </repository>-->
-<!--            <repository>-->
-<!--                <id>phonepe-releases</id>-->
-<!--                <name>releases</name>-->
-<!--                <url>https://artifactory.phonepe.com/repository/releases</url>-->
-<!--            </repository>-->
-<!--            <repository>-->
-<!--                <id>phonepe-snapshots</id>-->
-<!--                <name>snapshots</name>-->
-<!--                <url>https://artifactory.phonepe.com/repository/snapshots</url>-->
-<!--            </repository>-->
-<!--        </repositories>-->
+    <!--        <repositories>-->
+    <!--            <repository>-->
+    <!--                <id>clojars</id>-->
+    <!--                <name>Clojars repository</name>-->
+    <!--                <url>https://repo.clojars.org</url>-->
+    <!--            </repository>-->
+    <!--            <repository>-->
+    <!--                <id>phonepe-releases</id>-->
+    <!--                <name>releases</name>-->
+    <!--                <url>https://artifactory.phonepe.com/repository/releases</url>-->
+    <!--            </repository>-->
+    <!--            <repository>-->
+    <!--                <id>phonepe-snapshots</id>-->
+    <!--                <name>snapshots</name>-->
+    <!--                <url>https://artifactory.phonepe.com/repository/snapshots</url>-->
+    <!--            </repository>-->
+    <!--        </repositories>-->
 
     <!--    <name>Dropwizard RabbitMQ Bundle</name>-->
     <!--    <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors</url>-->
@@ -99,18 +99,18 @@
     <!--        <url>https://travis-ci.org/santanusinha/dropwizard-rabbitmq-actors</url>-->
     <!--    </ciManagement>-->
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>phonepe-snapshots</id>
-            <name>snapshots</name>
-            <url>https://artifactory.phonepe.com/repository/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>phonepe-releases</id>
-            <name>releases</name>
-            <url>https://artifactory.phonepe.com/repository/releases</url>
-        </repository>
-    </distributionManagement>
+    <!--    <distributionManagement>-->
+    <!--        <snapshotRepository>-->
+    <!--            <id>phonepe-snapshots</id>-->
+    <!--            <name>snapshots</name>-->
+    <!--            <url>https://artifactory.phonepe.com/repository/snapshots</url>-->
+    <!--        </snapshotRepository>-->
+    <!--        <repository>-->
+    <!--            <id>phonepe-releases</id>-->
+    <!--            <name>releases</name>-->
+    <!--            <url>https://artifactory.phonepe.com/repository/releases</url>-->
+    <!--        </repository>-->
+    <!--    </distributionManagement>-->
 
 
     <properties>
@@ -121,7 +121,7 @@
         <test.container.version>1.0.6</test.container.version>
         <okhttp.version>4.9.3</okhttp.version>
         <amqp-client.version>5.14.1</amqp-client.version>
-        <!--        <maven.deploy.skip>false</maven.deploy.skip>-->
+        <maven.deploy.skip>false</maven.deploy.skip>
         <jdk.version>17</jdk.version>
     </properties>
 
