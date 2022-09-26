@@ -1,0 +1,102 @@
+/*
+ * Copyright (c) 2019 Santanu Sinha <santanu.sinha@gmail.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package com.phonepe.platform.actor;
+
+import com.phonepe.platform.TtlConfig;
+import com.phonepe.platform.exceptionhandler.config.ExceptionHandlerConfig;
+import com.phonepe.platform.retry.config.RetryConfig;
+import com.phonepe.platform.retry.config.NoRetryConfig;
+import io.dropwizard.validation.ValidationMethod;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import javax.validation.Valid;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
+import java.util.Objects;
+
+/**
+ * Configuration for an actor
+ */
+@Data
+@EqualsAndHashCode
+@ToString
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public class ActorConfig {
+    @NotNull
+    @NotEmpty
+    private String exchange;
+
+    @Builder.Default
+    private boolean delayed = false;
+
+    @Builder.Default
+    private DelayType delayType = DelayType.DELAYED;
+
+    @NotNull
+    @NotEmpty
+    @Builder.Default
+    private String prefix = "rabbitmq.actors";
+
+    @Min(1)
+    @Max(100)
+    @Builder.Default
+    private int concurrency = 3;
+
+    @Min(1)
+    @Max(100)
+    @Builder.Default
+    private int prefetchCount = 1;
+
+    @NotNull
+    @Valid
+    @Builder.Default
+    private RetryConfig retryConfig = new NoRetryConfig();
+
+    private ExceptionHandlerConfig exceptionHandlerConfig;
+
+    @Valid
+    private ProducerConfig producer;
+
+    @Valid
+    private ConsumerConfig consumer;
+
+    @Valid
+    private TtlConfig ttlConfig;
+
+    @Min(2)
+    @Max(32)
+    private Integer shardCount;
+
+    public boolean isSharded() {
+        return Objects.nonNull(shardCount);
+    }
+
+    @ValidationMethod(message = "Concurrency should be multiple of shard count for sharded queue.")
+    public boolean isValidSharding() {
+        return !isSharded() || getConcurrency() % getShardCount() == 0;
+    }
+
+}
