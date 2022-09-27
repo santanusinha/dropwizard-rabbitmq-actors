@@ -88,6 +88,7 @@ public class UnmanagedPublisher<Message> {
         Span span = buildSpan(config.getExchange(), routingKey, props, tracer);
         try (Scope scope = tracer.scopeManager().activate(span)) {
             AMQP.BasicProperties properties = inject(props, span, tracer);
+            log.info("publishing message with traceId: {}, spanId: {}", span.context().toTraceId(),span.context().toSpanId());
             publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
         } finally {
             span.finish();

@@ -72,6 +72,7 @@ public class Handler<Message> extends DefaultConsumer {
             final Message message = mapper.readValue(body, clazz);
             val tracer = GlobalTracer.get();
             Span childSpan = buildChildSpan(properties, tracer);
+            log.info("publishing message with traceId: {}, spanId: {}", childSpan.context().toTraceId(),childSpan.context().toSpanId());
             try (Scope scope = tracer.scopeManager().activate(childSpan)) {
                 boolean success = retryStrategy.execute(() -> handle(message, messageProperties(envelope)));
 
