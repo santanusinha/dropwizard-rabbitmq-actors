@@ -11,9 +11,9 @@
         <version>0.57</version>
     </parent>
 
-    <groupId>com.phonepe.platform</groupId>
+    <groupId>io.appform.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors-test</artifactId>
-    <version>2.0.28-9-SNAPSHOT</version>
+    <version>2.0.29-9-SNAPSHOT</version>
 
     <!--        <repositories>-->
     <!--            <repository>-->
