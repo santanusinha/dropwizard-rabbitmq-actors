@@ -93,14 +93,13 @@ public class UnmanagedPublisher<Message> {
 
         val tracer = TracingHandler.getTracer();
         val span = TracingHandler.buildSpan(config.getExchange(), routingKey, props, tracer);
-        final Scope scope = TracingHandler.activateSpan(tracer, span);
-        AMQP.BasicProperties properties = TracingHandler.inject(props, span, tracer);
+        val scope = TracingHandler.activateSpan(tracer, span);
+        val properties = TracingHandler.inject(props, span, tracer);
         log.debug("publishing message with traceId: {}, spanId: {}", span.context().toTraceId(), span.context().toSpanId());
         try {
             publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
         } finally {
             TracingHandler.closeScopeAndSpan(span, scope);
-            span.finish();
         }
     }
 

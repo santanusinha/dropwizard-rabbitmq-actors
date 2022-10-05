@@ -72,9 +72,11 @@ public class Handler<Message> extends DefaultConsumer {
         try {
             final Message message = mapper.readValue(body, clazz);
             val tracer = TracingHandler.getTracer();
-            Span childSpan = TracingHandler.buildChildSpan(properties, tracer);
-            log.debug("publishing message with traceId: {}, spanId: {}", childSpan.context().toTraceId(),childSpan.context().toSpanId());
-            try (Scope scope = tracer.scopeManager().activate(childSpan)) {
+            val childSpan = TracingHandler.buildChildSpan(properties, tracer);
+            log.debug("publishing message with traceId: {}, spanId: {}", childSpan.context().toTraceId(), childSpan.context().toSpanId());
+
+            val scope = TracingHandler.activateSpan(tracer, childSpan);
+            try {
                 boolean success = retryStrategy.execute(() -> handle(message, messageProperties(envelope)));
 
                 if (success) {
@@ -83,7 +85,7 @@ public class Handler<Message> extends DefaultConsumer {
                     getChannel().basicReject(envelope.getDeliveryTag(), false);
                 }
             } finally {
-                childSpan.finish();
+                TracingHandler.closeScopeAndSpan(childSpan,scope);
             }
         } catch (Throwable t) {
             log.error("Error processing message...", t);
