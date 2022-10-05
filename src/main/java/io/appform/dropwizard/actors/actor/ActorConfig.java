@@ -45,6 +45,9 @@ import java.util.Objects;
 @NoArgsConstructor
 @Builder
 public class ActorConfig {
+    @Builder.Default
+    private boolean tracingEnabled = false;
+
     @NotNull
     @NotEmpty
     private String exchange;

@@ -12,6 +12,7 @@ import io.appform.dropwizard.actors.tracing.SpanDecorator;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.MessageProperties;
+import io.appform.dropwizard.actors.tracing.TracingHandler;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
@@ -84,13 +85,21 @@ public class UnmanagedPublisher<Message> {
         } else {
             routingKey = queueName;
         }
-        val tracer = GlobalTracer.get();
-        Span span = buildSpan(config.getExchange(), routingKey, props, tracer);
-        try (Scope scope = tracer.scopeManager().activate(span)) {
-            AMQP.BasicProperties properties = inject(props, span, tracer);
-            log.info("publishing message with traceId: {}, spanId: {}", span.context().toTraceId(),span.context().toSpanId());
+
+        if (!config.isTracingEnabled()) {
+            publishChannel.basicPublish(config.getExchange(), routingKey, props, mapper().writeValueAsBytes(message));
+            return;
+        }
+
+        val tracer = TracingHandler.getTracer();
+        val span = TracingHandler.buildSpan(config.getExchange(), routingKey, props, tracer);
+        final Scope scope = TracingHandler.activateSpan(tracer, span);
+        AMQP.BasicProperties properties = TracingHandler.inject(props, span, tracer);
+        log.debug("publishing message with traceId: {}, spanId: {}", span.context().toTraceId(), span.context().toSpanId());
+        try {
             publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
         } finally {
+            TracingHandler.closeScopeAndSpan(span, scope);
             span.finish();
         }
     }
@@ -214,59 +223,4 @@ public class UnmanagedPublisher<Message> {
         return mapper;
     }
 
-    private static Span buildSpan(final String exchange,
-                                 final String routingKey,
-                                 final AMQP.BasicProperties props,
-                                 final Tracer tracer) {
-        Tracer.SpanBuilder spanBuilder = tracer.buildSpan("send")
-                .ignoreActiveSpan()
-                .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_PRODUCER)
-                .withTag("routingKey", routingKey);
-
-        SpanContext spanContext = null;
-
-        if (props != null && props.getHeaders() != null) {
-            // just in case if span context was injected manually to props in basicPublish
-            spanContext = tracer.extract(Format.Builtin.TEXT_MAP,
-                    new HeadersMapExtractAdapter(props.getHeaders()));
-        }
-
-        if (spanContext == null) {
-            Span parentSpan = tracer.activeSpan();
-            if (parentSpan != null) {
-                spanContext = parentSpan.context();
-            }
-        }
-
-        if (spanContext != null) {
-            spanBuilder.asChildOf(spanContext);
-        }
-
-        Span span = spanBuilder.start();
-        SpanDecorator.onRequest(exchange, span);
-
-        return span;
-    }
-
-    private static AMQP.BasicProperties inject(AMQP.BasicProperties properties, Span span,
-                                              Tracer tracer) {
-
-        // Headers of AMQP.BasicProperties is unmodifiableMap therefore we build new AMQP.BasicProperties
-        // with injected span context into headers
-        Map<String, Object> headers = new HashMap<>();
-
-        tracer.inject(span.context(), Format.Builtin.TEXT_MAP, new HeadersMapInjectAdapter(headers));
-
-        if (properties == null) {
-            return new AMQP.BasicProperties().builder().headers(headers).build();
-        }
-
-        if (properties.getHeaders() != null) {
-            headers.putAll(properties.getHeaders());
-        }
-
-        return properties.builder()
-                .headers(headers)
-                .build();
-    }
 }

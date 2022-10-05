@@ -13,6 +13,7 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
+import io.appform.dropwizard.actors.tracing.TracingHandler;
 import io.opentracing.References;
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -70,9 +71,9 @@ public class Handler<Message> extends DefaultConsumer {
                                AMQP.BasicProperties properties, byte[] body) throws IOException {
         try {
             final Message message = mapper.readValue(body, clazz);
-            val tracer = GlobalTracer.get();
-            Span childSpan = buildChildSpan(properties, tracer);
-            log.info("publishing message with traceId: {}, spanId: {}", childSpan.context().toTraceId(),childSpan.context().toSpanId());
+            val tracer = TracingHandler.getTracer();
+            Span childSpan = TracingHandler.buildChildSpan(properties, tracer);
+            log.debug("publishing message with traceId: {}, spanId: {}", childSpan.context().toTraceId(),childSpan.context().toSpanId());
             try (Scope scope = tracer.scopeManager().activate(childSpan)) {
                 boolean success = retryStrategy.execute(() -> handle(message, messageProperties(envelope)));
 
@@ -100,44 +101,5 @@ public class Handler<Message> extends DefaultConsumer {
 
     private MessageMetadata messageProperties(final Envelope envelope) {
         return new MessageMetadata(envelope.isRedeliver());
-    }
-
-    public static Span buildChildSpan(AMQP.BasicProperties props, Tracer tracer) {
-        Tracer.SpanBuilder spanBuilder = tracer.buildSpan("receive")
-                .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CONSUMER);
-
-
-        SpanContext parentContext = extract(props, tracer);
-        if (parentContext != null) {
-            spanBuilder.addReference(References.FOLLOWS_FROM, parentContext);
-        }
-
-        Span span = spanBuilder.start();
-        SpanDecorator.onResponse(span);
-
-        try {
-            if (props.getHeaders() != null) {
-                tracer.inject(span.context(), Format.Builtin.TEXT_MAP,
-                        new HeadersMapInjectAdapter(props.getHeaders()));
-            }
-        } catch (Exception e) {
-            // Ignore. Headers can be immutable. Waiting for a proper fix.
-        }
-
-        return span;
-    }
-
-    public static SpanContext extract(AMQP.BasicProperties props, Tracer tracer) {
-        SpanContext spanContext = tracer
-                .extract(Format.Builtin.TEXT_MAP, new HeadersMapExtractAdapter(props.getHeaders()));
-        if (spanContext != null) {
-            return spanContext;
-        }
-
-        Span span = tracer.activeSpan();
-        if (span != null) {
-            return span.context();
-        }
-        return null;
     }
 }
