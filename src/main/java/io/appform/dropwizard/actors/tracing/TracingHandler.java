@@ -39,11 +39,16 @@ public class TracingHandler {
 
         SpanContext spanContext = null;
 
-        if (!Objects.isNull(props) && !Objects.isNull(props.getHeaders())) {
-            // just in case if span context was injected manually to props in basicPublish
-            spanContext = tracer.extract(Format.Builtin.TEXT_MAP,
-                    new HeadersMapExtractAdapter(props.getHeaders()));
+        try {
+            if (!Objects.isNull(props) && !Objects.isNull(props.getHeaders())) {
+                spanContext = tracer.extract(Format.Builtin.TEXT_MAP,
+                        new HeadersMapExtractAdapter(props.getHeaders()));
+            }
+        } catch (Exception e) {
+            //this exception will arise incase someone tries to mutate the unmodifiable map -> props.getHeaders()
+            log.error("cannot modify an unmodifiable map", e);
         }
+
 
         if (spanContext == null) {
             Span parentSpan = tracer.activeSpan();
@@ -125,20 +130,21 @@ public class TracingHandler {
         SpanDecorator.onResponse(span);
 
         try {
-            if (props.getHeaders() != null) {
+            if (!Objects.isNull(props.getHeaders())) {
                 tracer.inject(span.context(), Format.Builtin.TEXT_MAP,
                         new HeadersMapInjectAdapter(props.getHeaders()));
             }
         } catch (Exception e) {
-            // Ignore. Headers can be immutable. Waiting for a proper fix.
+            //this exception will arise incase someone tries to mutate the unmodifiable map -> props.getHeaders()
+            log.error("cannot modify an unmodifiable map", e);
         }
 
         return span;
     }
 
     private static SpanContext extract(AMQP.BasicProperties props, Tracer tracer) {
-        val spanContext = tracer
-                .extract(Format.Builtin.TEXT_MAP, new HeadersMapExtractAdapter(props.getHeaders()));
+        val spanContext = tracer.extract(Format.Builtin.TEXT_MAP,
+                new HeadersMapExtractAdapter(props.getHeaders()));
         if (spanContext != null) {
             return spanContext;
         }

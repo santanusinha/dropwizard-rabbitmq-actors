@@ -6,22 +6,11 @@ import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
-import io.appform.dropwizard.actors.tracing.HeadersMapExtractAdapter;
-import io.appform.dropwizard.actors.tracing.HeadersMapInjectAdapter;
-import io.appform.dropwizard.actors.tracing.SpanDecorator;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import io.appform.dropwizard.actors.tracing.TracingHandler;
-import io.opentracing.References;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.SpanContext;
-import io.opentracing.Tracer;
-import io.opentracing.propagation.Format;
-import io.opentracing.tag.Tags;
-import io.opentracing.util.GlobalTracer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -70,7 +59,7 @@ public class Handler<Message> extends DefaultConsumer {
     public void handleDelivery(String consumerTag, Envelope envelope,
                                AMQP.BasicProperties properties, byte[] body) throws IOException {
         try {
-            final Message message = mapper.readValue(body, clazz);
+            val message = mapper.readValue(body, clazz);
             val tracer = TracingHandler.getTracer();
             val childSpan = TracingHandler.buildChildSpan(properties, tracer);
             log.debug("publishing message with traceId: {}, spanId: {}", childSpan.context().toTraceId(), childSpan.context().toSpanId());
