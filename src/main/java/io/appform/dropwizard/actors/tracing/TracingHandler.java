@@ -117,14 +117,16 @@ public class TracingHandler {
     }
 
     public static Span buildChildSpan(AMQP.BasicProperties props, Tracer tracer) {
+        val parentContext = extract(props, tracer);
+        if (Objects.isNull(parentContext)) {
+            return null;
+        }
         val spanBuilder = tracer.buildSpan("receive")
                 .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CONSUMER);
 
 
-        val parentContext = extract(props, tracer);
-        if (parentContext != null) {
-            spanBuilder.addReference(References.FOLLOWS_FROM, parentContext);
-        }
+        spanBuilder.addReference(References.FOLLOWS_FROM, parentContext);
+
 
         val span = spanBuilder.start();
         SpanDecorator.onResponse(span);
