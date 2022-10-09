@@ -83,6 +83,7 @@ public class TracingHandlerTest {
         val tracer = new MockTracer();
         val parentSpan = tracer.buildSpan("testSpan").start();
         val headers = new HashMap<String, Object>();
+        headers.put("testKey","testValue");
         tracer.inject(parentSpan.context(), Format.Builtin.TEXT_MAP, new HeadersMapInjectAdapter(headers));
         val properties = new AMQP.BasicProperties().builder().headers(headers).build();
         val span = TracingHandler.buildChildSpan(properties,tracer);
@@ -96,6 +97,14 @@ public class TracingHandlerTest {
         Assertions.assertEquals(parentSpan.context().spanId(),finishedSpan.parentId());
         Assertions.assertEquals(1,finishedSpan.references().size());
         Assertions.assertEquals(References.FOLLOWS_FROM,finishedSpan.references().get(0).getReferenceType());
+        val tags = finishedSpan.tags();
+        Assertions.assertEquals(2, tags.size());
+        Assertions.assertEquals("consumer",tags.get("span.kind"));
+        Assertions.assertEquals("java-rabbitmq",tags.get("component"));
+        Assertions.assertEquals(3,properties.getHeaders().size());
+        Assertions.assertEquals("testValue",properties.getHeaders().get("testKey"));
+        Assertions.assertNotNull(properties.getHeaders().get("spanid"));
+        Assertions.assertNotNull(properties.getHeaders().get("traceid"));
     }
 
     @Test
