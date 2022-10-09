@@ -1,6 +1,7 @@
 package io.appform.dropwizard.actors.tracing;
 
 import com.rabbitmq.client.AMQP;
+import io.opentracing.References;
 import io.opentracing.Scope;
 import io.opentracing.Tracer;
 import io.opentracing.mock.MockTracer;
@@ -8,8 +9,9 @@ import io.opentracing.noop.NoopScopeManager;
 import io.opentracing.noop.NoopSpan;
 import io.opentracing.propagation.Format;
 import io.opentracing.util.GlobalTracer;
+import io.opentracing.util.ThreadLocalScope;
+import io.opentracing.util.ThreadLocalScopeManager;
 import lombok.val;
-import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,27 +51,51 @@ public class TracingHandlerTest {
 
     @Test
     void testActivateSpan() {
-        Assert.assertNull(TracingHandler.activateSpan(null, NoopSpan.INSTANCE));
-        Assert.assertNull(TracingHandler.activateSpan(GlobalTracer.get(), null));
-        Scope scope = TracingHandler.activateSpan(GlobalTracer.get(), NoopSpan.INSTANCE);
-        Assert.assertNotNull(scope);
-        Assert.assertTrue(scope instanceof NoopScopeManager.NoopScope);
+        Assertions.assertNull(TracingHandler.activateSpan(null, NoopSpan.INSTANCE));
+        Assertions.assertNull(TracingHandler.activateSpan(GlobalTracer.get(), null));
+        val scope = TracingHandler.activateSpan(GlobalTracer.get(), NoopSpan.INSTANCE);
+        Assertions.assertNotNull(scope);
+        Assertions.assertTrue(scope instanceof NoopScopeManager.NoopScope);
+        val tracer = new MockTracer();
+        val span = tracer.buildSpan("testSpan").start();
+        val scope2 = TracingHandler.activateSpan(tracer,span);
+        Assertions.assertNotNull(scope2);
+        Assertions.assertTrue(scope2 instanceof ThreadLocalScope);
     }
 
     @Test
     void testCloseScopeAndSpan() {
         Assertions.assertDoesNotThrow(() -> TracingHandler.closeScopeAndSpan(null,null));
-        Assertions.assertDoesNotThrow(() -> TracingHandler.closeScopeAndSpan(NoopSpan.INSTANCE,NoopScopeManager.NoopScope.INSTANCE));
+        val tracer = new MockTracer();
+        val span = tracer.buildSpan("testSpan").start();
+        Assertions.assertNull(tracer.activeSpan());
+        Scope scope = TracingHandler.activateSpan(tracer, span);
+        Assertions.assertNotNull(tracer.activeSpan());
+        Assertions.assertNotNull(scope);
+        Assertions.assertTrue(scope instanceof ThreadLocalScope);
+        Assertions.assertDoesNotThrow(() -> TracingHandler.closeScopeAndSpan(span,scope));
+        Assertions.assertNull(tracer.activeSpan());
     }
 
     @Test
     void testBuildChildSpan() {
         Assertions.assertNull(TracingHandler.buildChildSpan(null, GlobalTracer.get()));
-        val parentSpan = GlobalTracer.get().buildSpan("testSpan").start();
+        val tracer = new MockTracer();
+        val parentSpan = tracer.buildSpan("testSpan").start();
         val headers = new HashMap<String, Object>();
         tracer.inject(parentSpan.context(), Format.Builtin.TEXT_MAP, new HeadersMapInjectAdapter(headers));
         val properties = new AMQP.BasicProperties().builder().headers(headers).build();
-        Assertions.assertNotNull(TracingHandler.buildChildSpan(properties,GlobalTracer.get()));
+        val span = TracingHandler.buildChildSpan(properties,tracer);
+        val scope = TracingHandler.activateSpan(tracer,span);
+        Assertions.assertNotNull(span);
+        Assertions.assertNotNull(scope);
+        Assertions.assertTrue(scope instanceof ThreadLocalScope);
+        TracingHandler.closeScopeAndSpan(span,scope);
+        val finishedSpan = tracer.finishedSpans().get(0);
+        Assertions.assertEquals("receive",finishedSpan.operationName());
+        Assertions.assertEquals(parentSpan.context().spanId(),finishedSpan.parentId());
+        Assertions.assertEquals(1,finishedSpan.references().size());
+        Assertions.assertEquals(References.FOLLOWS_FROM,finishedSpan.references().get(0).getReferenceType());
     }
 
     @Test

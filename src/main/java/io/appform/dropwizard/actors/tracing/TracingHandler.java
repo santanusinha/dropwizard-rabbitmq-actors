@@ -37,7 +37,7 @@ public class TracingHandler {
                 .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_PRODUCER)
                 .withTag("routingKey", routingKey);
 
-        SpanContext spanContext = extract(props, tracer);
+        var spanContext = extract(props, tracer);
 
         if (Objects.isNull(spanContext)) {
             val parentSpan = tracer.activeSpan();
