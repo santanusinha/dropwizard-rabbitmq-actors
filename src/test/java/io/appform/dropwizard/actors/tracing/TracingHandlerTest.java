@@ -78,6 +78,101 @@ public class TracingHandlerTest {
     }
 
     @Test
+    void testBuildSpanWhenThereIsNoActiveSpanAndSpanIdAlsoNotPresentInHeaders() {
+        val exchange = "exchange";
+        val routingKey = "routingKeyValue";
+        Assertions.assertNull(TracingHandler.buildSpan(exchange,routingKey, null, null));
+        val tracer = new MockTracer();
+        val headers = new HashMap<String, Object>();
+        headers.put("testKey","testValue");
+        val properties = new AMQP.BasicProperties().builder().headers(headers).build();
+        val span = TracingHandler.buildSpan(exchange,routingKey,properties,tracer);
+        val scope = TracingHandler.activateSpan(tracer,span);
+        Assertions.assertNotNull(span);
+        Assertions.assertNotNull(scope);
+        Assertions.assertTrue(scope instanceof ThreadLocalScope);
+        TracingHandler.closeScopeAndSpan(span,scope);
+        val finishedSpan = tracer.finishedSpans().get(0);
+        Assertions.assertEquals("send",finishedSpan.operationName());
+        Assertions.assertEquals(0,finishedSpan.references().size());
+        val tags = finishedSpan.tags();
+        Assertions.assertEquals(4, tags.size());
+        Assertions.assertEquals("producer",tags.get("span.kind"));
+        Assertions.assertEquals("java-rabbitmq",tags.get("component"));
+        Assertions.assertEquals("java-rabbitmq",tags.get("component"));
+        Assertions.assertEquals(exchange, tags.get("message_bus.destination"));
+        Assertions.assertEquals(1,properties.getHeaders().size());
+        Assertions.assertEquals("testValue",properties.getHeaders().get("testKey"));
+    }
+
+    @Test
+    void testBuildSpanWhenThereIsActiveSpanAndSpanIdNotPresentInHeaders() {
+        val exchange = "exchange";
+        val routingKey = "routingKeyValue";
+        Assertions.assertNull(TracingHandler.buildSpan(exchange,routingKey, null, null));
+        val tracer = new MockTracer();
+        val parentSpan = tracer.buildSpan("parentSpan").start();
+        val parentScope = TracingHandler.activateSpan(tracer,parentSpan);
+        Assertions.assertNotNull(parentScope);
+        Assertions.assertNotNull(parentScope);
+        Assertions.assertTrue(parentScope instanceof ThreadLocalScope);
+        val headers = new HashMap<String, Object>();
+        headers.put("testKey","testValue");
+        val properties = new AMQP.BasicProperties().builder().headers(headers).build();
+        val span = TracingHandler.buildSpan(exchange,routingKey,properties,tracer);
+        val scope = TracingHandler.activateSpan(tracer,span);
+        Assertions.assertNotNull(span);
+        Assertions.assertNotNull(scope);
+        Assertions.assertTrue(scope instanceof ThreadLocalScope);
+        TracingHandler.closeScopeAndSpan(span,scope);
+        val finishedSpan = tracer.finishedSpans().get(0);
+        Assertions.assertEquals("send",finishedSpan.operationName());
+        Assertions.assertEquals(1,finishedSpan.references().size());
+        Assertions.assertEquals(References.CHILD_OF,finishedSpan.references().get(0).getReferenceType());
+        val tags = finishedSpan.tags();
+        Assertions.assertEquals(4, tags.size());
+        Assertions.assertEquals("producer",tags.get("span.kind"));
+        Assertions.assertEquals("java-rabbitmq",tags.get("component"));
+        Assertions.assertEquals("java-rabbitmq",tags.get("component"));
+        Assertions.assertEquals(exchange, tags.get("message_bus.destination"));
+        Assertions.assertEquals(1,properties.getHeaders().size());
+        Assertions.assertEquals("testValue",properties.getHeaders().get("testKey"));
+    }
+
+    @Test
+    void testBuildSpanWhenThereIsNoActiveSpanAndSpanIdIsPresentInHeaders() {
+        val exchange = "exchange";
+        val routingKey = "routingKeyValue";
+        Assertions.assertNull(TracingHandler.buildSpan(exchange,routingKey, null, null));
+        val tracer = new MockTracer();
+        val parentSpan = tracer.buildSpan("testSpan").start();
+        val headers = new HashMap<String, Object>();
+        headers.put("testKey","testValue");
+        tracer.inject(parentSpan.context(), Format.Builtin.TEXT_MAP, new HeadersMapInjectAdapter(headers));
+        val properties = new AMQP.BasicProperties().builder().headers(headers).build();
+        val span = TracingHandler.buildSpan(exchange,routingKey,properties,tracer);
+        val scope = TracingHandler.activateSpan(tracer,span);
+        Assertions.assertNotNull(span);
+        Assertions.assertNotNull(scope);
+        Assertions.assertTrue(scope instanceof ThreadLocalScope);
+        TracingHandler.closeScopeAndSpan(span,scope);
+        val finishedSpan = tracer.finishedSpans().get(0);
+        Assertions.assertEquals("send",finishedSpan.operationName());
+        Assertions.assertEquals(1,finishedSpan.references().size());
+        Assertions.assertEquals(References.CHILD_OF,finishedSpan.references().get(0).getReferenceType());
+        val tags = finishedSpan.tags();
+        Assertions.assertEquals(4, tags.size());
+        Assertions.assertEquals("producer",tags.get("span.kind"));
+        Assertions.assertEquals("java-rabbitmq",tags.get("component"));
+        Assertions.assertEquals("java-rabbitmq",tags.get("component"));
+        Assertions.assertEquals(exchange, tags.get("message_bus.destination"));
+        Assertions.assertEquals(3,properties.getHeaders().size());
+        Assertions.assertEquals("testValue",properties.getHeaders().get("testKey"));
+        Assertions.assertNotNull(properties.getHeaders().get("spanid"));
+        Assertions.assertNotNull(properties.getHeaders().get("traceid"));
+    }
+
+    @Test
     void testBuildChildSpan() {
         Assertions.assertNull(TracingHandler.buildChildSpan(null, GlobalTracer.get()));
         val tracer = new MockTracer();

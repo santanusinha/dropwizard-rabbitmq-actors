@@ -33,6 +33,9 @@ public class TracingHandler {
                                  final String routingKey,
                                  final AMQP.BasicProperties props,
                                  final Tracer tracer) {
+        if (Objects.isNull(tracer)) {
+            return null;
+        }
         val spanBuilder = tracer.buildSpan("send")
                 .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_PRODUCER)
                 .withTag("routingKey", routingKey);
