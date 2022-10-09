@@ -46,7 +46,7 @@ public class TracingHandler {
             }
         }
 
-        if (spanContext != null) {
+        if (!Objects.isNull(spanContext)) {
             spanBuilder.asChildOf(spanContext);
         }
 
@@ -60,7 +60,7 @@ public class TracingHandler {
     public static Scope activateSpan(final Tracer tracer,
                                      final Span span) {
         try {
-            if (tracer == null || span == null) {
+            if (Objects.isNull(tracer) || Objects.isNull(span)) {
                 return null;
             }
             return tracer.activateSpan(span);
@@ -73,10 +73,10 @@ public class TracingHandler {
     public static void closeScopeAndSpan(final Span span,
                                          final Scope scope) {
         try {
-            if (scope != null) {
+            if (!Objects.isNull(scope)) {
                 scope.close();
             }
-            if (span != null) {
+            if (!Objects.isNull(span)) {
                 span.finish();
             }
         } catch (Exception e) {
@@ -93,11 +93,11 @@ public class TracingHandler {
 
         tracer.inject(span.context(), Format.Builtin.TEXT_MAP, new HeadersMapInjectAdapter(headers));
 
-        if (properties == null) {
+        if (Objects.isNull(properties)) {
             return new AMQP.BasicProperties().builder().headers(headers).build();
         }
 
-        if (properties.getHeaders() != null) {
+        if (!Objects.isNull(properties.getHeaders())) {
             headers.putAll(properties.getHeaders());
         }
 
