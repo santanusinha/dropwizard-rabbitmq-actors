@@ -90,6 +90,9 @@ public class TracingHandler {
     public static AMQP.BasicProperties inject(AMQP.BasicProperties properties, Span span,
                                               Tracer tracer) {
 
+        if(Objects.isNull(span) || Objects.isNull(tracer)) {
+            return null;
+        }
         // Headers of AMQP.BasicProperties is unmodifiableMap therefore we build new AMQP.BasicProperties
         // with injected span context into headers
         val headers = new HashMap<String, Object>();

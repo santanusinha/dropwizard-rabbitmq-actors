@@ -95,7 +95,6 @@ public class UnmanagedPublisher<Message> {
         val span = TracingHandler.buildSpan(config.getExchange(), routingKey, props, tracer);
         val scope = TracingHandler.activateSpan(tracer, span);
         val properties = TracingHandler.inject(props, span, tracer);
-        log.debug("publishing message with traceId: {}, spanId: {}", span.context().toTraceId(), span.context().toSpanId());
         try {
             publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
         } finally {

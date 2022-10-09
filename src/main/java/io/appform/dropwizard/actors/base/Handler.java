@@ -62,7 +62,6 @@ public class Handler<Message> extends DefaultConsumer {
             val message = mapper.readValue(body, clazz);
             val tracer = TracingHandler.getTracer();
             val childSpan = TracingHandler.buildChildSpan(properties, tracer);
-            log.debug("publishing message with traceId: {}, spanId: {}", childSpan.context().toTraceId(), childSpan.context().toSpanId());
 
             val scope = TracingHandler.activateSpan(tracer, childSpan);
             try {
