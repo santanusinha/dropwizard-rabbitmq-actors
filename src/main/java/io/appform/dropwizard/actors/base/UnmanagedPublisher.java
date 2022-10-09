@@ -86,7 +86,7 @@ public class UnmanagedPublisher<Message> {
             routingKey = queueName;
         }
 
-        if (!config.isTracingEnabled()) {
+        if (!connection.getConfig().isTracingEnabled() || !config.isTracingEnabled()) {
             publishChannel.basicPublish(config.getExchange(), routingKey, props, mapper().writeValueAsBytes(message));
             return;
         }
