@@ -123,6 +123,8 @@
         <amqp-client.version>5.14.1</amqp-client.version>
         <maven.deploy.skip>false</maven.deploy.skip>
         <jdk.version>17</jdk.version>
+        <mockito.version>4.1.0</mockito.version>
+        <junit.jupiter.version>5.8.2</junit.jupiter.version>
     </properties>
 
     <dependencyManagement>
@@ -241,6 +243,25 @@
             <groupId>io.opentracing</groupId>
             <artifactId>opentracing-util</artifactId>
             <version>0.33.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.opentracing</groupId>
+            <artifactId>opentracing-mock</artifactId>
+            <version>0.33.0</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

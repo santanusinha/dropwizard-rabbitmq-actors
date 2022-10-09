@@ -37,22 +37,11 @@ public class TracingHandler {
                 .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_PRODUCER)
                 .withTag("routingKey", routingKey);
 
-        SpanContext spanContext = null;
+        SpanContext spanContext = extract(props, tracer);
 
-        try {
-            if (!Objects.isNull(props) && !Objects.isNull(props.getHeaders())) {
-                spanContext = tracer.extract(Format.Builtin.TEXT_MAP,
-                        new HeadersMapExtractAdapter(props.getHeaders()));
-            }
-        } catch (Exception e) {
-            //this exception will arise incase someone tries to mutate the unmodifiable map -> props.getHeaders()
-            log.error("cannot modify an unmodifiable map", e);
-        }
-
-
-        if (spanContext == null) {
-            Span parentSpan = tracer.activeSpan();
-            if (parentSpan != null) {
+        if (Objects.isNull(spanContext)) {
+            val parentSpan = tracer.activeSpan();
+            if (!Objects.isNull(parentSpan)) {
                 spanContext = parentSpan.context();
             }
         }
@@ -64,6 +53,7 @@ public class TracingHandler {
         val span = spanBuilder.start();
         SpanDecorator.onRequest(exchange, span);
 
+        populateHeadersIfAny(props, tracer, span);
         return span;
     }
 
@@ -131,20 +121,31 @@ public class TracingHandler {
         val span = spanBuilder.start();
         SpanDecorator.onResponse(span);
 
-        try {
-            if (!Objects.isNull(props.getHeaders())) {
-                tracer.inject(span.context(), Format.Builtin.TEXT_MAP,
-                        new HeadersMapInjectAdapter(props.getHeaders()));
-            }
-        } catch (Exception e) {
-            //this exception will arise incase someone tries to mutate the unmodifiable map -> props.getHeaders()
-            log.error("cannot modify an unmodifiable map", e);
-        }
+        populateHeadersIfAny(props, tracer, span);
 
         return span;
     }
 
+    private static void populateHeadersIfAny(AMQP.BasicProperties props, Tracer tracer, Span span) {
+        try {
+            if (!Objects.isNull(props) && !Objects.isNull(props.getHeaders())) {
+                val headers = new HashMap<String, Object>();
+                props.getHeaders().forEach(headers::put);
+                tracer.inject(span.context(), Format.Builtin.TEXT_MAP,
+                        new HeadersMapInjectAdapter(headers));
+                props.builder().headers(headers).build();
+            }
+        } catch (Exception e) {
+            //this exception will arise incase someone tries to mutate the unmodifiable map -> props.getHeaders()
+            log.error("something went wrong while modifying AMQP.BasicProperties.headers", e);
+        }
+    }
+
     private static SpanContext extract(AMQP.BasicProperties props, Tracer tracer) {
+
+        if (Objects.isNull(props) || Objects.isNull(tracer)) {
+            return null;
+        }
         val spanContext = tracer.extract(Format.Builtin.TEXT_MAP,
                 new HeadersMapExtractAdapter(props.getHeaders()));
         if (spanContext != null) {
