@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 
-public class TracingHandlerTest {
+class TracingHandlerTest {
 
     @Test
     void testGetTracer() {
