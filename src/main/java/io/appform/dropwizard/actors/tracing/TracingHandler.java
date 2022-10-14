@@ -91,7 +91,7 @@ public class TracingHandler {
                                               Tracer tracer) {
 
         if(Objects.isNull(span) || Objects.isNull(tracer)) {
-            return null;
+            return properties;
         }
         // Headers of AMQP.BasicProperties is unmodifiableMap therefore we build new AMQP.BasicProperties
         // with injected span context into headers

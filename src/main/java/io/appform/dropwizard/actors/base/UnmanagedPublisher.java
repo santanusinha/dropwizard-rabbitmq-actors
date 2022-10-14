@@ -37,6 +37,7 @@ public class UnmanagedPublisher<Message> {
     private final RMQConnection connection;
     private final ObjectMapper mapper;
     private final String queueName;
+    private boolean tracingEnabled;
 
     private Channel publishChannel;
 
@@ -50,6 +51,7 @@ public class UnmanagedPublisher<Message> {
         this.connection = connection;
         this.mapper = mapper;
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
+        this.tracingEnabled = connection.getConfig().isTracingEnabled() && config.isTracingEnabled();
     }
 
     public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
@@ -59,13 +61,29 @@ public class UnmanagedPublisher<Message> {
         }
 
         if (config.getDelayType() == DelayType.TTL) {
-            publishChannel.basicPublish(ttlExchange(config),
-                    queueName,
-                    new AMQP.BasicProperties.Builder()
-                            .expiration(String.valueOf(delayMilliseconds))
-                            .deliveryMode(2)
-                            .build(),
-                    mapper().writeValueAsBytes(message));
+            var properties = new AMQP.BasicProperties.Builder()
+                    .expiration(String.valueOf(delayMilliseconds))
+                    .deliveryMode(2)
+                    .build();
+            if (!tracingEnabled) {
+                publishChannel.basicPublish(ttlExchange(config),
+                        queueName,
+                        properties,
+                        mapper().writeValueAsBytes(message));
+                return;
+            }
+            val tracer = TracingHandler.getTracer();
+            val span = TracingHandler.buildSpan(ttlExchange(config), queueName, properties, tracer);
+            val scope = TracingHandler.activateSpan(tracer, span);
+            properties = TracingHandler.inject(properties, span, tracer);
+            try {
+                publishChannel.basicPublish(ttlExchange(config),
+                        queueName,
+                        properties,
+                        mapper().writeValueAsBytes(message));
+            } finally {
+                TracingHandler.closeScopeAndSpan(span, scope);
+            }
         } else {
             publish(message, new AMQP.BasicProperties.Builder()
                     .headers(Collections.singletonMap("x-delay", delayMilliseconds))
@@ -86,7 +104,7 @@ public class UnmanagedPublisher<Message> {
             routingKey = queueName;
         }
 
-        if (!connection.getConfig().isTracingEnabled() || !config.isTracingEnabled()) {
+        if (!tracingEnabled) {
             publishChannel.basicPublish(config.getExchange(), routingKey, props, mapper().writeValueAsBytes(message));
             return;
         }
@@ -94,9 +112,9 @@ public class UnmanagedPublisher<Message> {
         val tracer = TracingHandler.getTracer();
         val span = TracingHandler.buildSpan(config.getExchange(), routingKey, props, tracer);
         val scope = TracingHandler.activateSpan(tracer, span);
-        val properties = TracingHandler.inject(props, span, tracer);
+        props = TracingHandler.inject(props, span, tracer);
         try {
-            publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
+            publishChannel.basicPublish(config.getExchange(), routingKey, props, mapper().writeValueAsBytes(message));
         } finally {
             TracingHandler.closeScopeAndSpan(span, scope);
         }
