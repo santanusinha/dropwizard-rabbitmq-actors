@@ -9,12 +9,19 @@ import io.opentracing.noop.NoopSpan;
 import io.opentracing.propagation.Format;
 import io.opentracing.util.GlobalTracer;
 import io.opentracing.util.ThreadLocalScope;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.joda.time.DateTime;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.HashMap;
+import java.util.Objects;
+import java.util.Timer;
+import java.util.concurrent.TimeUnit;
 
+@Slf4j
 class TracingHandlerTest {
 
     @Test
@@ -210,4 +217,27 @@ class TracingHandlerTest {
         val properties = new AMQP.BasicProperties().builder().headers(headers).build();
         Assertions.assertNotNull(TracingHandler.buildChildSpan(properties, tracer));
     }
+
+//    @Test
+//    void comparisonCheck() {
+//        val x = "MyNameIsShobhit";
+//        val time1 = ObjectsNull(x);
+//        val time2 = InlineNull(x);
+//        log.info("time1: {}",time1);
+//        log.info("time2: {}",time2);
+//    }
+//
+//    private long InlineNull(String x) {
+//        val start = Instant.now().toEpochMilli();
+//        Objects.isNull(x);
+//        val end = Instant.now().toEpochMilli();
+//        return end-start;
+//    }
+//
+//    private long ObjectsNull(String x) {
+//        val start = Instant.now().toEpochMilli();
+//        val y= x==null;
+//        val end = Instant.now().toEpochMilli();
+//        return end-start;
+//    }
 }
