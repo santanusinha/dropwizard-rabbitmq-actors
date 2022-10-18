@@ -46,7 +46,7 @@ import java.util.Objects;
 @Builder
 public class ActorConfig {
     @Builder.Default
-    private boolean tracingEnabled = false;
+    private boolean tracingDisabled = false;
 
     @NotNull
     @NotEmpty

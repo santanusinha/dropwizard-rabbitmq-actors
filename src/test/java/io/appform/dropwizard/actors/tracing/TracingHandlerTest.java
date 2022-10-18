@@ -218,26 +218,30 @@ class TracingHandlerTest {
         Assertions.assertNotNull(TracingHandler.buildChildSpan(properties, tracer));
     }
 
-//    @Test
-//    void comparisonCheck() {
-//        val x = "MyNameIsShobhit";
-//        val time1 = ObjectsNull(x);
-//        val time2 = InlineNull(x);
-//        log.info("time1: {}",time1);
-//        log.info("time2: {}",time2);
-//    }
-//
-//    private long InlineNull(String x) {
+    @Test
+    void comparisonCheck() {
+        val x = "MyNameIsShobhit";
+        val time1 = ObjectsNull(x);
+        val time2 = InlineNull(x);
+        log.info("time1: {}",time1);
+        log.info("time2: {}",time2);
+    }
+
+    private long ObjectsNull(String x) {
 //        val start = Instant.now().toEpochMilli();
-//        Objects.isNull(x);
+        val start = System.nanoTime();
+        Objects.isNull(x);
 //        val end = Instant.now().toEpochMilli();
-//        return end-start;
-//    }
-//
-//    private long ObjectsNull(String x) {
+        val end = System.nanoTime();
+        return end-start;
+    }
+
+    private long InlineNull(String x) {
 //        val start = Instant.now().toEpochMilli();
-//        val y= x==null;
+        val start = System.nanoTime();
+        val y= x==null;
 //        val end = Instant.now().toEpochMilli();
-//        return end-start;
-//    }
+        val end = System.nanoTime();
+        return end-start;
+    }
 }

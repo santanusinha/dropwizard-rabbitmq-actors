@@ -51,7 +51,7 @@ public class UnmanagedPublisher<Message> {
         this.connection = connection;
         this.mapper = mapper;
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
-        this.tracingEnabled = connection.getConfig().isTracingEnabled() && config.isTracingEnabled();
+        this.tracingEnabled = connection.getConfig().isTracingEnabled() && !config.isTracingDisabled();
     }
 
     public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
