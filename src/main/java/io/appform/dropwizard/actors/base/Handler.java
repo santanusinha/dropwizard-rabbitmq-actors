@@ -28,6 +28,9 @@ public class Handler<Message> extends DefaultConsumer {
     private final MessageHandlingFunction<Message, Boolean> messageHandlingFunction;
 
     @Getter
+    private volatile boolean running;
+
+    @Getter
     @Setter
     private String tag;
 
@@ -50,7 +53,10 @@ public class Handler<Message> extends DefaultConsumer {
     }
 
     private boolean handle(Message message, MessageMetadata messageMetadata) throws Exception {
-        return messageHandlingFunction.apply(message, messageMetadata);
+        running = true;
+        boolean result = messageHandlingFunction.apply(message, messageMetadata);
+        running = false;
+        return result;
     }
 
     @Override
