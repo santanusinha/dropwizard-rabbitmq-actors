@@ -2,18 +2,32 @@ package io.appform.dropwizard.actors.base;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.tracing.HeadersMapExtractAdapter;
+import io.appform.dropwizard.actors.tracing.HeadersMapInjectAdapter;
+import io.appform.dropwizard.actors.tracing.SpanDecorator;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.MessageProperties;
+import io.appform.dropwizard.actors.tracing.TracingHandler;
+import io.opentracing.Scope;
+import io.opentracing.Span;
+import io.opentracing.SpanContext;
+import io.opentracing.Tracer;
+import io.opentracing.propagation.Format;
+import io.opentracing.tag.Tags;
+import io.opentracing.util.GlobalTracer;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.lang3.RandomUtils;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
@@ -23,6 +37,7 @@ public class UnmanagedPublisher<Message> {
     private final RMQConnection connection;
     private final ObjectMapper mapper;
     private final String queueName;
+    private boolean tracingEnabled;
 
     private Channel publishChannel;
 
@@ -36,6 +51,7 @@ public class UnmanagedPublisher<Message> {
         this.connection = connection;
         this.mapper = mapper;
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
+        this.tracingEnabled = connection.getConfig().isTracingEnabled() && !config.isTracingDisabled();
     }
 
     public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
@@ -45,13 +61,29 @@ public class UnmanagedPublisher<Message> {
         }
 
         if (config.getDelayType() == DelayType.TTL) {
-            publishChannel.basicPublish(ttlExchange(config),
-                    queueName,
-                    new AMQP.BasicProperties.Builder()
-                            .expiration(String.valueOf(delayMilliseconds))
-                            .deliveryMode(2)
-                            .build(),
-                    mapper().writeValueAsBytes(message));
+            var properties = new AMQP.BasicProperties.Builder()
+                    .expiration(String.valueOf(delayMilliseconds))
+                    .deliveryMode(2)
+                    .build();
+            if (!tracingEnabled) {
+                publishChannel.basicPublish(ttlExchange(config),
+                        queueName,
+                        properties,
+                        mapper().writeValueAsBytes(message));
+                return;
+            }
+            val tracer = TracingHandler.getTracer();
+            val span = TracingHandler.buildSpan(ttlExchange(config), queueName, properties, tracer);
+            val scope = TracingHandler.activateSpan(tracer, span);
+            properties = TracingHandler.inject(properties, span, tracer);
+            try {
+                publishChannel.basicPublish(ttlExchange(config),
+                        queueName,
+                        properties,
+                        mapper().writeValueAsBytes(message));
+            } finally {
+                TracingHandler.closeScopeAndSpan(span, scope);
+            }
         } else {
             publish(message, new AMQP.BasicProperties.Builder()
                     .headers(Collections.singletonMap("x-delay", delayMilliseconds))
@@ -64,14 +96,28 @@ public class UnmanagedPublisher<Message> {
         publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
     }
 
-    public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
+    public final void publish(Message message, AMQP.BasicProperties props) throws Exception {
         String routingKey;
         if (config.isSharded()) {
             routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
         } else {
             routingKey = queueName;
         }
-        publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
+
+        if (!tracingEnabled) {
+            publishChannel.basicPublish(config.getExchange(), routingKey, props, mapper().writeValueAsBytes(message));
+            return;
+        }
+
+        val tracer = TracingHandler.getTracer();
+        val span = TracingHandler.buildSpan(config.getExchange(), routingKey, props, tracer);
+        val scope = TracingHandler.activateSpan(tracer, span);
+        props = TracingHandler.inject(props, span, tracer);
+        try {
+            publishChannel.basicPublish(config.getExchange(), routingKey, props, mapper().writeValueAsBytes(message));
+        } finally {
+            TracingHandler.closeScopeAndSpan(span, scope);
+        }
     }
 
     private final int getShardId() {
@@ -81,14 +127,13 @@ public class UnmanagedPublisher<Message> {
     public final long pendingMessagesCount() {
         try {
             if (config.isSharded()) {
-                long messageCount  = 0 ;
+                long messageCount = 0;
                 for (int i = 0; i < config.getShardCount(); i++) {
                     String shardedQueueName = NamingUtils.getShardedQueueName(queueName, i);
                     messageCount += publishChannel.messageCount(shardedQueueName);
                 }
                 return messageCount;
-            }
-            else {
+            } else {
                 return publishChannel.messageCount(queueName);
             }
         } catch (IOException e) {
@@ -123,7 +168,7 @@ public class UnmanagedPublisher<Message> {
             int bound = config.getShardCount();
             for (int shardId = 0; shardId < bound; shardId++) {
                 connection.ensure(NamingUtils.getShardedQueueName(queueName, shardId), config.getExchange(),
-                                  connection.rmqOpts(dlx, config));
+                        connection.rmqOpts(dlx, config));
             }
         } else {
             connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx, config));
@@ -193,4 +238,5 @@ public class UnmanagedPublisher<Message> {
     protected final ObjectMapper mapper() {
         return mapper;
     }
+
 }

@@ -18,8 +18,8 @@ package io.appform.dropwizard.actors.actor;
 
 import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConfig;
-import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
+import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.dropwizard.validation.ValidationMethod;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -45,6 +45,9 @@ import java.util.Objects;
 @NoArgsConstructor
 @Builder
 public class ActorConfig {
+    @Builder.Default
+    private boolean tracingDisabled = false;
+
     @NotNull
     @NotEmpty
     private String exchange;

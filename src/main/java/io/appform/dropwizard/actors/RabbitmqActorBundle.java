@@ -17,8 +17,8 @@
 package io.appform.dropwizard.actors;
 
 import com.google.common.base.Preconditions;
-import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.config.RMQConfig;
+import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
@@ -29,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 
 /**
  * A bundle to add RMQ actors
@@ -47,7 +48,10 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
 
     @Override
     public void run(T t, Environment environment) {
-        this.rmqConfig = getConfig(t);
+        val defaultConfig = getConfig(t);
+        val dynamicConfig = getRefresherConfig();
+        this.rmqConfig = dynamicConfig == null || dynamicConfig.get() == null ? defaultConfig : dynamicConfig.get();
+//        this.rmqConfig = getConfig(t);
         val executorServiceProvider = getExecutorServiceProvider(t);
         val ttlConfig = ttlConfig();
         Preconditions.checkNotNull(executorServiceProvider, "Null executor service provider provided");
@@ -68,6 +72,8 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     }
 
     protected abstract RMQConfig getConfig(T t);
+
+    protected abstract Supplier<RMQConfig> getRefresherConfig();
 
     /**
      * Provides implementation for {@link ExecutorServiceProvider}. Should be overridden if custom executor service

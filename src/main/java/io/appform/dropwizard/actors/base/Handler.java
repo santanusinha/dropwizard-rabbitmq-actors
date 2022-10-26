@@ -2,17 +2,19 @@ package io.appform.dropwizard.actors.base;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Envelope;
+import io.appform.dropwizard.actors.tracing.TracingHandler;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 import java.io.IOException;
 import java.util.function.Function;
@@ -57,13 +59,21 @@ public class Handler<Message> extends DefaultConsumer {
     public void handleDelivery(String consumerTag, Envelope envelope,
                                AMQP.BasicProperties properties, byte[] body) throws IOException {
         try {
-            final Message message = mapper.readValue(body, clazz);
-            boolean success = retryStrategy.execute(() -> handle(message, messageProperties(envelope)));
+            val message = mapper.readValue(body, clazz);
+            val tracer = TracingHandler.getTracer();
+            val childSpan = TracingHandler.buildChildSpan(properties, tracer);
 
-            if (success) {
-                getChannel().basicAck(envelope.getDeliveryTag(), false);
-            } else {
-                getChannel().basicReject(envelope.getDeliveryTag(), false);
+            val scope = TracingHandler.activateSpan(tracer, childSpan);
+            try {
+                boolean success = retryStrategy.execute(() -> handle(message, messageProperties(envelope)));
+
+                if (success) {
+                    getChannel().basicAck(envelope.getDeliveryTag(), false);
+                } else {
+                    getChannel().basicReject(envelope.getDeliveryTag(), false);
+                }
+            } finally {
+                TracingHandler.closeScopeAndSpan(childSpan,scope);
             }
         } catch (Throwable t) {
             log.error("Error processing message...", t);
