@@ -28,6 +28,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
@@ -47,14 +48,17 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     }
 
     @Override
-    public void run(T t, Environment environment) {
+    public void run(T t, Environment environment) throws Exception {
         val defaultConfig = getConfig(t);
         val dynamicConfig = getRefresherConfig();
         if(dynamicConfig != null ){
+            /**
+             * ToDo: if this works then add test cases and one test case for throws Exception line like in TracingBundleTest.java in tracing bundle
+             */
             log.info("dynamicConfig provided by client is not null");
-            if(dynamicConfig.get() != null ){
+            if(dynamicConfig.call() != null ){
                 log.info("RmqConfig provided by refresherConfig is not null, hence providing dynamicConfig");
-                this.rmqConfig = dynamicConfig.get();
+                this.rmqConfig = dynamicConfig.call();
                 log.info("tracingEnabled provided by dynamicConfig is : {}", this.rmqConfig.isTracingEnabled());
             }
             else {
@@ -91,7 +95,7 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
 
     protected abstract RMQConfig getConfig(T t);
 
-    protected abstract Supplier<RMQConfig> getRefresherConfig();
+    protected abstract Callable<RMQConfig> getRefresherConfig();
 
     /**
      * Provides implementation for {@link ExecutorServiceProvider}. Should be overridden if custom executor service
