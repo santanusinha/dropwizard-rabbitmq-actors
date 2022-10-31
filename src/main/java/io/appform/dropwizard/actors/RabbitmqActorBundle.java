@@ -50,7 +50,25 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     public void run(T t, Environment environment) {
         val defaultConfig = getConfig(t);
         val dynamicConfig = getRefresherConfig();
-        this.rmqConfig = dynamicConfig == null || dynamicConfig.get() == null ? defaultConfig : dynamicConfig.get();
+        if(dynamicConfig != null ){
+            log.info("dynamicConfig provided by client is not null");
+            if(dynamicConfig.get() != null ){
+                log.info("RmqConfig provided by refresherConfig is not null, hence providing dynamicConfig");
+                this.rmqConfig = dynamicConfig.get();
+                log.info("tracingEnabled provided by dynamicConfig is : {}", this.rmqConfig.isTracingEnabled());
+            }
+            else {
+                log.info("RmqConfig provided by refresherConfig is null, hence providing default config");
+                this.rmqConfig = defaultConfig;
+                log.info("tracingEnabled provided by defaultConfig is : {}", this.rmqConfig.isTracingEnabled());
+            }
+        }
+        else {
+            log.info("dynamicConfig provided by client is not null, hence providing defaultConfig");
+            this.rmqConfig = defaultConfig;
+            log.info("tracingEnabled provided by defaultConfig is : {}", this.rmqConfig.isTracingEnabled());
+        }
+//        this.rmqConfig = dynamicConfig == null || dynamicConfig.get() == null ? defaultConfig : dynamicConfig.get();
 //        this.rmqConfig = getConfig(t);
         val executorServiceProvider = getExecutorServiceProvider(t);
         val ttlConfig = ttlConfig();

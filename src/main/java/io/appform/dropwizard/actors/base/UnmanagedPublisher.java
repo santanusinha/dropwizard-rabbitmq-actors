@@ -51,6 +51,7 @@ public class UnmanagedPublisher<Message> {
         this.connection = connection;
         this.mapper = mapper;
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
+        log.info("inside unmanagedPublisher, connection.getConfig().isTracingEnabled(): {} and !config.isTracingDisabled(): {}", connection.getConfig().isTracingEnabled(), !config.isTracingDisabled());
         this.tracingEnabled = connection.getConfig().isTracingEnabled() && !config.isTracingDisabled();
     }
 
@@ -66,12 +67,14 @@ public class UnmanagedPublisher<Message> {
                     .deliveryMode(2)
                     .build();
             if (!tracingEnabled) {
+                log.info("tracing is disabled hence adding returning early");
                 publishChannel.basicPublish(ttlExchange(config),
                         queueName,
                         properties,
                         mapper().writeValueAsBytes(message));
                 return;
             }
+            log.info("since tracing is enabled hence adding traces of rmq");
             val tracer = TracingHandler.getTracer();
             val span = TracingHandler.buildSpan(ttlExchange(config), queueName, properties, tracer);
             val scope = TracingHandler.activateSpan(tracer, span);
@@ -105,10 +108,12 @@ public class UnmanagedPublisher<Message> {
         }
 
         if (!tracingEnabled) {
+            log.info("tracing is disabled hence adding returning early");
             publishChannel.basicPublish(config.getExchange(), routingKey, props, mapper().writeValueAsBytes(message));
             return;
         }
 
+        log.info("since tracing is enabled hence adding traces of rmq");
         val tracer = TracingHandler.getTracer();
         val span = TracingHandler.buildSpan(config.getExchange(), routingKey, props, tracer);
         val scope = TracingHandler.activateSpan(tracer, span);
