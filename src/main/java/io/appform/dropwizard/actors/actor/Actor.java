@@ -23,6 +23,7 @@ import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.SneakyThrows;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
@@ -54,6 +55,7 @@ public abstract class Actor<MessageType extends Enum<MessageType>, Message> exte
         this.type = type;
     }
 
+    @SneakyThrows
     protected Actor(
             MessageType type,
             ActorConfig config,

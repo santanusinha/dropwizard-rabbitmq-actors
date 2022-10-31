@@ -28,6 +28,7 @@ import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.SneakyThrows;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ClassUtils;
@@ -81,6 +82,7 @@ public abstract class BaseActor<Message> implements Managed {
                 this::isExceptionIgnorable);
     }
 
+    @SneakyThrows
     protected BaseActor(
             String name,
             ActorConfig config,

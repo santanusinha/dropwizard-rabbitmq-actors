@@ -5,7 +5,9 @@ import com.google.common.collect.ImmutableMap;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
+import io.appform.dropwizard.actors.config.TracingConfiguration;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.retry.config.ConfigProvider;
 import io.appform.dropwizard.actors.tracing.HeadersMapExtractAdapter;
 import io.appform.dropwizard.actors.tracing.HeadersMapInjectAdapter;
 import io.appform.dropwizard.actors.tracing.SpanDecorator;
@@ -45,14 +47,14 @@ public class UnmanagedPublisher<Message> {
             String name,
             ActorConfig config,
             RMQConnection connection,
-            ObjectMapper mapper) {
+            ObjectMapper mapper,
+            TracingConfiguration tracingConfiguration) {
         this.name = NamingUtils.prefixWithNamespace(name);
         this.config = config;
         this.connection = connection;
         this.mapper = mapper;
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
-        log.info("inside unmanagedPublisher, connection.getConfig().isTracingEnabled(): {} and !config.isTracingDisabled(): {}", connection.getConfig().isTracingEnabled(), !config.isTracingDisabled());
-        this.tracingEnabled = connection.getConfig().isTracingEnabled() && !config.isTracingDisabled();
+        this.tracingEnabled = tracingConfiguration != null && tracingConfiguration.isTracingEnabled() && !config.isTracingDisabled();
     }
 
     public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {

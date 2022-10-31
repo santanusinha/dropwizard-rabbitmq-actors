@@ -89,7 +89,6 @@ public class RMQConfig {
     @Valid
     private List<ConnectionConfig> connections;
 
-    @Default
-    private boolean tracingEnabled = false;
+    private TracingConfiguration tracingConfiguration;
 
 }

@@ -19,7 +19,9 @@ package io.appform.dropwizard.actors;
 import com.google.common.base.Preconditions;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.common.Constants;
+import io.appform.dropwizard.actors.config.TracingConfiguration;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.retry.config.ConfigProvider;
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.setup.Bootstrap;
@@ -30,7 +32,6 @@ import lombok.val;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
-import java.util.function.Supplier;
 
 /**
  * A bundle to add RMQ actors
@@ -43,42 +44,45 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
 
     private RMQConfig rmqConfig;
 
+    private ConfigProvider configProvider;
+
     protected RabbitmqActorBundle() {
 
     }
 
     @Override
     public void run(T t, Environment environment) throws Exception {
-        val defaultConfig = getConfig(t);
         val dynamicConfig = getRefresherConfig();
-        if(dynamicConfig != null ){
-            /**
-             * ToDo: if this works then add test cases and one test case for throws Exception line like in TracingBundleTest.java in tracing bundle
-             */
-            log.info("dynamicConfig provided by client is not null");
-            if(dynamicConfig.call() != null ){
-                log.info("RmqConfig provided by refresherConfig is not null, hence providing dynamicConfig");
-                this.rmqConfig = dynamicConfig.call();
-                log.info("tracingEnabled provided by dynamicConfig is : {}", this.rmqConfig.isTracingEnabled());
-            }
-            else {
-                log.info("RmqConfig provided by refresherConfig is null, hence providing default config");
-                this.rmqConfig = defaultConfig;
-                log.info("tracingEnabled provided by defaultConfig is : {}", this.rmqConfig.isTracingEnabled());
-            }
-        }
-        else {
-            log.info("dynamicConfig provided by client is not null, hence providing defaultConfig");
-            this.rmqConfig = defaultConfig;
-            log.info("tracingEnabled provided by defaultConfig is : {}", this.rmqConfig.isTracingEnabled());
-        }
+        val defaultConfig = getConfig(t);
+        this.configProvider = new ConfigProvider(dynamicConfig, defaultConfig.getTracingConfiguration());
+//        if(dynamicConfig != null ){
+//            /**
+//             * ToDo: if this works then add test cases and one test case for throws Exception line like in TracingBundleTest.java in tracing bundle
+//             */
+//            log.info("dynamicConfig provided by client is not null");
+//            if(dynamicConfig.call()  != null ){
+//                log.info("RmqConfig provided by refresherConfig is not null, hence providing dynamicConfig");
+//                this.rmqConfig = dynamicConfig.call();
+//                log.info("tracingEnabled provided by dynamicConfig is : {}", this.rmqConfig.isTracingEnabled());
+//            }
+//            else {
+//                log.info("RmqConfig provided by refresherConfig is null, hence providing default config");
+//                this.rmqConfig = defaultConfig;
+//                log.info("tracingEnabled provided by defaultConfig is : {}", this.rmqConfig.isTracingEnabled());
+//            }
+//        }
+//        else {
+//            log.info("dynamicConfig provided by client is not null, hence providing defaultConfig");
+//            this.rmqConfig = defaultConfig;
+//            log.info("tracingEnabled provided by defaultConfig is : {}", this.rmqConfig.isTracingEnabled());
+//        }
 //        this.rmqConfig = dynamicConfig == null || dynamicConfig.get() == null ? defaultConfig : dynamicConfig.get();
-//        this.rmqConfig = getConfig(t);
+        this.rmqConfig = defaultConfig;
         val executorServiceProvider = getExecutorServiceProvider(t);
         val ttlConfig = ttlConfig();
         Preconditions.checkNotNull(executorServiceProvider, "Null executor service provider provided");
         this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, rmqConfig,
-                ttlConfig == null ? TtlConfig.builder().build(): ttlConfig);
+                ttlConfig == null ? TtlConfig.builder().build(): ttlConfig, configProvider);
         environment.lifecycle().manage(connectionRegistry);
     }
 
@@ -95,7 +99,7 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
 
     protected abstract RMQConfig getConfig(T t);
 
-    protected abstract Callable<RMQConfig> getRefresherConfig();
+    protected abstract Callable<TracingConfiguration> getRefresherConfig();
 
     /**
      * Provides implementation for {@link ExecutorServiceProvider}. Should be overridden if custom executor service

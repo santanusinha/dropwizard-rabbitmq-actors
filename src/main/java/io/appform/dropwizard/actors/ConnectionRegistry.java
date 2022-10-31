@@ -5,6 +5,7 @@ import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.ConnectionConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.retry.config.ConfigProvider;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Environment;
 import lombok.Data;
@@ -24,17 +25,20 @@ public class ConnectionRegistry implements Managed {
     private final Environment environment;
     private final ExecutorServiceProvider executorServiceProvider;
     private final RMQConfig rmqConfig;
+    private final ConfigProvider configProvider;
     private TtlConfig ttlConfig;
 
     public ConnectionRegistry(final Environment environment,
                               final ExecutorServiceProvider executorServiceProvider,
                               final RMQConfig rmqConfig,
-                              final TtlConfig ttlConfig) {
+                              final TtlConfig ttlConfig,
+                              final ConfigProvider configProvider) {
         this.environment = environment;
         this.executorServiceProvider = executorServiceProvider;
         this.rmqConfig = rmqConfig;
         this.ttlConfig = ttlConfig;
         this.connections = new ConcurrentHashMap<>();
+        this.configProvider = configProvider;
     }
 
     public RMQConnection createOrGet(String connectionName) {
