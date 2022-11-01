@@ -39,36 +39,44 @@ public class UnmanagedPublisher<Message> {
     private final RMQConnection connection;
     private final ObjectMapper mapper;
     private final String queueName;
-    private boolean tracingEnabled;
-
+    private final ConfigProvider configProvider;
     private Channel publishChannel;
+    /**
+     * ToDo: remove these 3 parameters after testing
+     */
+    private int constructorCount = 0;
+    private int publishCount = 0;
+    private int publishWithDelayCount = 0;
 
     public UnmanagedPublisher(
             String name,
             ActorConfig config,
             RMQConnection connection,
             ObjectMapper mapper,
-            TracingConfiguration tracingConfiguration) {
+            ConfigProvider configProvider) {
         this.name = NamingUtils.prefixWithNamespace(name);
         this.config = config;
         this.connection = connection;
         this.mapper = mapper;
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
-        this.tracingEnabled = tracingConfiguration != null && tracingConfiguration.isTracingEnabled() && !config.isTracingDisabled();
+        this.configProvider = configProvider;
+        this.constructorCount += 1;
     }
 
     public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
+        this.publishWithDelayCount += 1;
         log.info("Publishing message to exchange with delay: {}", delayMilliseconds);
         if (!config.isDelayed()) {
             log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
         }
 
+        log.info("constructorCount is : {} and publishWithDelayCount is : {}", constructorCount, publishWithDelayCount);
         if (config.getDelayType() == DelayType.TTL) {
             var properties = new AMQP.BasicProperties.Builder()
                     .expiration(String.valueOf(delayMilliseconds))
                     .deliveryMode(2)
                     .build();
-            if (!tracingEnabled) {
+            if (!configProvider.getTracingConfiguration().isTracingEnabled()) {
                 log.info("tracing is disabled hence adding returning early");
                 publishChannel.basicPublish(ttlExchange(config),
                         queueName,
@@ -102,6 +110,7 @@ public class UnmanagedPublisher<Message> {
     }
 
     public final void publish(Message message, AMQP.BasicProperties props) throws Exception {
+        this.publishCount += 1;
         String routingKey;
         if (config.isSharded()) {
             routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
@@ -109,7 +118,8 @@ public class UnmanagedPublisher<Message> {
             routingKey = queueName;
         }
 
-        if (!tracingEnabled) {
+        log.info("constructorCount is : {} and publishCount is : {}", constructorCount, publishCount);
+        if (!configProvider.getTracingConfiguration().isTracingEnabled()) {
             log.info("tracing is disabled hence adding returning early");
             publishChannel.basicPublish(config.getExchange(), routingKey, props, mapper().writeValueAsBytes(message));
             return;

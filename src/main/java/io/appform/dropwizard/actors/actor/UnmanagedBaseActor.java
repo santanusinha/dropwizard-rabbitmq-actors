@@ -29,6 +29,7 @@ import io.appform.dropwizard.actors.connectivity.strategy.DefaultConnectionStrat
 import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
+import io.appform.dropwizard.actors.retry.config.ConfigProvider;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -70,7 +71,7 @@ public class UnmanagedBaseActor<Message> {
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
-        this(new UnmanagedPublisher<>(name, config, connection, mapper, connection.getConfig().getTracingConfiguration()),
+        this(new UnmanagedPublisher<>(name, config, connection, mapper, new ConfigProvider(null,connection.getConfig().getTracingConfiguration())),
                 new UnmanagedConsumer<>(
                         name, config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
                         handlerFunction, errorCheckFunction));
@@ -88,7 +89,7 @@ public class UnmanagedBaseActor<Message> {
             Function<Throwable, Boolean> errorCheckFunction) throws Exception {
         val consumerConnection = connectionRegistry.createOrGet(consumerConnectionName(config.getConsumer()));
         val producerConnection = connectionRegistry.createOrGet(producerConnectionName(config.getProducer()));
-        this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper, connectionRegistry.getConfigProvider().getTracingConfiguration());
+        this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper, connectionRegistry.getConfigProvider());
         this.consumeActor = new UnmanagedConsumer<>(
                 name, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
                 handlerFunction, errorCheckFunction);
