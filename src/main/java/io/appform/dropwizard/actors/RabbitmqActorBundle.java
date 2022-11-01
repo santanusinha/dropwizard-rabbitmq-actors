@@ -51,32 +51,10 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     }
 
     @Override
-    public void run(T t, Environment environment) throws Exception {
+    public void run(T t, Environment environment) {
         val dynamicConfig = getRefresherConfig();
         val defaultConfig = getConfig(t);
         this.configProvider = new ConfigProvider(dynamicConfig, defaultConfig.getTracingConfiguration());
-//        if(dynamicConfig != null ){
-//            /**
-//             * ToDo: if this works then add test cases and one test case for throws Exception line like in TracingBundleTest.java in tracing bundle
-//             */
-//            log.info("dynamicConfig provided by client is not null");
-//            if(dynamicConfig.call()  != null ){
-//                log.info("RmqConfig provided by refresherConfig is not null, hence providing dynamicConfig");
-//                this.rmqConfig = dynamicConfig.call();
-//                log.info("tracingEnabled provided by dynamicConfig is : {}", this.rmqConfig.isTracingEnabled());
-//            }
-//            else {
-//                log.info("RmqConfig provided by refresherConfig is null, hence providing default config");
-//                this.rmqConfig = defaultConfig;
-//                log.info("tracingEnabled provided by defaultConfig is : {}", this.rmqConfig.isTracingEnabled());
-//            }
-//        }
-//        else {
-//            log.info("dynamicConfig provided by client is not null, hence providing defaultConfig");
-//            this.rmqConfig = defaultConfig;
-//            log.info("tracingEnabled provided by defaultConfig is : {}", this.rmqConfig.isTracingEnabled());
-//        }
-//        this.rmqConfig = dynamicConfig == null || dynamicConfig.get() == null ? defaultConfig : dynamicConfig.get();
         this.rmqConfig = defaultConfig;
         val executorServiceProvider = getExecutorServiceProvider(t);
         val ttlConfig = ttlConfig();
