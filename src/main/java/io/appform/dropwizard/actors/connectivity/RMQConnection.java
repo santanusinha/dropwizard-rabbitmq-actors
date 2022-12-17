@@ -150,6 +150,11 @@ public class RMQConnection implements Managed {
         log.info("Created queue: {} bound to {}", queueName, exchange);
     }
 
+    public void addBinding(String queueName, String exchange, String routingKey) throws Exception {
+        channel.queueBind(queueName, exchange, routingKey);
+        log.info("Added sideline exchange binding");
+    }
+
     public Map<String, Object> rmqOpts(final ActorConfig actorConfig) {
         final Map<String, Object> ttlOpts = getActorTTLOpts(actorConfig.getTtlConfig());
         return ImmutableMap.<String, Object>builder()
