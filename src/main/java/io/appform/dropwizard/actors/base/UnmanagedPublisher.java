@@ -117,18 +117,18 @@ public class UnmanagedPublisher<Message> {
         ensureExchange(dlx);
 
         this.publishChannel = connection.newChannel();
+        String sidelineQueueName = queueName + "_SIDELINE";
         if (config.isSharded()) {
             int bound = config.getShardCount();
-            connection.ensure(queueName + "_SIDELINE", queueName, dlx, connection.rmqOpts(config));
+            connection.ensure(sidelineQueueName, queueName, dlx, connection.rmqOpts(config));
             for (int shardId = 0; shardId < bound; shardId++) {
                 String shardedQueueName = NamingUtils.getShardedQueueName(queueName, shardId);
-                connection.ensure(shardedQueueName, config.getExchange(),
-                                  connection.rmqOpts(dlx, config));
-                connection.addBinding(queueName + "_SIDELINE", dlx, shardedQueueName);
+                connection.ensure(shardedQueueName, config.getExchange(), connection.rmqOpts(dlx, config));
+                connection.addBinding(sidelineQueueName, dlx, shardedQueueName);
             }
         } else {
             connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx, config));
-            connection.ensure(queueName + "_SIDELINE", queueName, dlx, connection.rmqOpts(config));
+            connection.ensure(sidelineQueueName, queueName, dlx, connection.rmqOpts(config));
         }
 
         if (config.getDelayType() == DelayType.TTL) {
