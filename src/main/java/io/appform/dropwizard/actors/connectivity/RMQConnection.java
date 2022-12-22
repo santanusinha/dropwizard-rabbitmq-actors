@@ -218,10 +218,6 @@ public class RMQConnection implements Managed {
         return connection.createChannel();
     }
 
-    private String getSideline(String name) {
-        return String.format("%s_%s", name, "SIDELINE");
-    }
-
     private Map<String, Object> getActorTTLOpts(final TtlConfig ttlConfig) {
         if (ttlConfig != null) {
             return getTTLOpts(ttlConfig);

@@ -99,7 +99,7 @@ public class UnmanagedPublisher<Message> {
 
     public final long pendingSidelineMessagesCount() {
         try {
-            return publishChannel.messageCount(queueName + "_SIDELINE");
+            return publishChannel.messageCount(NamingUtils.getSideline(queueName));
         } catch (IOException e) {
             log.error("Issue getting message count. Will return max", e);
         }
@@ -108,7 +108,7 @@ public class UnmanagedPublisher<Message> {
 
     public void start() throws Exception {
         final String exchange = config.getExchange();
-        final String dlx = config.getExchange() + "_SIDELINE";
+        final String dlx = NamingUtils.getSideline(config.getExchange());
         if (config.isDelayed()) {
             ensureDelayedExchange(exchange);
         } else {
@@ -117,7 +117,7 @@ public class UnmanagedPublisher<Message> {
         ensureExchange(dlx);
 
         this.publishChannel = connection.newChannel();
-        String sidelineQueueName = queueName + "_SIDELINE";
+        String sidelineQueueName = NamingUtils.getSideline(queueName);
         if (config.isSharded()) {
             int bound = config.getShardCount();
             connection.ensure(sidelineQueueName, queueName, dlx, connection.rmqOpts(config));
