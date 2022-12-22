@@ -152,7 +152,7 @@ public class RMQConnection implements Managed {
 
     public void addBinding(String queueName, String exchange, String routingKey) throws Exception {
         channel.queueBind(queueName, exchange, routingKey);
-        log.info("Added sideline exchange binding with sharded queue {}", queueName);
+        log.info("Created binding for queue : {} bound to {}", queueName, exchange);
     }
 
     public Map<String, Object> rmqOpts(final ActorConfig actorConfig) {
