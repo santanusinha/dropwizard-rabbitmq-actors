@@ -152,7 +152,7 @@ public class RMQConnection implements Managed {
 
     public void addBinding(String queueName, String exchange, String routingKey) throws Exception {
         channel.queueBind(queueName, exchange, routingKey);
-        log.info("Created binding for queue : {} bound to {}", queueName, exchange);
+        log.info("Created binding for queue : {} bound to {} routing Key {}", queueName, exchange, routingKey);
     }
 
     public Map<String, Object> rmqOpts(final ActorConfig actorConfig) {
