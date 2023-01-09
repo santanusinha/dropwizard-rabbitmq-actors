@@ -37,6 +37,7 @@ import lombok.val;
 import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
@@ -62,7 +63,7 @@ public class UnmanagedBaseActor<Message> {
 
     public UnmanagedBaseActor(
             String name,
-            ActorConfig config,
+            Supplier<ActorConfig> configSupplier,
             RMQConnection connection,
             ObjectMapper mapper,
             RetryStrategyFactory retryStrategyFactory,
@@ -70,15 +71,15 @@ public class UnmanagedBaseActor<Message> {
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
-        this(new UnmanagedPublisher<>(name, config, connection, mapper),
+        this(new UnmanagedPublisher<>(name, configSupplier, connection, mapper),
                 new UnmanagedConsumer<>(
-                        name, config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
+                        name, configSupplier, connection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
                         handlerFunction, errorCheckFunction));
     }
 
     public UnmanagedBaseActor(
             String name,
-            ActorConfig config,
+            Supplier<ActorConfig> configSupplier,
             ConnectionRegistry connectionRegistry,
             ObjectMapper mapper,
             RetryStrategyFactory retryStrategyFactory,
@@ -86,11 +87,11 @@ public class UnmanagedBaseActor<Message> {
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
-        val consumerConnection = connectionRegistry.createOrGet(consumerConnectionName(config.getConsumer()));
-        val producerConnection = connectionRegistry.createOrGet(producerConnectionName(config.getProducer()));
-        this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper);
+        val consumerConnection = connectionRegistry.createOrGet(consumerConnectionName(configSupplier.get().getConsumer()));
+        val producerConnection = connectionRegistry.createOrGet(producerConnectionName(configSupplier.get().getProducer()));
+        this.publishActor = new UnmanagedPublisher<>(name, configSupplier, producerConnection, mapper);
         this.consumeActor = new UnmanagedConsumer<>(
-                name, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
+                name, configSupplier, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
                 handlerFunction, errorCheckFunction);
     }
 
