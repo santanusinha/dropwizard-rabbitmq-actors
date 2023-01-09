@@ -14,12 +14,13 @@ import org.apache.commons.lang3.RandomUtils;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.function.Supplier;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
 
     private final String name;
-    private final ActorConfig config;
+    private final Supplier<ActorConfig> configSupplier;
     private final RMQConnection connection;
     private final ObjectMapper mapper;
     private final String queueName;
@@ -28,17 +29,18 @@ public class UnmanagedPublisher<Message> {
 
     public UnmanagedPublisher(
             String name,
-            ActorConfig config,
+            Supplier<ActorConfig> configSupplier,
             RMQConnection connection,
             ObjectMapper mapper) {
         this.name = NamingUtils.prefixWithNamespace(name);
-        this.config = config;
+        this.configSupplier = configSupplier;
         this.connection = connection;
         this.mapper = mapper;
-        this.queueName = NamingUtils.queueName(config.getPrefix(), name);
+        this.queueName = NamingUtils.queueName(configSupplier.get().getPrefix(), name);
     }
 
     public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
+        final ActorConfig config = configSupplier.get();
         log.info("Publishing message to exchange with delay: {}", delayMilliseconds);
         if (!config.isDelayed()) {
             log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
@@ -66,23 +68,23 @@ public class UnmanagedPublisher<Message> {
 
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
         String routingKey;
-        if (config.isSharded()) {
+        if (configSupplier.get().isSharded()) {
             routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
         } else {
             routingKey = queueName;
         }
-        publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
+        publishChannel.basicPublish(configSupplier.get().getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
     }
 
     private final int getShardId() {
-        return RandomUtils.nextInt(0, config.getShardCount());
+        return RandomUtils.nextInt(0, configSupplier.get().getShardCount());
     }
 
     public final long pendingMessagesCount() {
         try {
-            if (config.isSharded()) {
+            if (configSupplier.get().isSharded()) {
                 long messageCount  = 0 ;
-                for (int i = 0; i < config.getShardCount(); i++) {
+                for (int i = 0; i < configSupplier.get().getShardCount(); i++) {
                     String shardedQueueName = NamingUtils.getShardedQueueName(queueName, i);
                     messageCount += publishChannel.messageCount(shardedQueueName);
                 }
@@ -107,6 +109,7 @@ public class UnmanagedPublisher<Message> {
     }
 
     public void start() throws Exception {
+        final ActorConfig config = configSupplier.get();
         final String exchange = config.getExchange();
         final String dlx = config.getExchange() + "_SIDELINE";
         if (config.isDelayed()) {
@@ -150,7 +153,8 @@ public class UnmanagedPublisher<Message> {
         log.info("Created exchange: {}", exchange);
     }
 
-    private void ensureDelayedExchange(String exchange) throws IOException {
+    private void ensureDelayedExchange(final String exchange) throws IOException {
+        final ActorConfig config = configSupplier.get();
         if (config.getDelayType() == DelayType.TTL) {
             ensureExchange(ttlExchange(config));
         } else {
@@ -177,6 +181,7 @@ public class UnmanagedPublisher<Message> {
     }
 
     public void stop() throws Exception {
+        final ActorConfig config = configSupplier.get();
         try {
             publishChannel.close();
             log.info("Publisher channel closed for [{}] with prefix [{}]", name, config.getPrefix());

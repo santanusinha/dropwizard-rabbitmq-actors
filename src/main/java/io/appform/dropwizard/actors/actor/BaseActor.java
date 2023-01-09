@@ -34,6 +34,7 @@ import org.apache.commons.lang3.ClassUtils;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * This is a managed wrapper for {@link UnmanagedBaseActor} this is managed and therefore started by D/W.
@@ -65,7 +66,7 @@ public abstract class BaseActor<Message> implements Managed {
     @Deprecated
     protected BaseActor(
             String name,
-            ActorConfig config,
+            Supplier<ActorConfig> configSupplier,
             RMQConnection connection,
             ObjectMapper mapper,
             RetryStrategyFactory retryStrategyFactory,
@@ -75,7 +76,7 @@ public abstract class BaseActor<Message> implements Managed {
         this.droppedExceptionTypes
                 = null == droppedExceptionTypes
                 ? Collections.emptySet() : droppedExceptionTypes;
-        actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory,
+        actorImpl = new UnmanagedBaseActor<>(name, configSupplier, connection, mapper, retryStrategyFactory,
                 exceptionHandlingFactory, clazz,
                 this::handle,
                 this::isExceptionIgnorable);
@@ -83,7 +84,7 @@ public abstract class BaseActor<Message> implements Managed {
 
     protected BaseActor(
             String name,
-            ActorConfig config,
+            Supplier<ActorConfig> configSupplier,
             ConnectionRegistry connectionRegistry,
             ObjectMapper mapper,
             RetryStrategyFactory retryStrategyFactory,
@@ -93,7 +94,7 @@ public abstract class BaseActor<Message> implements Managed {
         this.droppedExceptionTypes
                 = null == droppedExceptionTypes
                 ? Collections.emptySet() : droppedExceptionTypes;
-        actorImpl = new UnmanagedBaseActor<>(name, config, connectionRegistry, mapper, retryStrategyFactory,
+        actorImpl = new UnmanagedBaseActor<>(name, configSupplier, connectionRegistry, mapper, retryStrategyFactory,
                 exceptionHandlingFactory, clazz,
                 this::handle,
                 this::isExceptionIgnorable);

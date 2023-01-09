@@ -27,6 +27,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * A simpler derivation of {@link BaseActor} to be used in most common actor use cases. This is managed by dropwizard.
@@ -42,28 +43,28 @@ public abstract class Actor<MessageType extends Enum<MessageType>, Message> exte
     @Deprecated
     protected Actor(
             MessageType type,
-            ActorConfig config,
+            Supplier<ActorConfig> configSupplier,
             RMQConnection connection,
             ObjectMapper mapper,
             RetryStrategyFactory retryStrategyFactory,
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
-        super(type.name(), config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory,
+        super(type.name(), configSupplier, connection, mapper, retryStrategyFactory, exceptionHandlingFactory,
                 clazz, droppedExceptionTypes);
         this.type = type;
     }
 
     protected Actor(
             MessageType type,
-            ActorConfig config,
+            Supplier<ActorConfig> configSupplier,
             ConnectionRegistry connectionRegistry,
             ObjectMapper mapper,
             RetryStrategyFactory retryStrategyFactory,
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
-        super(type.name(), config, connectionRegistry, mapper, retryStrategyFactory, exceptionHandlingFactory,
+        super(type.name(), configSupplier, connectionRegistry, mapper, retryStrategyFactory, exceptionHandlingFactory,
                 clazz, droppedExceptionTypes);
         this.type = type;
     }
