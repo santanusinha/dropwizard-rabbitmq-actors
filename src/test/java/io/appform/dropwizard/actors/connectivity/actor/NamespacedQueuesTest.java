@@ -36,7 +36,7 @@ import java.util.concurrent.Executors;
 public class NamespacedQueuesTest {
 
     private static final int RABBITMQ_MANAGEMENT_PORT = 15672;
-    private static final String RABBITMQ_DOCKER_IMAGE = "rabbitmq:3-management";
+    private static final String RABBITMQ_DOCKER_IMAGE = "rabbitmq:3.8.34-management";
     private static final String RABBITMQ_USERNAME = "guest";
     private static final String RABBITMQ_PASSWORD = "guest";
     private static final String NAMESPACE_ENV_NAME = "namespace1";
@@ -186,7 +186,7 @@ public class NamespacedQueuesTest {
                         .withEnv("RABBITMQ_DEFAULT_VHOST", containerConfiguration.getVhost())
                         .withEnv("RABBITMQ_DEFAULT_USER", RABBITMQ_USERNAME)
                         .withEnv("RABBITMQ_DEFAULT_PASS", RABBITMQ_PASSWORD)
-                        .withExposedPorts(containerConfiguration.getPort())
+                        .withExposedPorts(containerConfiguration.getPort(), RABBITMQ_MANAGEMENT_PORT)
                         .waitingFor(new RabbitMQStatusCheck(containerConfiguration))
                         .withStartupTimeout(Duration.ofSeconds(30));
 

@@ -101,9 +101,16 @@ public class UnmanagedConsumer<Message> {
         final ActorConfig config = configSupplier.get();
         try {
             final Channel channel = handler.getChannel();
-            channel.basicCancel(handler.getTag());
-            channel.close();
-            log.info("Consumer channel closed for [{}] with prefix [{}]", name, config.getPrefix());
+            if(channel.isOpen()) {
+                channel.basicCancel(handler.getTag());
+                //Wait till the handler completes consuming and ack'ing the current message.
+                log.info("Waiting for handler to complete processing the current message..");
+                while(handler.isRunning());
+                channel.close();
+                log.info("Consumer channel closed for [{}] with prefix [{}]", name, config.getPrefix());
+            } else {
+                log.warn("Consumer channel already closed for [{}] with prefix [{}]", name, config.getPrefix());
+            }
         } catch (Exception e) {
             log.error(String.format("Error closing consumer channel [%s] for [%s] with prefix [%s]", handler.getTag(), name, config.getPrefix()), e);
         }
