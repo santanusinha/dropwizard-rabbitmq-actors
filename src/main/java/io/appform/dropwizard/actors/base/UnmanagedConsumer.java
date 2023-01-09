@@ -14,6 +14,7 @@ import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -34,7 +35,7 @@ public class UnmanagedConsumer<Message> {
     private final String queueName;
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
-    private final List<Handler<Message>> handlers = Collections.synchronizedList(Lists.newArrayList());
+    private final LinkedList<Handler<Message>> handlers = new LinkedList<>();
     private final ScheduledExecutorService consumerRefresher;
 
     public UnmanagedConsumer(final String name,
@@ -132,7 +133,7 @@ public class UnmanagedConsumer<Message> {
         } else {
             int consumersToBeRemoved = handlers.size() - config.getConcurrency();
             for (int i = 0; i < consumersToBeRemoved; i++) {
-                final Handler<Message> handler = handlers.remove(0);
+                final Handler<Message> handler = handlers.removeFirst();
                 destroyHandler(handler);
             }
         }
