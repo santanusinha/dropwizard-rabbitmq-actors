@@ -19,7 +19,7 @@ package io.appform.dropwizard.actors.retry;
 /**
  * Created by santanu on 14/10/16.
  */
-public enum  RetryType {
+public enum RetryType {
     NO_RETRY,
     TIME_LIMITED_EXPONENTIAL_BACKOFF,
     TIME_LIMITED_INCREMENTAL_WAIT,

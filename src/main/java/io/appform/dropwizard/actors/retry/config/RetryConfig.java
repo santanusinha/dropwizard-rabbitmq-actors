@@ -30,11 +30,14 @@ import java.util.Set;
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(name = "COUNT_LIMITED_EXPONENTIAL_BACKOFF", value = CountLimitedExponentialWaitRetryConfig.class),
+        @JsonSubTypes.Type(name = "COUNT_LIMITED_EXPONENTIAL_BACKOFF", value =
+                CountLimitedExponentialWaitRetryConfig.class),
         @JsonSubTypes.Type(name = "COUNT_LIMITED_FIXED_WAIT", value = CountLimitedFixedWaitRetryConfig.class),
-        @JsonSubTypes.Type(name = "COUNT_LIMITED_INCREMENTAL_WAIT", value = CountLimitedIncrementalWaitRetryConfig.class),
+        @JsonSubTypes.Type(name = "COUNT_LIMITED_INCREMENTAL_WAIT", value =
+                CountLimitedIncrementalWaitRetryConfig.class),
         @JsonSubTypes.Type(name = "NO_RETRY", value = NoRetryConfig.class),
-        @JsonSubTypes.Type(name = "TIME_LIMITED_EXPONENTIAL_BACKOFF", value = TimeLimitedExponentialWaitRetryConfig.class),
+        @JsonSubTypes.Type(name = "TIME_LIMITED_EXPONENTIAL_BACKOFF", value =
+                TimeLimitedExponentialWaitRetryConfig.class),
         @JsonSubTypes.Type(name = "TIME_LIMITED_FIXED_WAIT", value = TimeLimitedFixedWaitRetryConfig.class),
         @JsonSubTypes.Type(name = "TIME_LIMITED_INCREMENTAL_WAIT", value = TimeLimitedIncrementalWaitRetryConfig.class)
 })

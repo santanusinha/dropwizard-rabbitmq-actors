@@ -25,4 +25,9 @@ public class NamingUtils {
         }
         return String.format("%s.%s", namespace, name);
     }
+
+    public static String getShardedQueueName(String queueName, int shardId) {
+        return queueName + "_" + shardId;
+    }
+
 }

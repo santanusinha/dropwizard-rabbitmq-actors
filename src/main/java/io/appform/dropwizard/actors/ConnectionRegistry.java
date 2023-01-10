@@ -79,12 +79,12 @@ public class ConnectionRegistry implements Managed {
     }
 
     @Override
-    public void start() throws Exception {
+    public void start() {
 
     }
 
     @Override
-    public void stop() throws Exception {
+    public void stop() {
         connections.forEach(new BiConsumer<String, RMQConnection>() {
             @SneakyThrows
             @Override
