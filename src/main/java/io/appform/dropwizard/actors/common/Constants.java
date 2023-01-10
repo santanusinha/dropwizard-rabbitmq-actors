@@ -12,6 +12,6 @@ public class Constants {
 
     public static final int MAX_THREADS_PER_CONNECTION = 300;
 
-    public static final String MESSAGE_TYPE_TEXT = "messageType";
+    public static final String MESSAGE_EXPIRY_TEXT = "x-expire-at";
 
 }

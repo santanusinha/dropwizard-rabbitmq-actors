@@ -36,9 +36,8 @@ import lombok.val;
 import org.apache.commons.lang3.ClassUtils;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.Set;
-
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_TYPE_TEXT;
 
 /**
  * This is a managed wrapper for {@link UnmanagedBaseActor} this is managed and therefore started by D/W.
@@ -141,7 +140,7 @@ public abstract class BaseActor<Message> implements Managed {
     public final void publish(Message message) throws Exception {
         val properties = new AMQP.BasicProperties.Builder()
                 .deliveryMode(2)
-                .headers(ImmutableMap.of(MESSAGE_TYPE_TEXT, MessageType.WRAPPED_TEXT))
+                .timestamp(new Date())
                 .build();
         publish(message, properties);
     }

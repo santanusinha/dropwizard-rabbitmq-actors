@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
@@ -15,8 +16,9 @@ import org.apache.commons.lang3.RandomUtils;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Date;
 
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_TYPE_TEXT;
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
@@ -53,22 +55,32 @@ public class UnmanagedPublisher<Message> {
                     new AMQP.BasicProperties.Builder()
                             .expiration(String.valueOf(delayMilliseconds))
                             .deliveryMode(2)
-                            .headers(ImmutableMap.of(MESSAGE_TYPE_TEXT, MessageType.WRAPPED_TEXT))
+                            .timestamp(new Date())
                             .build(),
-                    wrapAndSerializeMessage(message));
+                    mapper().writeValueAsBytes(message));
         } else {
             publish(message, new AMQP.BasicProperties.Builder()
                     .headers(Collections.singletonMap("x-delay", delayMilliseconds))
                     .deliveryMode(2)
-                    .headers(ImmutableMap.of(MESSAGE_TYPE_TEXT, MessageType.WRAPPED_TEXT))
+                    .timestamp(new Date())
                     .build());
         }
+    }
+
+    public final void publishWithExpiry(Message message, long expiryInMs) throws Exception {
+        val expiresAt = Instant.now().toEpochMilli() + expiryInMs;
+        val properties = new AMQP.BasicProperties.Builder()
+                .deliveryMode(2)
+                .headers(ImmutableMap.of(MESSAGE_EXPIRY_TEXT, expiresAt))
+                .timestamp(new Date())
+                .build();
+        publish(message, properties);
     }
 
     public final void publish(Message message) throws Exception {
         val properties = new AMQP.BasicProperties.Builder()
                 .deliveryMode(2)
-                .headers(ImmutableMap.of(MESSAGE_TYPE_TEXT, MessageType.WRAPPED_TEXT))
+                .timestamp(new Date())
                 .build();
         publish(message, properties);
     }
@@ -80,10 +92,10 @@ public class UnmanagedPublisher<Message> {
         } else {
             routingKey = queueName;
         }
-        publishChannel.basicPublish(config.getExchange(), routingKey, properties, wrapAndSerializeMessage(message));
+        publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
     }
 
-    private final int getShardId() {
+    private int getShardId() {
         return RandomUtils.nextInt(0, config.getShardCount());
     }
 
@@ -183,14 +195,6 @@ public class UnmanagedPublisher<Message> {
 
     private String ttlQueue(String queueName) {
         return String.format("%s_TTL", queueName);
-    }
-
-    private byte[] wrapAndSerializeMessage(final Message message) throws Exception {
-        val messageWrapper = MessageWrapper.<Message>builder()
-                .message(message)
-                .publishTimeStamp(Instant.now().toEpochMilli())
-                .build();
-        return mapper().writeValueAsBytes(messageWrapper);
     }
 
     public void stop() throws Exception {

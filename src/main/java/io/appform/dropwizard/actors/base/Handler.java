@@ -7,7 +7,6 @@ import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
-import io.appform.dropwizard.actors.utils.CommonUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -19,14 +18,13 @@ import java.time.Instant;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_TYPE_TEXT;
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
 
 @Slf4j
 public class Handler<Message> extends DefaultConsumer {
 
     private final ObjectMapper mapper;
     private final Class<? extends Message> clazz;
-    private final long messageExpiryInMs;
     private final Function<Throwable, Boolean> errorCheckFunction;
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
@@ -44,7 +42,6 @@ public class Handler<Message> extends DefaultConsumer {
                    final ObjectMapper mapper,
                    final Class<? extends Message> clazz,
                    final int prefetchCount,
-                   final long messageExpiryInMs,
                    final Function<Throwable, Boolean> errorCheckFunction,
                    final RetryStrategy retryStrategy,
                    final ExceptionHandler exceptionHandler,
@@ -54,7 +51,6 @@ public class Handler<Message> extends DefaultConsumer {
         this.mapper = mapper;
         this.clazz = clazz;
         getChannel().basicQos(prefetchCount);
-        this.messageExpiryInMs = messageExpiryInMs;
         this.errorCheckFunction = errorCheckFunction;
         this.retryStrategy = retryStrategy;
         this.exceptionHandler = exceptionHandler;
@@ -62,11 +58,9 @@ public class Handler<Message> extends DefaultConsumer {
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
     }
 
-    private boolean handle(Message message, MessageMetadata messageMetadata) throws Exception {
+    private boolean handle(Message message, MessageMetadata messageMetadata, boolean expired) throws Exception {
         running = true;
-        val isExpired = messageExpiryInMs != 0 && messageMetadata.getDelayInMs() != null &&
-                messageMetadata.getDelayInMs() > messageExpiryInMs;
-        boolean result = isExpired
+        boolean result = expired
                 ? expiredMessageHandlingFunction.apply(message, messageMetadata)
                 : messageHandlingFunction.apply(message, messageMetadata);
         running = false;
@@ -100,31 +94,28 @@ public class Handler<Message> extends DefaultConsumer {
         }
     }
 
-    private Callable<Boolean> getHandleCallable(Envelope envelope, AMQP.BasicProperties properties, byte[] body) {
-        val messageType = getMessageType(properties);
-        return messageType.accept(new MessageType.MessageTypeVisitor<Callable<Boolean>, byte[]>() {
-            @Override
-            @SneakyThrows
-            public Callable<Boolean> visitSimple(byte[] data) {
-                final Message message = mapper.readValue(body, clazz);
-                return () -> handle(message, messageProperties(envelope, null));
-            }
-
-            @Override
-            @SneakyThrows
-            public Callable<Boolean> visitWrapped(byte[] data) {
-                val javaType = mapper.getTypeFactory().constructParametricType(MessageWrapper.class, clazz);
-                MessageWrapper<Message> messageWrapper = mapper.readValue(body, javaType);
-                val messageDelay = Instant.now().toEpochMilli() - messageWrapper.getPublishTimeStamp();
-                return () -> handle(messageWrapper.getMessage(), messageProperties(envelope, messageDelay));
-            }
-        }, body);
+    @SneakyThrows
+    private Callable<Boolean> getHandleCallable(Envelope envelope,
+                                                AMQP.BasicProperties properties,
+                                                byte[] body) {
+        val delayInMs = getDelayInMs(properties);
+        val expired = isExpired(properties);
+        val message = mapper.readValue(body, clazz);
+        return () -> handle(message, messageProperties(envelope, delayInMs), expired);
     }
 
-    private MessageType getMessageType(final AMQP.BasicProperties properties) {
-        return CommonUtils.isEmpty(properties.getHeaders()) || !properties.getHeaders().containsKey(MESSAGE_TYPE_TEXT)
-                ? MessageType.SIMPLE
-                : MessageType.valueOf(properties.getHeaders().get(MESSAGE_TYPE_TEXT).toString());
+    private Long getDelayInMs(AMQP.BasicProperties properties) {
+        return properties.getTimestamp() != null
+                ? Instant.now().toEpochMilli() - properties.getTimestamp().getTime()
+                : null;
+    }
+
+    private boolean isExpired(AMQP.BasicProperties properties) {
+        if (properties.getHeaders().containsKey(MESSAGE_EXPIRY_TEXT)) {
+            val expiresAt = (long) properties.getHeaders().get(MESSAGE_EXPIRY_TEXT);
+            return Instant.now().toEpochMilli() >= expiresAt;
+        }
+        return false;
     }
 
     private MessageMetadata messageProperties(final Envelope envelope, Long messageDelay) {

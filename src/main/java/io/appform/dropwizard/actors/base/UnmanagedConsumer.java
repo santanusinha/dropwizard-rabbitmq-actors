@@ -25,7 +25,6 @@ public class UnmanagedConsumer<Message> {
     private final ObjectMapper mapper;
     private final Class<? extends Message> clazz;
     private final int prefetchCount;
-    private final long expiryInMs;
     private final MessageHandlingFunction<Message, Boolean> handlerFunction;
     private final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction;
     private final Function<Throwable, Boolean> errorCheckFunction;
@@ -51,7 +50,6 @@ public class UnmanagedConsumer<Message> {
         this.mapper = mapper;
         this.clazz = clazz;
         this.prefetchCount = config.getPrefetchCount();
-        this.expiryInMs = config.getExpiryInMs();
         this.handlerFunction = handlerFunction;
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
         this.errorCheckFunction = errorCheckFunction;
@@ -64,7 +62,7 @@ public class UnmanagedConsumer<Message> {
         for (int i = 1; i <= config.getConcurrency(); i++) {
             Channel consumeChannel = connection.newChannel();
             final Handler<Message> handler =
-                    new Handler<>(consumeChannel, mapper, clazz, prefetchCount, expiryInMs, errorCheckFunction, retryStrategy,
+                    new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction, retryStrategy,
                                   exceptionHandler, handlerFunction, expiredMessageHandlingFunction);
             String queueNameForConsumption;
             if (config.isSharded()) {
