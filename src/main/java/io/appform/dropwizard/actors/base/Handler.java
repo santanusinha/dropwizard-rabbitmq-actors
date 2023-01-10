@@ -60,7 +60,7 @@ public class Handler<Message> extends DefaultConsumer {
 
     private boolean handle(Message message, MessageMetadata messageMetadata, boolean expired) throws Exception {
         running = true;
-        boolean result = expired
+        val result = expired
                 ? expiredMessageHandlingFunction.apply(message, messageMetadata)
                 : messageHandlingFunction.apply(message, messageMetadata);
         running = false;
@@ -71,11 +71,9 @@ public class Handler<Message> extends DefaultConsumer {
     public void handleDelivery(String consumerTag, Envelope envelope,
                                AMQP.BasicProperties properties, byte[] body) throws IOException {
         try {
-            final Callable<Boolean> handleCallable = getHandleCallable(envelope, properties, body);
+            val handleCallable = getHandleCallable(envelope, properties, body);
 
-            boolean success = retryStrategy.execute(handleCallable);
-
-            if (success) {
+            if (retryStrategy.execute(handleCallable)) {
                 getChannel().basicAck(envelope.getDeliveryTag(), false);
             } else {
                 getChannel().basicReject(envelope.getDeliveryTag(), false);
@@ -94,10 +92,9 @@ public class Handler<Message> extends DefaultConsumer {
         }
     }
 
-    @SneakyThrows
     private Callable<Boolean> getHandleCallable(Envelope envelope,
                                                 AMQP.BasicProperties properties,
-                                                byte[] body) {
+                                                byte[] body) throws IOException {
         val delayInMs = getDelayInMs(properties);
         val expired = isExpired(properties);
         val message = mapper.readValue(body, clazz);

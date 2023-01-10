@@ -86,8 +86,6 @@ public class ActorConfig {
     @Valid
     private TtlConfig ttlConfig;
 
-    private long expiryInMs;
-
     @Min(2)
     @Max(32)
     private Integer shardCount;

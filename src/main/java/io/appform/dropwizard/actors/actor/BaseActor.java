@@ -17,11 +17,8 @@
 package io.appform.dropwizard.actors.actor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.ConnectionRegistry;
-import io.appform.dropwizard.actors.base.MessageType;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
