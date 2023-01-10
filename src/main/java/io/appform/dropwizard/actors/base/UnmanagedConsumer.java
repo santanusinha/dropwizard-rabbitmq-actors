@@ -33,7 +33,7 @@ public class UnmanagedConsumer<Message> {
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
 
-    private List<Handler<Message>> handlers = Lists.newArrayList();
+    private final List<Handler<Message>> handlers = Lists.newArrayList();
 
     public UnmanagedConsumer(final String name,
                              final ActorConfig config,
@@ -63,9 +63,16 @@ public class UnmanagedConsumer<Message> {
     public void start() throws Exception {
         for (int i = 1; i <= config.getConcurrency(); i++) {
             Channel consumeChannel = connection.newChannel();
-            final Handler<Message> handler = new Handler<>(consumeChannel, mapper, clazz,
-                    prefetchCount, expiryInMs, errorCheckFunction, retryStrategy, exceptionHandler, handlerFunction, expiredMessageHandlingFunction);
-            final String tag = consumeChannel.basicConsume(queueName, false, handler);
+            final Handler<Message> handler =
+                    new Handler<>(consumeChannel, mapper, clazz, prefetchCount, expiryInMs, errorCheckFunction, retryStrategy,
+                                  exceptionHandler, handlerFunction, expiredMessageHandlingFunction);
+            String queueNameForConsumption;
+            if (config.isSharded()) {
+                queueNameForConsumption = NamingUtils.getShardedQueueName(queueName, i % config.getShardCount());
+            } else {
+                queueNameForConsumption = queueName;
+            }
+            final String tag = consumeChannel.basicConsume(queueNameForConsumption, false, handler);
             handler.setTag(tag);
             handlers.add(handler);
             log.info("Started consumer {} of type {}", i, name);
@@ -76,13 +83,19 @@ public class UnmanagedConsumer<Message> {
         handlers.forEach(handler -> {
             try {
                 final Channel channel = handler.getChannel();
-                channel.basicCancel(handler.getTag());
-                channel.close();
-                log.info("Consumer channel {} closed.", name);
+                if(channel.isOpen()) {
+                    channel.basicCancel(handler.getTag());
+                    //Wait till the handler completes consuming and ack'ing the current message.
+                    log.info("Waiting for handler to complete processing the current message..");
+                    while(handler.isRunning());
+                    channel.close();
+                    log.info("Consumer channel closed for [{}] with prefix [{}]", name, config.getPrefix());
+                } else {
+                    log.warn("Consumer channel already closed for [{}] with prefix [{}]", name, config.getPrefix());
+                }
             } catch (Exception e) {
-                log.error(String.format("Error cancelling consumer: %s", handler.getTag()), e);
+                log.error(String.format("Error closing consumer channel [%s] for [%s] with prefix [%s]", handler.getTag(), name, config.getPrefix()), e);
             }
         });
     }
-
 }

@@ -10,6 +10,7 @@ import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.lang3.RandomUtils;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -73,12 +74,32 @@ public class UnmanagedPublisher<Message> {
     }
 
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
-        publishChannel.basicPublish(config.getExchange(), queueName, properties, wrapAndSerializeMessage(message));
+        String routingKey;
+        if (config.isSharded()) {
+            routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
+        } else {
+            routingKey = queueName;
+        }
+        publishChannel.basicPublish(config.getExchange(), routingKey, properties, wrapAndSerializeMessage(message));
+    }
+
+    private final int getShardId() {
+        return RandomUtils.nextInt(0, config.getShardCount());
     }
 
     public final long pendingMessagesCount() {
         try {
-            return publishChannel.messageCount(queueName);
+            if (config.isSharded()) {
+                long messageCount  = 0 ;
+                for (int i = 0; i < config.getShardCount(); i++) {
+                    String shardedQueueName = NamingUtils.getShardedQueueName(queueName, i);
+                    messageCount += publishChannel.messageCount(shardedQueueName);
+                }
+                return messageCount;
+            }
+            else {
+                return publishChannel.messageCount(queueName);
+            }
         } catch (IOException e) {
             log.error("Issue getting message count. Will return max", e);
         }
@@ -107,9 +128,16 @@ public class UnmanagedPublisher<Message> {
         this.publishChannel = connection.newChannel();
         connection.ensure(queueName + "_SIDELINE", queueName, dlx,
                 connection.rmqOpts(config));
-        connection.ensure(queueName,
-                config.getExchange(),
-                connection.rmqOpts(dlx, config));
+        if (config.isSharded()) {
+            int bound = config.getShardCount();
+            for (int shardId = 0; shardId < bound; shardId++) {
+                connection.ensure(NamingUtils.getShardedQueueName(queueName, shardId), config.getExchange(),
+                                  connection.rmqOpts(dlx, config));
+            }
+        } else {
+            connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx, config));
+        }
+
         if (config.getDelayType() == DelayType.TTL) {
             connection.ensure(ttlQueue(queueName),
                     queueName,
@@ -167,10 +195,14 @@ public class UnmanagedPublisher<Message> {
 
     public void stop() throws Exception {
         try {
-            publishChannel.close();
-            log.info("Publisher channel {} closed.", name);
+            if(publishChannel.isOpen()) {
+                publishChannel.close();
+                log.info("Publisher channel closed for [{}] with prefix [{}]", name, config.getPrefix());
+            } else {
+                log.warn("Publisher channel already closed for [{}] with prefix [{}]", name, config.getPrefix());
+            }
         } catch (Exception e) {
-            log.error(String.format("Error closing publisher:%s", name), e);
+            log.error(String.format("Error closing publisher channel for [%s] with prefix [%s]", name, config.getPrefix()), e);
             throw e;
         }
     }

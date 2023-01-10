@@ -34,6 +34,9 @@ public class Handler<Message> extends DefaultConsumer {
     private final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction;
 
     @Getter
+    private volatile boolean running;
+
+    @Getter
     @Setter
     private String tag;
 
@@ -60,11 +63,14 @@ public class Handler<Message> extends DefaultConsumer {
     }
 
     private boolean handle(Message message, MessageMetadata messageMetadata) throws Exception {
+        running = true;
         val isExpired = messageExpiryInMs != 0 && messageMetadata.getDelayInMs() != null &&
                 messageMetadata.getDelayInMs() > messageExpiryInMs;
-        return isExpired
+        boolean result = isExpired
                 ? expiredMessageHandlingFunction.apply(message, messageMetadata)
                 : messageHandlingFunction.apply(message, messageMetadata);
+        running = false;
+        return result;
     }
 
     @Override
