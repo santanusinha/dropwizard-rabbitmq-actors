@@ -122,6 +122,10 @@ public class UnmanagedBaseActor<Message> {
         publishActor().publish(message);
     }
 
+    public final void publishWithTtl(Message message, long validTill) throws Exception {
+        publishActor.publishWithTtl(message, validTill);
+    }
+
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
         publishActor().publish(message, properties);
     }

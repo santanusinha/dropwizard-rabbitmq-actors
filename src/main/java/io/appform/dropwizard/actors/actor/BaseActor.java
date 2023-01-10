@@ -17,28 +17,23 @@
 package io.appform.dropwizard.actors.actor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.ConnectionRegistry;
-import io.appform.dropwizard.actors.base.MessageType;
+import io.appform.dropwizard.actors.base.UnmanagedConsumer;
+import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.appform.dropwizard.actors.base.UnmanagedConsumer;
-import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.lang3.ClassUtils;
 
 import java.util.Collections;
 import java.util.Set;
-
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_TYPE_TEXT;
 
 /**
  * This is a managed wrapper for {@link UnmanagedBaseActor} this is managed and therefore started by D/W.
@@ -139,11 +134,7 @@ public abstract class BaseActor<Message> implements Managed {
     }
 
     public final void publish(Message message) throws Exception {
-        val properties = new AMQP.BasicProperties.Builder()
-                .deliveryMode(2)
-                .headers(ImmutableMap.of(MESSAGE_TYPE_TEXT, MessageType.WRAPPED_TEXT))
-                .build();
-        publish(message, properties);
+        publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
     }
 
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
