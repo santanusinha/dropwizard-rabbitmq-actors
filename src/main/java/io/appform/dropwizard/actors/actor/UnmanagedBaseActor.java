@@ -114,15 +114,19 @@ public class UnmanagedBaseActor<Message> {
         }
     }
 
-    public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
+    public final void publishWithDelay(final Message message, final long delayMilliseconds) throws Exception {
         publishActor().publishWithDelay(message, delayMilliseconds);
     }
 
-    public final void publish(Message message) throws Exception {
+    public final void publishWithExpiry(final Message message, final long expiryInMs) throws Exception {
+        publishActor().publishWithExpiry(message, expiryInMs);
+    }
+
+    public final void publish(final Message message) throws Exception {
         publishActor().publish(message);
     }
 
-    public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
+    public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
         publishActor().publish(message, properties);
     }
 

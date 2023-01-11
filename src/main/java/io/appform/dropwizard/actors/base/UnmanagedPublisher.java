@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
@@ -43,7 +42,7 @@ public class UnmanagedPublisher<Message> {
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
     }
 
-    public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
+    public final void publishWithDelay(final Message message, final long delayMilliseconds) throws Exception {
         log.info("Publishing message to exchange with delay: {}", delayMilliseconds);
         if (!config.isDelayed()) {
             log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
@@ -55,43 +54,42 @@ public class UnmanagedPublisher<Message> {
                     new AMQP.BasicProperties.Builder()
                             .expiration(String.valueOf(delayMilliseconds))
                             .deliveryMode(2)
-                            .timestamp(new Date())
                             .build(),
                     mapper().writeValueAsBytes(message));
         } else {
             publish(message, new AMQP.BasicProperties.Builder()
                     .headers(Collections.singletonMap("x-delay", delayMilliseconds))
                     .deliveryMode(2)
-                    .timestamp(new Date())
                     .build());
         }
     }
 
-    public final void publishWithExpiry(Message message, long expiryInMs) throws Exception {
+    public final void publishWithExpiry(final Message message, final long expiryInMs) throws Exception {
         val expiresAt = Instant.now().toEpochMilli() + expiryInMs;
         val properties = new AMQP.BasicProperties.Builder()
                 .deliveryMode(2)
                 .headers(ImmutableMap.of(MESSAGE_EXPIRY_TEXT, expiresAt))
-                .timestamp(new Date())
                 .build();
         publish(message, properties);
     }
 
-    public final void publish(Message message) throws Exception {
+    public final void publish(final Message message) throws Exception {
         val properties = new AMQP.BasicProperties.Builder()
                 .deliveryMode(2)
-                .timestamp(new Date())
                 .build();
         publish(message, properties);
     }
 
-    public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
+    public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
         String routingKey;
         if (config.isSharded()) {
             routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
         } else {
             routingKey = queueName;
         }
+        properties.builder()
+                .timestamp(new Date())
+                .build();
         publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
     }
 

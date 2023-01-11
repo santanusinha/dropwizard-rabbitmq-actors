@@ -2,14 +2,16 @@ package io.appform.dropwizard.actors.base;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.*;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Envelope;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -58,7 +60,7 @@ public class Handler<Message> extends DefaultConsumer {
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
     }
 
-    private boolean handle(Message message, MessageMetadata messageMetadata, boolean expired) throws Exception {
+    private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) throws Exception {
         running = true;
         val result = expired
                 ? expiredMessageHandlingFunction.apply(message, messageMetadata)
@@ -68,8 +70,10 @@ public class Handler<Message> extends DefaultConsumer {
     }
 
     @Override
-    public void handleDelivery(String consumerTag, Envelope envelope,
-                               AMQP.BasicProperties properties, byte[] body) throws IOException {
+    public void handleDelivery(final String consumerTag,
+                               final Envelope envelope,
+                               final AMQP.BasicProperties properties,
+                               final byte[] body) throws IOException {
         try {
             val handleCallable = getHandleCallable(envelope, properties, body);
 
@@ -92,22 +96,22 @@ public class Handler<Message> extends DefaultConsumer {
         }
     }
 
-    private Callable<Boolean> getHandleCallable(Envelope envelope,
-                                                AMQP.BasicProperties properties,
-                                                byte[] body) throws IOException {
+    private Callable<Boolean> getHandleCallable(final Envelope envelope,
+                                                final AMQP.BasicProperties properties,
+                                                final byte[] body) throws IOException {
         val delayInMs = getDelayInMs(properties);
         val expired = isExpired(properties);
         val message = mapper.readValue(body, clazz);
         return () -> handle(message, messageProperties(envelope, delayInMs), expired);
     }
 
-    private Long getDelayInMs(AMQP.BasicProperties properties) {
+    private long getDelayInMs(final AMQP.BasicProperties properties) {
         return properties.getTimestamp() != null
-                ? Instant.now().toEpochMilli() - properties.getTimestamp().getTime()
-                : null;
+                ? Math.max(Instant.now().toEpochMilli() - properties.getTimestamp().getTime(), 0)
+                : -1;
     }
 
-    private boolean isExpired(AMQP.BasicProperties properties) {
+    private boolean isExpired(final AMQP.BasicProperties properties) {
         if (properties.getHeaders().containsKey(MESSAGE_EXPIRY_TEXT)) {
             val expiresAt = (long) properties.getHeaders().get(MESSAGE_EXPIRY_TEXT);
             return Instant.now().toEpochMilli() >= expiresAt;
@@ -115,7 +119,7 @@ public class Handler<Message> extends DefaultConsumer {
         return false;
     }
 
-    private MessageMetadata messageProperties(final Envelope envelope, Long messageDelay) {
+    private MessageMetadata messageProperties(final Envelope envelope, final long messageDelay) {
         return new MessageMetadata(envelope.isRedeliver(), messageDelay);
     }
 }
