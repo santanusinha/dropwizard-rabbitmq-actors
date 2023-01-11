@@ -87,10 +87,10 @@ public class UnmanagedPublisher<Message> {
         } else {
             routingKey = queueName;
         }
-        properties.builder()
+        val enrichedProperties = properties.builder()
                 .timestamp(new Date())
                 .build();
-        publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
+        publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
     }
 
     private int getShardId() {
