@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
@@ -74,10 +75,7 @@ public class UnmanagedPublisher<Message> {
     }
 
     public final void publish(final Message message) throws Exception {
-        val properties = new AMQP.BasicProperties.Builder()
-                .deliveryMode(2)
-                .build();
-        publish(message, properties);
+        publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
     }
 
     public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {

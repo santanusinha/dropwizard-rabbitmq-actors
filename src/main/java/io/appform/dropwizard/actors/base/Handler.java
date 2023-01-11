@@ -112,7 +112,8 @@ public class Handler<Message> extends DefaultConsumer {
     }
 
     private boolean isExpired(final AMQP.BasicProperties properties) {
-        if (properties.getHeaders().containsKey(MESSAGE_EXPIRY_TEXT)) {
+        if (properties.getHeaders() != null
+                && properties.getHeaders().containsKey(MESSAGE_EXPIRY_TEXT)) {
             val expiresAt = (long) properties.getHeaders().get(MESSAGE_EXPIRY_TEXT);
             return Instant.now().toEpochMilli() >= expiresAt;
         }
