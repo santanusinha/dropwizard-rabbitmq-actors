@@ -101,6 +101,12 @@ public class ExpiryMessagesTest {
         return rmqConfig;
     }
 
+    /**
+     * This test does the following:
+     * - Publisher publishes the message with an expiry of 1500ms with 0 consumers
+     * - After 1510ms, starting a consumer
+     * - Consumer would consume the message in expired handler and delay in consumption should be more than 1500ms
+     */
     @Test
     public void testWhenMessagesAreExpired() throws Exception {
         val queueName = "queue-1";
@@ -129,6 +135,14 @@ public class ExpiryMessagesTest {
         Assertions.assertEquals(1, expiredDeliveryCount.getAndIncrement());
     }
 
+    /**
+     * This test does the following:
+     * - Publisher publishes the message with an expiry of 1500ms with 0 consumers and with retry
+     * - After 1510ms, starting a consumer
+     * - Consumer would consume the message in expired handler and thrown an exception for the first attempt
+     * - And would consume the message in second attempt
+     * - Here the count should be 2 and delay should be more than 1500ms
+     */
     @Test
     public void testReDeliveryOfExpiredMessages() throws Exception {
         val queueName = "queue-5";
@@ -161,6 +175,12 @@ public class ExpiryMessagesTest {
         Assertions.assertEquals(2, expiredDeliveryCount.getAndIncrement());
     }
 
+    /**
+     * This test does the following:
+     * - Publisher publishes the message with an expiry of 1500ms with 0 consumers
+     * - After 500ms, starting a consumer
+     * - Consumer would consume the message normally and delay in consumption should be more than 500ms and less than 1500ms
+     */
     @Test
     public void testWhenMessagesAreNotExpiredCase1() throws Exception {
         val queueName = "queue-2";
@@ -189,6 +209,12 @@ public class ExpiryMessagesTest {
         Assertions.assertEquals(1, normalDeliveryCount.get());
     }
 
+    /**
+     * This test does the following:
+     * - Publisher publishes the message with an expiry of 1500ms with 0 consumers
+     * - Starting a consumer immediately but after publishing
+     * - Consumer would consume the message normally and delay in consumption should be less than 1500ms
+     */
     @Test
     public void testWhenMessagesAreNotExpiredCase2() throws Exception {
         val queueName = "queue-3";
@@ -215,6 +241,11 @@ public class ExpiryMessagesTest {
         Assertions.assertEquals(1, normalDeliveryCount.get());
     }
 
+    /**
+     * This test does the following:
+     * - Publisher publishes the message with an expiry of 1500ms with 1 consumer
+     * - Consumer would consume the message normally and delay in consumption should be less than 1500ms
+     */
     @Test
     public void testWhenMessagesAreNotExpiredCase3() throws Exception {
         val queueName = "queue-4";
