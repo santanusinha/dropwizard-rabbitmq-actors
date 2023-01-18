@@ -10,10 +10,16 @@ import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.lang3.RandomUtils;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Collections;
+import java.util.HashMap;
+
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
@@ -38,7 +44,7 @@ public class UnmanagedPublisher<Message> {
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
     }
 
-    public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
+    public final void publishWithDelay(final Message message, final long delayMilliseconds) throws Exception {
         log.info("Publishing message to exchange with delay: {}", delayMilliseconds);
         if (!config.isDelayed()) {
             log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
@@ -60,21 +66,39 @@ public class UnmanagedPublisher<Message> {
         }
     }
 
-    public final void publish(Message message) throws Exception {
+    public final void publishWithExpiry(final Message message, final long expiryInMs) throws Exception {
+        val expiresAt = Instant.now().toEpochMilli() + expiryInMs;
+        val properties = new AMQP.BasicProperties.Builder()
+                .deliveryMode(2)
+                .headers(ImmutableMap.of(MESSAGE_EXPIRY_TEXT, expiresAt))
+                .build();
+        publish(message, properties);
+    }
+
+    public final void publish(final Message message) throws Exception {
         publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
     }
 
-    public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
+    public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
         String routingKey;
         if (config.isSharded()) {
             routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
         } else {
             routingKey = queueName;
         }
-        publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
+        val enrichedProperties = getEnrichedProperties(properties);
+        publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
     }
 
-    private final int getShardId() {
+    private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties) {
+        val enrichedHeaders = new HashMap<>(properties.getHeaders());
+        enrichedHeaders.put(MESSAGE_PUBLISHED_TEXT, Instant.now().toEpochMilli());
+        return properties.builder()
+                .headers(Collections.unmodifiableMap(enrichedHeaders))
+                .build();
+    }
+
+    private int getShardId() {
         return RandomUtils.nextInt(0, config.getShardCount());
     }
 

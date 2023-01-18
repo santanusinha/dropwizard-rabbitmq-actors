@@ -69,11 +69,12 @@ public class UnmanagedBaseActor<Message> {
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
+            MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
         this(new UnmanagedPublisher<>(name, config, connection, mapper),
                 new UnmanagedConsumer<>(
                         name, config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
-                        handlerFunction, errorCheckFunction));
+                        handlerFunction, expiredMessageHandlingFunction, errorCheckFunction));
     }
 
     public UnmanagedBaseActor(
@@ -85,13 +86,14 @@ public class UnmanagedBaseActor<Message> {
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
+            MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
         val consumerConnection = connectionRegistry.createOrGet(consumerConnectionName(config.getConsumer()));
         val producerConnection = connectionRegistry.createOrGet(producerConnectionName(config.getProducer()));
         this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper);
         this.consumeActor = new UnmanagedConsumer<>(
                 name, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
-                handlerFunction, errorCheckFunction);
+                handlerFunction, expiredMessageHandlingFunction, errorCheckFunction);
     }
 
     public void start() throws Exception {
@@ -112,15 +114,19 @@ public class UnmanagedBaseActor<Message> {
         }
     }
 
-    public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
+    public final void publishWithDelay(final Message message, final long delayMilliseconds) throws Exception {
         publishActor().publishWithDelay(message, delayMilliseconds);
     }
 
-    public final void publish(Message message) throws Exception {
+    public final void publishWithExpiry(final Message message, final long expiryInMs) throws Exception {
+        publishActor().publishWithExpiry(message, expiryInMs);
+    }
+
+    public final void publish(final Message message) throws Exception {
         publishActor().publish(message);
     }
 
-    public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
+    public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
         publishActor().publish(message, properties);
     }
 
