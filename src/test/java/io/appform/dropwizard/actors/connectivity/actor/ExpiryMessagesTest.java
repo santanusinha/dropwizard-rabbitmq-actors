@@ -51,6 +51,9 @@ public class ExpiryMessagesTest {
     @BeforeClass
     @SneakyThrows
     public static void beforeMethod() {
+        System.setProperty("dw." + "server.applicationConnectors[0].port", "0");
+        System.setProperty("dw." + "server.adminConnectors[0].port", "0");
+
         app.before();
 
         val rabbitMQContainer = rabbitMQContainer();
