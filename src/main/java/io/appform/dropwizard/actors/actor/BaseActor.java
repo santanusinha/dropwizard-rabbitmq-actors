@@ -130,11 +130,15 @@ public abstract class BaseActor<Message> implements Managed {
                 .anyMatch(exceptionType -> ClassUtils.isAssignable(t.getClass(), exceptionType));
     }
 
-    public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
+    public final void publishWithDelay(final Message message, final long delayMilliseconds) throws Exception {
         actorImpl.publishWithDelay(message, delayMilliseconds);
     }
 
-    public final void publish(Message message) throws Exception {
+    public final void publishWithExpiry(final Message message, final long expiryInMs) throws Exception {
+        actorImpl.publishWithExpiry(message, expiryInMs);
+    }
+
+    public final void publish(final Message message) throws Exception {
         val properties = new AMQP.BasicProperties.Builder()
                 .deliveryMode(2)
                 .timestamp(new Date())
@@ -142,7 +146,7 @@ public abstract class BaseActor<Message> implements Managed {
         publish(message, properties);
     }
 
-    public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
+    public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
         actorImpl.publish(message, properties);
     }
 
