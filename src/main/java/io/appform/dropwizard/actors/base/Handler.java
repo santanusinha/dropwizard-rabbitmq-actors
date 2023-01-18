@@ -21,6 +21,7 @@ import java.util.concurrent.Callable;
 import java.util.function.Function;
 
 import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
 
 @Slf4j
 public class Handler<Message> extends DefaultConsumer {
@@ -106,9 +107,13 @@ public class Handler<Message> extends DefaultConsumer {
     }
 
     private long getDelayInMs(final AMQP.BasicProperties properties) {
-        return properties.getTimestamp() != null
-                ? Math.max(Instant.now().toEpochMilli() - properties.getTimestamp().getTime(), 0)
-                : -1;
+        if (properties.getHeaders() != null
+                && properties.getHeaders().containsKey(MESSAGE_PUBLISHED_TEXT)) {
+            val publishedAt = (long) properties.getHeaders().get(MESSAGE_PUBLISHED_TEXT);
+            return Math.max(Instant.now().toEpochMilli() - publishedAt, 0);
+        } else {
+            return -1;
+        }
     }
 
     private boolean isExpired(final AMQP.BasicProperties properties) {

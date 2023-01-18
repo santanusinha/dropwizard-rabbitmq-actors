@@ -16,9 +16,10 @@ import org.apache.commons.lang3.RandomUtils;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
-import java.util.Date;
+import java.util.HashMap;
 
 import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
@@ -85,10 +86,16 @@ public class UnmanagedPublisher<Message> {
         } else {
             routingKey = queueName;
         }
-        val enrichedProperties = properties.builder()
-                .timestamp(new Date())
-                .build();
+        val enrichedProperties = getEnrichedProperties(properties);
         publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
+    }
+
+    private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties) {
+        val enrichedHeaders = new HashMap<>(properties.getHeaders());
+        enrichedHeaders.put(MESSAGE_PUBLISHED_TEXT, Instant.now().toEpochMilli());
+        return properties.builder()
+                .headers(Collections.unmodifiableMap(enrichedHeaders))
+                .build();
     }
 
     private int getShardId() {
