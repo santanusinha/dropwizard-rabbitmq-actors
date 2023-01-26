@@ -67,11 +67,15 @@ public class UnmanagedPublisher<Message> {
     }
 
     public final void publishWithExpiry(final Message message, final long expiryInMs) throws Exception {
-        val expiresAt = Instant.now().toEpochMilli() + expiryInMs;
-        val properties = new AMQP.BasicProperties.Builder()
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
                 .deliveryMode(2)
-                .headers(ImmutableMap.of(MESSAGE_EXPIRY_TEXT, expiresAt))
                 .build();
+        if (expiryInMs > 0) {
+            val expiresAt = Instant.now().toEpochMilli() + expiryInMs;
+            properties = properties.builder()
+                    .headers(ImmutableMap.of(MESSAGE_EXPIRY_TEXT, expiresAt))
+                    .build();
+        }
         publish(message, properties);
     }
 
@@ -91,7 +95,10 @@ public class UnmanagedPublisher<Message> {
     }
 
     private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties) {
-        val enrichedHeaders = new HashMap<>(properties.getHeaders());
+        HashMap<String, Object> enrichedHeaders = new HashMap<>();
+        if (properties.getHeaders() != null) {
+            enrichedHeaders.putAll(properties.getHeaders());
+        }
         enrichedHeaders.put(MESSAGE_PUBLISHED_TEXT, Instant.now().toEpochMilli());
         return properties.builder()
                 .headers(Collections.unmodifiableMap(enrichedHeaders))
