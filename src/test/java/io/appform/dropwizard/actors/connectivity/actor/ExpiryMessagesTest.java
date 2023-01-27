@@ -275,10 +275,79 @@ public class ExpiryMessagesTest {
         Assertions.assertEquals(1, normalDeliveryCount.get());
     }
 
+    /**
+     * This test does the following:
+     * - Publisher publishes the message with an expiry of -1ms with 1 consumer
+     * - Consumer would consume the message normally and delay in consumption is 1000ms
+     */
+    @Test
+    public void testWhenMessagesAreNotExpiredCase4() throws Exception {
+        val queueName = "queue-6";
+        val objectMapper = new ObjectMapper();
+        val actorConfig = new ActorConfig();
+        actorConfig.setExchange("test-exchange-1");
+        val publisher = new UnmanagedPublisher<>(
+                queueName, actorConfig, connection, objectMapper);
+        publisher.start();
+
+        val message = ImmutableMap.of(
+                "key", "value"
+        );
+
+        publisher.publishWithExpiry(message, -1);
+        Thread.sleep(1000);
+        val normalDeliveryCount = new AtomicInteger();
+        val consumer = new UnmanagedConsumer<>(
+                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                Map.class, handleExpectedMessageWithDelay(1000, normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
+        consumer.start();
+
+
+        Assertions.assertEquals(1, normalDeliveryCount.get());
+    }
+
+    /**
+     * This test does the following:
+     * - Publisher publishes the message with 1 consumer
+     * - Consumer would consume the message normally and delay in consumption is 1000ms
+     */
+    @Test
+    public void testRegressionForPublish() throws Exception {
+        val queueName = "queue-7";
+        val objectMapper = new ObjectMapper();
+        val actorConfig = new ActorConfig();
+        actorConfig.setExchange("test-exchange-1");
+        val publisher = new UnmanagedPublisher<>(
+                queueName, actorConfig, connection, objectMapper);
+        publisher.start();
+
+        val message = ImmutableMap.of(
+                "key", "value"
+        );
+
+        publisher.publish(message);
+        val normalDeliveryCount = new AtomicInteger();
+        val consumer = new UnmanagedConsumer<>(
+                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                Map.class, handleExpectedMessageWithDelay(0, normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
+        consumer.start();
+        Thread.sleep(500);
+
+        Assertions.assertEquals(1, normalDeliveryCount.get());
+    }
     @NotNull
     private MessageHandlingFunction<Map, Boolean> handleExpectedMessage(int maxDelay, AtomicInteger normalDeliveryCount) {
         return (msg, meta) -> {
             Assertions.assertTrue(meta.getDelayInMs() < maxDelay);
+            normalDeliveryCount.getAndIncrement();
+            return true;
+        };
+    }
+
+    @NotNull
+    private MessageHandlingFunction<Map, Boolean> handleExpectedMessageWithDelay(int minDelay, AtomicInteger normalDeliveryCount) {
+        return (msg, meta) -> {
+            Assertions.assertTrue(meta.getDelayInMs() > minDelay);
             normalDeliveryCount.getAndIncrement();
             return true;
         };
