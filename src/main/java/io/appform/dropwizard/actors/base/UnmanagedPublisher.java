@@ -118,9 +118,9 @@ public class UnmanagedPublisher<Message> {
 
         this.publishChannel = connection.newChannel();
         String sidelineQueueName = NamingUtils.getSideline(queueName);
+        connection.ensure(sidelineQueueName, queueName, dlx, connection.rmqOpts(config));
         if (config.isSharded()) {
             int bound = config.getShardCount();
-            connection.ensure(sidelineQueueName, queueName, dlx, connection.rmqOpts(config));
             for (int shardId = 0; shardId < bound; shardId++) {
                 String shardedQueueName = NamingUtils.getShardedQueueName(queueName, shardId);
                 connection.ensure(shardedQueueName, config.getExchange(), connection.rmqOpts(dlx, config));
@@ -128,7 +128,6 @@ public class UnmanagedPublisher<Message> {
             }
         } else {
             connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx, config));
-            connection.ensure(sidelineQueueName, queueName, dlx, connection.rmqOpts(config));
         }
 
         if (config.getDelayType() == DelayType.TTL) {
