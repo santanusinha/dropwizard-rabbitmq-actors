@@ -73,7 +73,7 @@ public class RMQTest {
     }
 
     @Test
-    public void test() throws Exception {
+    public void failureToConsumerMessageShouldMoveToSidelineInSharedQueue() throws Exception {
         TestMessage message = TestMessage.builder()
                 .actorType(ActorType.ALWAYS_FAIL_ACTOR)
                 .name("test_message")

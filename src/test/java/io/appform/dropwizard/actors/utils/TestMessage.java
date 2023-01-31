@@ -1,6 +1,5 @@
 package io.appform.dropwizard.actors.utils;
 
-import io.appform.dropwizard.actors.utils.ActorType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
