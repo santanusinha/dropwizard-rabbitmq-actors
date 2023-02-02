@@ -16,6 +16,10 @@
 
 package io.appform.dropwizard.actors.retry;
 
+import io.appform.dropwizard.actors.retry.config.CountLimitedExponentialWaitRetryConfig;
+import io.appform.dropwizard.actors.retry.config.CountLimitedFixedWaitRetryConfig;
+import io.appform.dropwizard.actors.retry.config.CountLimitedIncrementalWaitRetryConfig;
+import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
 import io.appform.dropwizard.actors.retry.config.TimeLimitedExponentialWaitRetryConfig;
 import io.appform.dropwizard.actors.retry.config.TimeLimitedFixedWaitRetryConfig;
@@ -27,10 +31,6 @@ import io.appform.dropwizard.actors.retry.impl.NoRetryStrategy;
 import io.appform.dropwizard.actors.retry.impl.TimeLimitedExponentialWaitRetryStrategy;
 import io.appform.dropwizard.actors.retry.impl.TimeLimitedFixedWaitRetryStrategy;
 import io.appform.dropwizard.actors.retry.impl.TimeLimitedIncrementalWaitRetryStrategy;
-import io.appform.dropwizard.actors.retry.config.CountLimitedExponentialWaitRetryConfig;
-import io.appform.dropwizard.actors.retry.config.CountLimitedFixedWaitRetryConfig;
-import io.appform.dropwizard.actors.retry.config.CountLimitedIncrementalWaitRetryConfig;
-import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 
 /**
  * Creates strategy based on config
