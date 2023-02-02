@@ -3,114 +3,86 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <packaging>jar</packaging>
-
-    <parent>
-        <groupId>com.phonepe</groupId>
-        <artifactId>pp-parent-pom</artifactId>
-        <version>0.57</version>
-    </parent>
 
     <groupId>io.appform.dropwizard.actors</groupId>
-    <artifactId>dropwizard-rabbitmq-actors-test</artifactId>
-    <version>2.0.30-9-SNAPSHOT</version>
+    <artifactId>dropwizard-rabbitmq-actors</artifactId>
+    <version>2.0.28-2</version>
+    <name>Dropwizard RabbitMQ Bundle</name>
+    <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors</url>
+    <description>Provides actor abstraction on RabbitMQ for dropwizard based projects.</description>
+    <inceptionYear>2016</inceptionYear>
+    <scm>
+        <connection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</connection>
+        <developerConnection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</developerConnection>
+        <tag>HEAD</tag>
+        <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</url>
+    </scm>
 
-    <!--        <repositories>-->
-    <!--            <repository>-->
-    <!--                <id>clojars</id>-->
-    <!--                <name>Clojars repository</name>-->
-    <!--                <url>https://repo.clojars.org</url>-->
-    <!--            </repository>-->
-    <!--            <repository>-->
-    <!--                <id>phonepe-releases</id>-->
-    <!--                <name>releases</name>-->
-    <!--                <url>https://artifactory.phonepe.com/repository/releases</url>-->
-    <!--            </repository>-->
-    <!--            <repository>-->
-    <!--                <id>phonepe-snapshots</id>-->
-    <!--                <name>snapshots</name>-->
-    <!--                <url>https://artifactory.phonepe.com/repository/snapshots</url>-->
-    <!--            </repository>-->
-    <!--        </repositories>-->
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
 
-    <!--    <name>Dropwizard RabbitMQ Bundle</name>-->
-    <!--    <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors</url>-->
-    <!--    <description>Provides actor abstraction on RabbitMQ for dropwizard based projects.</description>-->
-    <!--    <inceptionYear>2016</inceptionYear>-->
-    <!--    <scm>-->
-    <!--        <connection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</connection>-->
-    <!--        <developerConnection>scm:git:https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</developerConnection>-->
-    <!--        <tag>HEAD</tag>-->
-    <!--        <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors.git</url>-->
-    <!--    </scm>-->
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors/issues</url>
+    </issueManagement>
 
-    <!--    <licenses>-->
-    <!--        <license>-->
-    <!--            <name>The Apache Software License, Version 2.0</name>-->
-    <!--            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>-->
-    <!--            <distribution>repo</distribution>-->
-    <!--            <comments>A business-friendly OSS license</comments>-->
-    <!--        </license>-->
-    <!--    </licenses>-->
+    <developers>
+        <developer>
+            <id>santanusinha</id>
+            <name>Santanu Sinha</name>
+            <email>santanu.sinha@gmail.com</email>
+            <roles>
+                <role>owner</role>
+                <role>developer</role>
+            </roles>
+        </developer>
+        <developer>
+            <id>namanmishra91</id>
+            <name>Naman Mishra</name>
+            <email>namanmishra1991@gmail.com</email>
+            <roles>
+                <role>developer</role>
+            </roles>
+        </developer>
+        <developer>
+            <id>r0goyal</id>
+            <name>Rishabh Goyal</name>
+            <email>rgoyal2191@gmail.com</email>
+            <roles>
+                <role>developer</role>
+            </roles>
+        </developer>
+        <developer>
+            <id>vidhyashankar.m</id>
+            <name>Vidhyashankar M</name>
+            <email>vidhyashankar.it@gmail.com</email>
+            <roles>
+                <role>developer</role>
+            </roles>
+        </developer>
+    </developers>
 
-    <!--    <issueManagement>-->
-    <!--        <system>GitHub Issues</system>-->
-    <!--        <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors/issues</url>-->
-    <!--    </issueManagement>-->
+    <ciManagement>
+        <system>Travis CI</system>
+        <url>https://travis-ci.org/santanusinha/dropwizard-rabbitmq-actors</url>
+    </ciManagement>
 
-    <!--    <developers>-->
-    <!--        <developer>-->
-    <!--            <id>santanusinha</id>-->
-    <!--            <name>Santanu Sinha</name>-->
-    <!--            <email>santanu.sinha@gmail.com</email>-->
-    <!--            <roles>-->
-    <!--                <role>owner</role>-->
-    <!--                <role>developer</role>-->
-    <!--            </roles>-->
-    <!--        </developer>-->
-    <!--        <developer>-->
-    <!--            <id>namanmishra91</id>-->
-    <!--            <name>Naman Mishra</name>-->
-    <!--            <email>namanmishra1991@gmail.com</email>-->
-    <!--            <roles>-->
-    <!--                <role>developer</role>-->
-    <!--            </roles>-->
-    <!--        </developer>-->
-    <!--        <developer>-->
-    <!--            <id>r0goyal</id>-->
-    <!--            <name>Rishabh Goyal</name>-->
-    <!--            <email>rgoyal2191@gmail.com</email>-->
-    <!--            <roles>-->
-    <!--                <role>developer</role>-->
-    <!--            </roles>-->
-    <!--        </developer>-->
-    <!--        <developer>-->
-    <!--            <id>vidhyashankar.m</id>-->
-    <!--            <name>Vidhyashankar M</name>-->
-    <!--            <email>vidhyashankar.it@gmail.com</email>-->
-    <!--            <roles>-->
-    <!--                <role>developer</role>-->
-    <!--            </roles>-->
-    <!--        </developer>-->
-    <!--    </developers>-->
-
-    <!--    <ciManagement>-->
-    <!--        <system>Travis CI</system>-->
-    <!--        <url>https://travis-ci.org/santanusinha/dropwizard-rabbitmq-actors</url>-->
-    <!--    </ciManagement>-->
-
-    <!--    <distributionManagement>-->
-    <!--        <snapshotRepository>-->
-    <!--            <id>phonepe-snapshots</id>-->
-    <!--            <name>snapshots</name>-->
-    <!--            <url>https://artifactory.phonepe.com/repository/snapshots</url>-->
-    <!--        </snapshotRepository>-->
-    <!--        <repository>-->
-    <!--            <id>phonepe-releases</id>-->
-    <!--            <name>releases</name>-->
-    <!--            <url>https://artifactory.phonepe.com/repository/releases</url>-->
-    <!--        </repository>-->
-    <!--    </distributionManagement>-->
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
 
 
     <properties>
@@ -121,8 +93,6 @@
         <test.container.version>1.0.6</test.container.version>
         <okhttp.version>4.9.3</okhttp.version>
         <amqp-client.version>5.14.1</amqp-client.version>
-        <maven.deploy.skip>false</maven.deploy.skip>
-        <jdk.version>17</jdk.version>
         <mockito.version>4.1.0</mockito.version>
         <junit.jupiter.version>5.8.2</junit.jupiter.version>
     </properties>
@@ -274,173 +244,155 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.8.1</version>
                     <configuration>
-                        <source>${jdk.version}</source>
-                        <target>${jdk.version}</target>
-                        <release>${jdk.version}</release>
+                        <source>1.8</source>
+                        <target>1.8</target>
                     </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.22.2</version>
                 </plugin>
             </plugins>
         </pluginManagement>
-        <!--        <pluginManagement>-->
-        <!--            <plugins>-->
-        <!--                <plugin>-->
-        <!--                    <groupId>org.apache.maven.plugins</groupId>-->
-        <!--                    <artifactId>maven-compiler-plugin</artifactId>-->
-        <!--                    <configuration>-->
-        <!--                        <source>1.8</source>-->
-        <!--                        <target>1.8</target>-->
-        <!--                    </configuration>-->
-        <!--                </plugin>-->
-        <!--            </plugins>-->
-        <!--        </pluginManagement>-->
-        <!--        <plugins>-->
-        <!--            <plugin>-->
-        <!--                <groupId>org.jacoco</groupId>-->
-        <!--                <artifactId>jacoco-maven-plugin</artifactId>-->
-        <!--                <version>0.8.7</version>-->
-        <!--                <executions>-->
-        <!--                    <execution>-->
-        <!--                        <goals>-->
-        <!--                            <goal>prepare-agent</goal>-->
-        <!--                        </goals>-->
-        <!--                    </execution>-->
-        <!--                    &lt;!&ndash; attached to Maven test phase &ndash;&gt;-->
-        <!--                    <execution>-->
-        <!--                        <id>report</id>-->
-        <!--                        <phase>test</phase>-->
-        <!--                        <goals>-->
-        <!--                            <goal>report</goal>-->
-        <!--                        </goals>-->
-        <!--                    </execution>-->
-        <!--                </executions>-->
-        <!--                <configuration>-->
-        <!--                    <rules>-->
-        <!--                        <rule>-->
-        <!--                            <element>CLASS</element>-->
-        <!--                            <limits>-->
-        <!--                                <limit>-->
-        <!--                                    <counter>LINE</counter>-->
-        <!--                                    <value>COVEREDRATIO</value>-->
-        <!--                                    <minimum>0.80</minimum>-->
-        <!--                                </limit>-->
-        <!--                                <limit>-->
-        <!--                                    <counter>BRANCH</counter>-->
-        <!--                                    <value>COVEREDRATIO</value>-->
-        <!--                                    <minimum>0.80</minimum>-->
-        <!--                                </limit>-->
-        <!--                            </limits>-->
-        <!--                        </rule>-->
-        <!--                    </rules>-->
-        <!--                </configuration>-->
-        <!--            </plugin>-->
-        <!--            <plugin>-->
-        <!--                <groupId>org.apache.maven.plugins</groupId>-->
-        <!--                <artifactId>maven-enforcer-plugin</artifactId>-->
-        <!--                <version>3.0.0</version>-->
-        <!--                <executions>-->
-        <!--                    <execution>-->
-        <!--                        <id>enforce-no-snapshots</id>-->
-        <!--                        <goals>-->
-        <!--                            <goal>enforce</goal>-->
-        <!--                        </goals>-->
-        <!--                        <configuration>-->
-        <!--                            <rules>-->
-        <!--                                <requireReleaseDeps>-->
-        <!--                                    <message>No Snapshots Allowed!</message>-->
-        <!--                                </requireReleaseDeps>-->
-        <!--                            </rules>-->
-        <!--                            <fail>true</fail>-->
-        <!--                        </configuration>-->
-        <!--                    </execution>-->
-        <!--                </executions>-->
-        <!--            </plugin>-->
-        <!--            <plugin>-->
-        <!--                <groupId>org.apache.maven.plugins</groupId>-->
-        <!--                <artifactId>maven-source-plugin</artifactId>-->
-        <!--                <version>3.2.1</version>-->
-        <!--                <executions>-->
-        <!--                    <execution>-->
-        <!--                        <id>attach-sources</id>-->
-        <!--                        <goals>-->
-        <!--                            <goal>jar</goal>-->
-        <!--                        </goals>-->
-        <!--                    </execution>-->
-        <!--                </executions>-->
-        <!--            </plugin>-->
-        <!--            <plugin>-->
-        <!--                <groupId>org.apache.maven.plugins</groupId>-->
-        <!--                <artifactId>maven-javadoc-plugin</artifactId>-->
-        <!--                <version>3.3.1</version>-->
-        <!--                <executions>-->
-        <!--                    <execution>-->
-        <!--                        <id>attach-javadocs</id>-->
-        <!--                        <goals>-->
-        <!--                            <goal>jar</goal>-->
-        <!--                        </goals>-->
-        <!--                    </execution>-->
-        <!--                </executions>-->
-        <!--            </plugin>-->
-        <!--            <plugin>-->
-        <!--                <groupId>org.sonatype.plugins</groupId>-->
-        <!--                <artifactId>nexus-staging-maven-plugin</artifactId>-->
-        <!--                <version>1.6.8</version>-->
-        <!--                <extensions>true</extensions>-->
-        <!--                <configuration>-->
-        <!--                    <serverId>ossrh</serverId>-->
-        <!--                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>-->
-        <!--                    <autoReleaseAfterClose>true</autoReleaseAfterClose>-->
-        <!--                </configuration>-->
-        <!--            </plugin>-->
-        <!--        </plugins>-->
+        <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.7</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <!-- attached to Maven test phase -->
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <rules>
+                        <rule>
+                            <element>CLASS</element>
+                            <limits>
+                                <limit>
+                                    <counter>LINE</counter>
+                                    <value>COVEREDRATIO</value>
+                                    <minimum>0.80</minimum>
+                                </limit>
+                                <limit>
+                                    <counter>BRANCH</counter>
+                                    <value>COVEREDRATIO</value>
+                                    <minimum>0.80</minimum>
+                                </limit>
+                            </limits>
+                        </rule>
+                    </rules>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>enforce-no-snapshots</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireReleaseDeps>
+                                    <message>No Snapshots Allowed!</message>
+                                </requireReleaseDeps>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.8</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
 
-    <!--    <profiles>-->
-    <!--        <profile>-->
-    <!--            <id>release</id>-->
-    <!--            <activation>-->
-    <!--                <property>-->
-    <!--                    <name>release</name>-->
-    <!--                    <value>true</value>-->
-    <!--                </property>-->
-    <!--            </activation>-->
-    <!--            <build>-->
-    <!--                <plugins>-->
-    <!--                    <plugin>-->
-    <!--                        <groupId>org.apache.maven.plugins</groupId>-->
-    <!--                        <artifactId>maven-gpg-plugin</artifactId>-->
-    <!--                        <version>3.0.1</version>-->
-    <!--                        <executions>-->
-    <!--                            <execution>-->
-    <!--                                <id>sign-artifacts</id>-->
-    <!--                                <phase>verify</phase>-->
-    <!--                                <goals>-->
-    <!--                                    <goal>sign</goal>-->
-    <!--                                </goals>-->
-    <!--                                <configuration>-->
-    <!--                                    <useAgent>true</useAgent>-->
-    <!--                                    <executable>gpg2</executable>-->
-    <!--                                    &lt;!&ndash; Run something like 'gpg2 -ab out' to cache the creds-->
-    <!--                                     on agent before running if needed &ndash;&gt;-->
-    <!--                                </configuration>-->
-    <!--                            </execution>-->
-    <!--                        </executions>-->
-    <!--                    </plugin>-->
-    <!--                </plugins>-->
-    <!--            </build>-->
-    <!--        </profile>-->
-    <!--    </profiles>-->
-    <!--    <reporting>-->
-    <!--        <plugins>-->
-    <!--            <plugin>-->
-    <!--                <groupId>org.codehaus.mojo</groupId>-->
-    <!--                <artifactId>cobertura-maven-plugin</artifactId>-->
-    <!--                <version>2.7</version>-->
-    <!--            </plugin>-->
-    <!--        </plugins>-->
-    <!--    </reporting>-->
+    <profiles>
+        <profile>
+            <id>release</id>
+            <activation>
+                <property>
+                    <name>release</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.0.1</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <useAgent>true</useAgent>
+                                    <executable>gpg2</executable>
+                                    <!-- Run something like 'gpg2 -ab out' to cache the creds
+                                     on agent before running if needed -->
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>cobertura-maven-plugin</artifactId>
+                <version>2.7</version>
+            </plugin>
+        </plugins>
+    </reporting>
 </project>
