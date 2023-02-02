@@ -5,31 +5,19 @@ import com.google.common.collect.ImmutableMap;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
-import io.appform.dropwizard.actors.config.TracingConfiguration;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.retry.config.ConfigProvider;
-import io.appform.dropwizard.actors.tracing.HeadersMapExtractAdapter;
-import io.appform.dropwizard.actors.tracing.HeadersMapInjectAdapter;
-import io.appform.dropwizard.actors.tracing.SpanDecorator;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.tracing.TracingHandler;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.SpanContext;
-import io.opentracing.Tracer;
-import io.opentracing.propagation.Format;
-import io.opentracing.tag.Tags;
-import io.opentracing.util.GlobalTracer;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.var;
 import org.apache.commons.lang3.RandomUtils;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
