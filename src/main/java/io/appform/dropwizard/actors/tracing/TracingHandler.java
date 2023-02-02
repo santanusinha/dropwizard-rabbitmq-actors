@@ -12,6 +12,7 @@ import io.opentracing.util.GlobalTracer;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import lombok.var;
 
 import java.util.HashMap;
 import java.util.Objects;
@@ -87,8 +88,9 @@ public class TracingHandler {
         }
     }
 
-    public static AMQP.BasicProperties inject(AMQP.BasicProperties properties, Span span,
-                                              Tracer tracer) {
+    public static AMQP.BasicProperties inject(final AMQP.BasicProperties properties,
+                                              final Span span,
+                                              final Tracer tracer) {
 
         if(Objects.isNull(span) || Objects.isNull(tracer)) {
             return properties;
@@ -112,7 +114,7 @@ public class TracingHandler {
                 .build();
     }
 
-    public static Span buildChildSpan(AMQP.BasicProperties props, Tracer tracer) {
+    public static Span buildChildSpan(final AMQP.BasicProperties props, final Tracer tracer) {
         val parentContext = extract(props, tracer);
         if (Objects.isNull(parentContext)) {
             return null;
@@ -132,7 +134,7 @@ public class TracingHandler {
         return span;
     }
 
-    private static void populateHeadersIfAny(AMQP.BasicProperties props, Tracer tracer, Span span) {
+    private static void populateHeadersIfAny(final AMQP.BasicProperties props, final Tracer tracer, final Span span) {
         try {
             if (!Objects.isNull(props) && !Objects.isNull(props.getHeaders())) {
                 val headers = new HashMap<String, Object>();
@@ -147,7 +149,7 @@ public class TracingHandler {
         }
     }
 
-    private static SpanContext extract(AMQP.BasicProperties props, Tracer tracer) {
+    private static SpanContext extract(final AMQP.BasicProperties props, final Tracer tracer) {
 
         if (Objects.isNull(props) || Objects.isNull(tracer)) {
             return null;
