@@ -33,14 +33,14 @@ public class AsyncOperationHelper {
         this.exceptionHandlingFactory = exceptionHandlingFactory;
     }
 
-    public ActorConfig buildActorConfig() {
+    public static ActorConfig buildActorConfig() {
         List<String> routingKey = new ArrayList<>();
         routingKey.add("testsuite");
         routingKey.add("first");
         return ActorConfig.builder()
                 .exchange("test.exchange")
                 .prefix("test")
-                .concurrency(1)
+                .concurrency(2)
                 .prefetchCount(1)
                 .shardCount(2)
                 .retryConfig(CountLimitedExponentialWaitRetryConfig.builder()
