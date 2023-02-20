@@ -4,11 +4,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ConfirmListener;
 import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomUtils;
 
@@ -104,6 +112,83 @@ public class UnmanagedPublisher<Message> {
             log.error("Issue getting message count. Will return max", e);
         }
         return Long.MAX_VALUE;
+    }
+
+
+    public final boolean publishWithConfirmation(Message message, AMQP.BasicProperties properties, long timeout)
+            throws Exception {
+        publishChannel.confirmSelect();
+        final CountDownLatch publishAckLatch = new CountDownLatch(1);
+        publishChannel.addConfirmListener(new ConfirmListener() {
+            public void handleNack(long deliveryTag, boolean multiple){
+                publishAckLatch.countDown();
+                System.out.println("Message : " + message + " not acknowledged");
+            }
+
+            public void handleAck(long deliveryTag, boolean multiple){
+                publishAckLatch.countDown();
+                System.out.println("Message : " + message + " acknowledged");
+            }
+        });
+
+        String routingKey;
+        if (config.isSharded()) {
+            routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
+        } else {
+            routingKey = queueName;
+        }
+        publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
+
+        if (!publishAckLatch.await(timeout, TimeUnit.MILLISECONDS)) {
+            System.out.println("Timed out waiting for publish acks, Message : " + message);
+            return false;
+        }
+        return true;
+    }
+
+    public final List<Message> publishWithConfirmation(List<Message> messages,  AMQP.BasicProperties properties, long timeout) throws Exception {
+        publishChannel.confirmSelect();
+        ConcurrentNavigableMap<Long, Message> outstandingConfirms = new ConcurrentSkipListMap<>();
+        final CountDownLatch publishAckLatch = new CountDownLatch(messages.size());
+        publishChannel.addConfirmListener(new ConfirmListener() {
+            public void handleNack(long deliveryTag, boolean multiple) {
+                publishAckLatch.countDown();
+            }
+
+            public void handleAck(long deliveryTag, boolean multiple) {
+                if (multiple) {
+                    ConcurrentNavigableMap<Long, Message> confirmed = outstandingConfirms.headMap(
+                            deliveryTag, true
+                    );
+                    confirmed.clear();
+                } else {
+                    outstandingConfirms.remove(deliveryTag);
+                }
+                publishAckLatch.countDown();
+            }
+        });
+
+        String routingKey;
+        if (config.isSharded()) {
+            routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
+        } else {
+            routingKey = queueName;
+        }
+        for (Message message : messages) {
+            outstandingConfirms.put(publishChannel.getNextPublishSeqNo(), message);
+            publishChannel.basicPublish(config.getExchange(), routingKey, properties,
+                    mapper().writeValueAsBytes(message));
+        }
+        long startTime = System.nanoTime();
+
+        if (!publishAckLatch.await(timeout, TimeUnit.MILLISECONDS)) {
+            System.out.println("Timed out waiting for publish acks");
+        }
+
+        long endTime = System.nanoTime();
+        System.out.format("Published %,d messages and handled confirms asynchronously in %,d ms%n", messages.size(),
+                Duration.ofNanos(startTime - endTime).toMillis());
+        return outstandingConfirms.values().stream().collect(Collectors.toList());
     }
 
     public void start() throws Exception {

@@ -29,6 +29,7 @@ import io.appform.dropwizard.actors.connectivity.strategy.DefaultConnectionStrat
 import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
+import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -122,6 +123,14 @@ public class UnmanagedBaseActor<Message> {
 
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
         publishActor().publish(message, properties);
+    }
+
+    public final boolean publishWithConfirmation(Message message, AMQP.BasicProperties properties, long timeout) throws Exception {
+        return publishActor().publishWithConfirmation(message, properties, timeout);
+    }
+
+    public final List<Message> publishWithConfirmation(List<Message> message, AMQP.BasicProperties properties, long timeout) throws Exception {
+        return publishActor().publishWithConfirmation(message, properties, timeout);
     }
 
     public final long pendingMessagesCount() {
