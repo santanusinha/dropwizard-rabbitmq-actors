@@ -1,8 +1,6 @@
 package io.appform.dropwizard.actors.base.utils;
 
 import io.appform.dropwizard.actors.utils.CommonUtils;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
