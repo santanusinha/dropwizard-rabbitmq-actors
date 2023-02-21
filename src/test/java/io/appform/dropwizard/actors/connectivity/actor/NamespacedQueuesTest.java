@@ -211,16 +211,16 @@ public class NamespacedQueuesTest {
         String endpoint = "/api/queues/%2F/" + sidelineQueue + "/get";
 
         Response response = sendPostRequest(endpoint, mapper.writeValueAsString(getBody()));
-        if (response != null) {
-            ObjectMapper objectMapper = mapper;
-            JsonNode jsonNode = objectMapper.readTree(response.body().string());
-            Assert.assertEquals( 1, jsonNode.size());
-            Assert.assertEquals("test.exchange_SIDELINE", jsonNode.get(0).get("exchange").asText());
-            TestMessage actualMessage = objectMapper.readValue(jsonNode.get(0).get("payload").asText(), TestMessage.class);
-            Assert.assertEquals(ActorType.ALWAYS_FAIL_ACTOR, actualMessage.getActorType());
-            Assert.assertEquals("test_message", actualMessage.getName());
-            response.close();
-        }
+        Assert.assertNotNull(response);
+
+        JsonNode jsonNode = mapper.readTree(response.body().string());
+        Assert.assertEquals( 1, jsonNode.size());
+        JsonNode messageResponse = jsonNode.get(0);
+        Assert.assertEquals("test.exchange_SIDELINE", messageResponse.get("exchange").asText());
+        TestMessage actualMessage = mapper.readValue(messageResponse.get("payload").asText(), TestMessage.class);
+        Assert.assertEquals(ActorType.ALWAYS_FAIL_ACTOR, actualMessage.getActorType());
+        Assert.assertEquals("test_message", actualMessage.getName());
+        response.close();
     }
 
     private RMQFetchMessages getBody() {
