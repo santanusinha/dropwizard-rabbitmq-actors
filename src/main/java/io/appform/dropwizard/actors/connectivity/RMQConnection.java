@@ -113,7 +113,8 @@ public class RMQConnection implements Managed {
         connection = factory.newConnection(executorService,
                 config.getBrokers().stream()
                         .map(broker -> new Address(broker.getHost(), broker.getPort()))
-                        .toArray(Address[]::new)
+                        .toArray(Address[]::new),
+                name
         );
         connection.addBlockedListener(new BlockedListener() {
             @Override
