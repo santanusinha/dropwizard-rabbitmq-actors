@@ -4,24 +4,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.ConfirmListener;
 import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import java.io.IOException;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomUtils;
-
-import java.io.IOException;
-import java.util.Collections;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
@@ -115,20 +113,16 @@ public class UnmanagedPublisher<Message> {
     }
 
 
-    public final boolean publishWithConfirmation(Message message, AMQP.BasicProperties properties, long timeout)
+    public final boolean publishWithConfirmListener(Message message, AMQP.BasicProperties properties, long timeout)
             throws Exception {
         publishChannel.confirmSelect();
         final CountDownLatch publishAckLatch = new CountDownLatch(1);
-        publishChannel.addConfirmListener(new ConfirmListener() {
-            public void handleNack(long deliveryTag, boolean multiple){
-                publishAckLatch.countDown();
-                System.out.println("Message : " + message + " not acknowledged");
-            }
-
-            public void handleAck(long deliveryTag, boolean multiple){
-                publishAckLatch.countDown();
-                System.out.println("Message : " + message + " acknowledged");
-            }
+        publishChannel.addConfirmListener((sequenceNumber, multiple) -> {
+            publishAckLatch.countDown();
+            log.debug("Message : " + message + " not acknowledged");
+        }, (sequenceNumber, multiple) -> {
+            publishAckLatch.countDown();
+            log.debug("Message : " + message + " acknowledged");
         });
 
         String routingKey;
@@ -140,32 +134,24 @@ public class UnmanagedPublisher<Message> {
         publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
 
         if (!publishAckLatch.await(timeout, TimeUnit.MILLISECONDS)) {
-            System.out.println("Timed out waiting for publish acks, Message : " + message);
+            log.error("Timed out waiting for publish acks, Message : " + message);
             return false;
         }
         return true;
     }
 
-    public final List<Message> publishWithConfirmation(List<Message> messages,  AMQP.BasicProperties properties, long timeout) throws Exception {
+    public final List<Message> publishWithConfirmListener(List<Message> messages, AMQP.BasicProperties properties,
+            long timeout) throws Exception {
         publishChannel.confirmSelect();
-        ConcurrentNavigableMap<Long, Message> outstandingConfirms = new ConcurrentSkipListMap<>();
+        Map<Long, Message> messageMap = new HashMap<>();
         final CountDownLatch publishAckLatch = new CountDownLatch(messages.size());
-        publishChannel.addConfirmListener(new ConfirmListener() {
-            public void handleNack(long deliveryTag, boolean multiple) {
-                publishAckLatch.countDown();
-            }
-
-            public void handleAck(long deliveryTag, boolean multiple) {
-                if (multiple) {
-                    ConcurrentNavigableMap<Long, Message> confirmed = outstandingConfirms.headMap(
-                            deliveryTag, true
-                    );
-                    confirmed.clear();
-                } else {
-                    outstandingConfirms.remove(deliveryTag);
-                }
-                publishAckLatch.countDown();
-            }
+        publishChannel.addConfirmListener((sequenceNumber, multiple) -> {
+            publishAckLatch.countDown();
+            messageMap.remove(sequenceNumber);
+            log.info(String.format("Message with delivery tag %s acknoledged", sequenceNumber));
+        }, (sequenceNumber, multiple) -> {
+            publishAckLatch.countDown();
+            log.debug(String.format("Message nacked : %s", messageMap.get(sequenceNumber)));
         });
 
         String routingKey;
@@ -174,21 +160,27 @@ public class UnmanagedPublisher<Message> {
         } else {
             routingKey = queueName;
         }
-        for (Message message : messages) {
-            outstandingConfirms.put(publishChannel.getNextPublishSeqNo(), message);
-            publishChannel.basicPublish(config.getExchange(), routingKey, properties,
-                    mapper().writeValueAsBytes(message));
-        }
+
         long startTime = System.nanoTime();
+        for (Message message : messages) {
+            try {
+                messageMap.put(publishChannel.getNextPublishSeqNo(), message);
+                publishChannel.basicPublish(config.getExchange(), routingKey, properties,
+                        mapper().writeValueAsBytes(message));
+            } catch (Exception e) {
+                log.debug(String.format("Failed to publish Message : %s with exception %s", message, e));
+                publishAckLatch.countDown();
+            }
+        }
 
         if (!publishAckLatch.await(timeout, TimeUnit.MILLISECONDS)) {
-            System.out.println("Timed out waiting for publish acks");
+            log.error("Timed out waiting for publish acks");
         }
 
         long endTime = System.nanoTime();
-        System.out.format("Published %,d messages and handled confirms asynchronously in %,d ms%n", messages.size(),
-                Duration.ofNanos(startTime - endTime).toMillis());
-        return outstandingConfirms.values().stream().collect(Collectors.toList());
+        log.info(String.format("Published %,d messages with confirmListener in %,d ms%n", messages.size(),
+                Duration.ofNanos(startTime - endTime).toMillis()));
+        return messageMap.values().stream().collect(Collectors.toList());
     }
 
     public void start() throws Exception {

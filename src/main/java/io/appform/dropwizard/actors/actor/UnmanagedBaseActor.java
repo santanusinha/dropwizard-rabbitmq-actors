@@ -16,6 +16,9 @@
 
 package io.appform.dropwizard.actors.actor;
 
+import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import io.appform.dropwizard.actors.ConnectionRegistry;
@@ -30,17 +33,13 @@ import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrate
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import java.util.List;
+import java.util.function.Function;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.NotImplementedException;
-
-import java.util.function.Function;
-
-import static java.util.Objects.isNull;
-import static java.util.Objects.nonNull;
 
 /**
  * This actor can be derived to directly call start/stop. This is not Managed and will not be automatically started by
@@ -125,12 +124,14 @@ public class UnmanagedBaseActor<Message> {
         publishActor().publish(message, properties);
     }
 
-    public final boolean publishWithConfirmation(Message message, AMQP.BasicProperties properties, long timeout) throws Exception {
-        return publishActor().publishWithConfirmation(message, properties, timeout);
+    public final boolean publishWithConfirmListener(Message message, AMQP.BasicProperties properties, long timeout)
+            throws Exception {
+        return publishActor().publishWithConfirmListener(message, properties, timeout);
     }
 
-    public final List<Message> publishWithConfirmation(List<Message> message, AMQP.BasicProperties properties, long timeout) throws Exception {
-        return publishActor().publishWithConfirmation(message, properties, timeout);
+    public final List<Message> publishWithConfirmListener(List<Message> message, AMQP.BasicProperties properties,
+            long timeout) throws Exception {
+        return publishActor().publishWithConfirmListener(message, properties, timeout);
     }
 
     public final long pendingMessagesCount() {
