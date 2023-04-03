@@ -12,9 +12,9 @@ import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -143,15 +143,32 @@ public class UnmanagedPublisher<Message> {
     public final List<Message> publishWithConfirmListener(List<Message> messages, AMQP.BasicProperties properties,
             long timeout) throws Exception {
         publishChannel.confirmSelect();
-        Map<Long, Message> messageMap = new HashMap<>();
+        ConcurrentNavigableMap<Long, Message> outstandingConfirms = new ConcurrentSkipListMap<>();
         final CountDownLatch publishAckLatch = new CountDownLatch(messages.size());
         publishChannel.addConfirmListener((sequenceNumber, multiple) -> {
-            publishAckLatch.countDown();
-            messageMap.remove(sequenceNumber);
+            if (multiple) {
+                ConcurrentNavigableMap<Long, Message> confirmed = outstandingConfirms.headMap(
+                        sequenceNumber, true
+                );
+                for(int i =0;i<confirmed.size();i++)
+                    publishAckLatch.countDown();
+                confirmed.clear();
+            } else {
+                if(multiple == true)
+                {
+                    ConcurrentNavigableMap<Long, Message> confirmed = outstandingConfirms.headMap(
+                            sequenceNumber, true
+                    );
+                    for(int i =0;i<confirmed.size();i++)
+                        publishAckLatch.countDown();
+                }
+                else
+                    publishAckLatch.countDown();
+            }
             log.info(String.format("Message with delivery tag %s acknoledged", sequenceNumber));
         }, (sequenceNumber, multiple) -> {
             publishAckLatch.countDown();
-            log.debug(String.format("Message nacked : %s", messageMap.get(sequenceNumber)));
+            log.debug(String.format("Message nacked : %s", outstandingConfirms.get(sequenceNumber)));
         });
 
         String routingKey;
@@ -164,7 +181,7 @@ public class UnmanagedPublisher<Message> {
         long startTime = System.nanoTime();
         for (Message message : messages) {
             try {
-                messageMap.put(publishChannel.getNextPublishSeqNo(), message);
+                outstandingConfirms.put(publishChannel.getNextPublishSeqNo(), message);
                 publishChannel.basicPublish(config.getExchange(), routingKey, properties,
                         mapper().writeValueAsBytes(message));
             } catch (Exception e) {
@@ -178,10 +195,11 @@ public class UnmanagedPublisher<Message> {
         }
 
         long endTime = System.nanoTime();
-        log.info(String.format("Published %,d messages with confirmListener in %,d ms%n", messages.size(),
+        log.info(String.format("Published %,d messages with confirmListener in %,d ms%n", messages.size() - outstandingConfirms.size(),
                 Duration.ofNanos(startTime - endTime).toMillis()));
-        return messageMap.values().stream().collect(Collectors.toList());
+        return outstandingConfirms.values().stream().collect(Collectors.toList());
     }
+
 
     public void start() throws Exception {
         final String exchange = config.getExchange();
