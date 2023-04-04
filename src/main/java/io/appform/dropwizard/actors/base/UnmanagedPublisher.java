@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import javax.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomUtils;
 
@@ -112,36 +113,17 @@ public class UnmanagedPublisher<Message> {
         return Long.MAX_VALUE;
     }
 
-
-    public final boolean publishWithConfirmListener(Message message, AMQP.BasicProperties properties, long timeout)
-            throws Exception {
-        publishChannel.confirmSelect();
-        final CountDownLatch publishAckLatch = new CountDownLatch(1);
-        publishChannel.addConfirmListener((sequenceNumber, multiple) -> {
-            publishAckLatch.countDown();
-            log.debug("Message : " + message + " not acknowledged");
-        }, (sequenceNumber, multiple) -> {
-            publishAckLatch.countDown();
-            log.debug("Message : " + message + " acknowledged");
-        });
-
-        String routingKey;
-        if (config.isSharded()) {
-            routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
-        } else {
-            routingKey = queueName;
-        }
-        publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
-
-        if (!publishAckLatch.await(timeout, TimeUnit.MILLISECONDS)) {
-            log.error("Timed out waiting for publish acks, Message : " + message);
-            return false;
-        }
-        return true;
-    }
-
+    /**
+     * Note: Timeout is in MilliSeconds, Function take a list of message as input and return not ack msg as output
+     * @param messages : Messages to be published
+     * @param properties
+     * @param timeout : in MS timeout for waiting on countDownLatch
+     * @param unit : timeout unit
+     * @return : List of message nacked
+     * @throws Exception
+     */
     public final List<Message> publishWithConfirmListener(List<Message> messages, AMQP.BasicProperties properties,
-            long timeout) throws Exception {
+            long timeout, @NotNull TimeUnit unit) throws Exception {
         publishChannel.confirmSelect();
         ConcurrentNavigableMap<Long, Message> outstandingConfirms = new ConcurrentSkipListMap<>();
         final CountDownLatch publishAckLatch = new CountDownLatch(messages.size());
@@ -190,7 +172,7 @@ public class UnmanagedPublisher<Message> {
             }
         }
 
-        if (!publishAckLatch.await(timeout, TimeUnit.MILLISECONDS)) {
+        if (!publishAckLatch.await(unit.toMillis(timeout), TimeUnit.MILLISECONDS)) {
             log.error("Timed out waiting for publish acks");
         }
 

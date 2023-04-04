@@ -33,7 +33,9 @@ import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrate
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import javax.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -124,14 +126,9 @@ public class UnmanagedBaseActor<Message> {
         publishActor().publish(message, properties);
     }
 
-    public final boolean publishWithConfirmListener(Message message, AMQP.BasicProperties properties, long timeout)
-            throws Exception {
-        return publishActor().publishWithConfirmListener(message, properties, timeout);
-    }
-
     public final List<Message> publishWithConfirmListener(List<Message> message, AMQP.BasicProperties properties,
-            long timeout) throws Exception {
-        return publishActor().publishWithConfirmListener(message, properties, timeout);
+            long timeout, @NotNull TimeUnit unit) throws Exception {
+        return publishActor().publishWithConfirmListener(message, properties, timeout, unit);
     }
 
     public final long pendingMessagesCount() {
