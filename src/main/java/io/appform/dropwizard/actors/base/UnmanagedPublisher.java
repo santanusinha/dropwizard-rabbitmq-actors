@@ -136,6 +136,12 @@ public class UnmanagedPublisher<Message> {
                     publishAckLatch.countDown();
                 confirmed.clear();
             } else {
+                publishAckLatch.countDown();
+                outstandingConfirms.remove(sequenceNumber);
+            }
+            log.info(String.format("Message with delivery tag %s acknoledged", sequenceNumber));
+        }, (sequenceNumber, multiple) -> {
+            {
                 if(multiple == true)
                 {
                     ConcurrentNavigableMap<Long, Message> confirmed = outstandingConfirms.headMap(
@@ -147,10 +153,7 @@ public class UnmanagedPublisher<Message> {
                 else
                     publishAckLatch.countDown();
             }
-            log.info(String.format("Message with delivery tag %s acknoledged", sequenceNumber));
-        }, (sequenceNumber, multiple) -> {
-            publishAckLatch.countDown();
-            log.debug(String.format("Message nacked : %s", outstandingConfirms.get(sequenceNumber)));
+            log.debug(String.format("Message nacked with multiple= %s : %s", multiple, outstandingConfirms.get(sequenceNumber)));
         });
 
         String routingKey;
