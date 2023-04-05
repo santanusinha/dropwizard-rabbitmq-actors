@@ -32,7 +32,7 @@ public class UnmanagedPublisher<Message> {
     private final ObjectMapper mapper;
     private final String queueName;
 
-    public Channel publishChannel;
+    private Channel publishChannel;
 
     public UnmanagedPublisher(
             String name,
@@ -157,7 +157,7 @@ public class UnmanagedPublisher<Message> {
         long endTime = System.nanoTime();
 
         log.info(String.format("Published %d messages with confirmListener in %d ms. Total Messages : %d", messages.size() - outstandingConfirms.size(),
-                Duration.ofNanos(startTime - endTime).toMillis()), messages.size());
+                Duration.ofNanos(startTime - endTime).toMillis(), messages.size()));
         nackedMessages.addAll(outstandingConfirms.values());
         return nackedMessages;
     }
@@ -287,5 +287,9 @@ public class UnmanagedPublisher<Message> {
 
     protected final ObjectMapper mapper() {
         return mapper;
+    }
+
+    public void setPublishChannel(Channel publishChannel){
+        this.publishChannel = publishChannel;
     }
 }

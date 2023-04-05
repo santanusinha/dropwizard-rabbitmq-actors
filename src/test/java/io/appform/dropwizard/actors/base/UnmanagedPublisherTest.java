@@ -98,7 +98,7 @@ public class UnmanagedPublisherTest {
         actorConfig.setExchange("test-exchange-1");
         messagePublisher = new UnmanagedPublisher<>("Name", actorConfig, rmqConnection, new ObjectMapper());
         assertSame(rmqConnection, messagePublisher.connection());
-        messagePublisher.publishChannel = publishChannel;
+        messagePublisher.setPublishChannel(publishChannel);
         List<String> nackedMessages = messagePublisher.publishWithConfirmListener(messages, properties, timeout, unit);
         verify(publishChannel, times(1)).getNextPublishSeqNo();
         publishChannel.basicPublish(eq(""), eq(""), same(properties), any());
@@ -159,7 +159,7 @@ public class UnmanagedPublisherTest {
         actorConfig.setExchange("test-exchange-1");
         messagePublisher = new UnmanagedPublisher<>("Name", actorConfig, rmqConnection, new ObjectMapper());
         assertSame(rmqConnection, messagePublisher.connection());
-        messagePublisher.publishChannel = publishChannel;
+        messagePublisher.setPublishChannel(publishChannel);
         List<String> nackedMessages = messagePublisher.publishWithConfirmListener(messages, properties, timeout, unit);
         verify(publishChannel, times(numberOfMessage)).getNextPublishSeqNo();
         publishChannel.basicPublish(eq(""), eq(""), same(properties), any());
