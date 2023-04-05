@@ -1,8 +1,10 @@
 package io.appform.dropwizard.actors.base.utils;
 
+import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.utils.CommonUtils;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.RandomUtils;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class NamingUtils {
@@ -26,8 +28,21 @@ public class NamingUtils {
         return String.format("%s.%s", namespace, name);
     }
 
+    public static String getRoutingKey(String queueName, ActorConfig config) {
+        String routingKey = queueName;
+        if (config.isSharded()) {
+            int shardId = getShardId(config);
+            routingKey = getShardedQueueName(queueName, shardId);
+        }
+        return routingKey;
+    }
+
     public static String getShardedQueueName(String queueName, int shardId) {
         return queueName + "_" + shardId;
+    }
+
+    private static int getShardId(ActorConfig config) {
+        return RandomUtils.nextInt(0, config.getShardCount());
     }
 
 }

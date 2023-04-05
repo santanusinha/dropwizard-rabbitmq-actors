@@ -9,6 +9,14 @@ import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import javax.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomUtils;
 
@@ -24,7 +32,7 @@ public class UnmanagedPublisher<Message> {
     private final ObjectMapper mapper;
     private final String queueName;
 
-    private Channel publishChannel;
+    public Channel publishChannel;
 
     public UnmanagedPublisher(
             String name,
@@ -106,9 +114,98 @@ public class UnmanagedPublisher<Message> {
         return Long.MAX_VALUE;
     }
 
+    /**
+     * Note: Timeout is in MilliSeconds, Function take a list of message as input and return not ack msg as output
+     * @param messages : Messages to be published
+     * @param properties
+     * @param timeout : in MS timeout for waiting on countDownLatch
+     * @param unit : timeout unit
+     * @return : List of message nacked
+     * @throws Exception
+     */
+    public List<Message> publishWithConfirmListener(List<Message> messages, AMQP.BasicProperties properties,
+            long timeout, @NotNull TimeUnit unit) throws Exception {
+        publishChannel.confirmSelect();
+        ConcurrentNavigableMap<Long, Message> outstandingConfirms = new ConcurrentSkipListMap<>();
+        List<Message> nackedMessages = new ArrayList<>();
+        CountDownLatch publishAckLatch = new CountDownLatch(messages.size());
+
+        publishChannel.addConfirmListener((sequenceNumber, multiple) -> {
+            messagesAck(sequenceNumber, multiple, outstandingConfirms, publishAckLatch);
+        }, (sequenceNumber, multiple) -> {
+            nackedMessages.addAll(messagesNack(sequenceNumber, multiple, outstandingConfirms, publishAckLatch));
+        });
+
+        String routingKey = NamingUtils.getRoutingKey(queueName, config);
+
+        long startTime = System.nanoTime();
+
+        for (Message message : messages) {
+            try {
+                outstandingConfirms.put(publishChannel.getNextPublishSeqNo(), message);
+                publishChannel.basicPublish(config.getExchange(), routingKey, properties,
+                        mapper().writeValueAsBytes(message));
+            } catch (Exception e) {
+                log.error(String.format("Failed to publish Message : %s with exception %s", message, e));
+                publishAckLatch.countDown();
+            }
+        }
+
+        if (!publishAckLatch.await(unit.toMillis(timeout), TimeUnit.MILLISECONDS)) {
+            log.error("Timed out waiting for publish acks");
+        }
+
+        long endTime = System.nanoTime();
+
+        log.info(String.format("Published %d messages with confirmListener in %d ms", messages.size() - outstandingConfirms.size(),
+                Duration.ofNanos(startTime - endTime).toMillis()));
+        nackedMessages.addAll(outstandingConfirms.values());
+        return nackedMessages;
+    }
+
+
+    private void messagesAck(long sequenceNumber, boolean multiple, ConcurrentNavigableMap<Long, Message> outstandingConfirms, CountDownLatch publishAckLatch)
+    {
+        if (multiple) {
+            ConcurrentNavigableMap<Long, Message> confirmed = outstandingConfirms.headMap(
+                    sequenceNumber, true
+            );
+            for(int i =0;i<confirmed.size();i++)
+                publishAckLatch.countDown();
+            confirmed.clear();
+        } else {
+            publishAckLatch.countDown();
+            outstandingConfirms.remove(sequenceNumber);
+        }
+    }
+
+    private List<Message> messagesNack(long sequenceNumber, boolean multiple, ConcurrentNavigableMap<Long, Message> outstandingConfirms, CountDownLatch publishAckLatch)
+    {
+        List<Message> nackedMessages = new ArrayList<>();
+        if(multiple == true)
+        {
+            ConcurrentNavigableMap<Long, Message> nacked = outstandingConfirms.headMap(
+                    sequenceNumber, true
+            );
+            for(int i =0;i<nacked.size();i++)
+                publishAckLatch.countDown();
+            nackedMessages.addAll(nacked.values());
+            nacked.clear();
+        }
+        else
+        {
+            publishAckLatch.countDown();
+            nackedMessages.add(outstandingConfirms.get(sequenceNumber));
+            outstandingConfirms.remove(sequenceNumber);
+        }
+        return nackedMessages;
+    }
+
+
     public void start() throws Exception {
         final String exchange = config.getExchange();
         final String dlx = config.getExchange() + "_SIDELINE";
+        this.publishChannel = connection.newChannel();
         if (config.isDelayed()) {
             ensureDelayedExchange(exchange);
         } else {
@@ -116,7 +213,6 @@ public class UnmanagedPublisher<Message> {
         }
         ensureExchange(dlx);
 
-        this.publishChannel = connection.newChannel();
         connection.ensure(queueName + "_SIDELINE", queueName, dlx,
                 connection.rmqOpts(config));
         if (config.isSharded()) {

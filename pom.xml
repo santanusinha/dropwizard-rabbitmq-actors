@@ -6,7 +6,7 @@
 
     <groupId>io.appform.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors</artifactId>
-    <version>2.0.28-1</version>
+    <version>3.0.0_SNAPSHOT</version>
     <name>Dropwizard RabbitMQ Bundle</name>
     <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors</url>
     <description>Provides actor abstraction on RabbitMQ for dropwizard based projects.</description>
@@ -92,6 +92,7 @@
         <guava.version>31.0.1-jre</guava.version>
         <test.container.version>1.0.6</test.container.version>
         <okhttp.version>4.9.3</okhttp.version>
+        <mockito.version>4.4.0</mockito.version>
         <amqp-client.version>5.14.1</amqp-client.version>
     </properties>
 
@@ -111,6 +112,12 @@
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.dropwizard</groupId>
@@ -186,7 +193,7 @@
             <exclusions>
                 <exclusion>
                     <groupId>junit</groupId>
-                    <artifactId>junit</artifactId>
+                    <artifactId>junit-dep</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -199,6 +206,11 @@
             <groupId>org.junit.vintage</groupId>
             <artifactId>junit-vintage-engine</artifactId>
             <version>5.8.1</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
         </dependency>
     </dependencies>
 

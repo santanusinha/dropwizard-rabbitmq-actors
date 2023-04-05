@@ -1,0 +1,266 @@
+[INFO] Scanning for projects...
+[WARNING] 
+[WARNING] Some problems were encountered while building the effective model for io.appform.dropwizard.actors:dropwizard-rabbitmq-actors:jar:3.0.0_SNAPSHOT
+[WARNING] 'version' uses an unsupported snapshot version format, should be '*-SNAPSHOT' instead. @ line 9, column 14
+[WARNING] 
+[WARNING] It is highly recommended to fix these problems because they threaten the stability of your build.
+[WARNING] 
+[WARNING] For this reason, future Maven versions might no longer support building such malformed projects.
+[WARNING] 
+[INFO] Inspecting build with total of 1 modules...
+[INFO] Installing Nexus Staging features:
+[INFO]   ... total of 1 executions of maven-deploy-plugin replaced with nexus-staging-maven-plugin
+[INFO] 
+[INFO] ------< io.appform.dropwizard.actors:dropwizard-rabbitmq-actors >-------
+[INFO] Building Dropwizard RabbitMQ Bundle 3.0.0_SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ dropwizard-rabbitmq-actors ---
+[INFO] Deleting /Users/saurav.kumar3/Desktop/dropwizard-rabbitmq-actors/target
+[INFO] 
+[INFO] --- enforcer:3.0.0:enforce (enforce-no-snapshots) @ dropwizard-rabbitmq-actors ---
+[INFO] 
+[INFO] --- jacoco:0.8.7:prepare-agent (default) @ dropwizard-rabbitmq-actors ---
+[INFO] argLine set to -javaagent:/Users/saurav.kumar3/.m2/repository/org/jacoco/org.jacoco.agent/0.8.7/org.jacoco.agent-0.8.7-runtime.jar=destfile=/Users/saurav.kumar3/Desktop/dropwizard-rabbitmq-actors/target/jacoco.exec
+[INFO] 
+[INFO] --- resources:3.3.0:resources (default-resources) @ dropwizard-rabbitmq-actors ---
+[INFO] skip non existing resourceDirectory /Users/saurav.kumar3/Desktop/dropwizard-rabbitmq-actors/src/main/resources
+[INFO] 
+[INFO] --- compiler:3.10.1:compile (default-compile) @ dropwizard-rabbitmq-actors ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 58 source files to /Users/saurav.kumar3/Desktop/dropwizard-rabbitmq-actors/target/classes
+[INFO] 
+[INFO] --- resources:3.3.0:testResources (default-testResources) @ dropwizard-rabbitmq-actors ---
+[INFO] skip non existing resourceDirectory /Users/saurav.kumar3/Desktop/dropwizard-rabbitmq-actors/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.10.1:testCompile (default-testCompile) @ dropwizard-rabbitmq-actors ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 6 source files to /Users/saurav.kumar3/Desktop/dropwizard-rabbitmq-actors/target/test-classes
+[INFO] /Users/saurav.kumar3/Desktop/dropwizard-rabbitmq-actors/src/test/java/io/appform/dropwizard/actors/base/UnmanagedPublisherTest.java: /Users/saurav.kumar3/Desktop/dropwizard-rabbitmq-actors/src/test/java/io/appform/dropwizard/actors/base/UnmanagedPublisherTest.java uses unchecked or unsafe operations.
+[INFO] /Users/saurav.kumar3/Desktop/dropwizard-rabbitmq-actors/src/test/java/io/appform/dropwizard/actors/base/UnmanagedPublisherTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.0.0-M8:test (default-test) @ dropwizard-rabbitmq-actors ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.appform.dropwizard.actors.connectivity.actor.NamespacedQueuesTest
+INFO  [2023-04-05 10:47:00,181] org.eclipse.jetty.util.log: Logging initialized @5202ms to org.eclipse.jetty.util.log.Slf4jLog
+INFO  [2023-04-05 10:47:00,341] io.dropwizard.server.DefaultServerFactory: Registering jersey handler with root path prefix: /
+INFO  [2023-04-05 10:47:00,344] io.dropwizard.server.DefaultServerFactory: Registering admin handler with root path prefix: /
+INFO  [2023-04-05 10:47:00,345] io.dropwizard.server.ServerFactory: Starting RabbitMQBundleTestApplication
+INFO  [2023-04-05 10:47:00,507] org.eclipse.jetty.setuid.SetUIDListener: Opened application@618f0ba{HTTP/1.1, (http/1.1)}{0.0.0.0:8080}
+INFO  [2023-04-05 10:47:00,508] org.eclipse.jetty.setuid.SetUIDListener: Opened admin@4dcfca8f{HTTP/1.1, (http/1.1)}{0.0.0.0:8081}
+INFO  [2023-04-05 10:47:00,511] org.eclipse.jetty.server.Server: jetty-9.4.44.v20210927; built: 2021-09-27T23:02:44.612Z; git: 8da83308eeca865e495e53ef315a249d63ba9332; jvm 1.8.0_322-b06
+INFO  [2023-04-05 10:47:01,743] io.dropwizard.jersey.DropwizardResourceConfig: The following paths were found for the configured resources:
+
+    NONE
+
+INFO  [2023-04-05 10:47:01,749] org.eclipse.jetty.server.handler.ContextHandler: Started i.d.j.MutableServletContextHandler@374c7c24{/,null,AVAILABLE}
+INFO  [2023-04-05 10:47:01,752] io.dropwizard.setup.AdminEnvironment: tasks = 
+
+    POST    /tasks/log-level (io.dropwizard.servlets.tasks.LogConfigurationTask)
+    POST    /tasks/gc (io.dropwizard.servlets.tasks.GarbageCollectionTask)
+
+WARN  [2023-04-05 10:47:01,753] io.dropwizard.setup.AdminEnvironment: 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!    THIS APPLICATION HAS NO HEALTHCHECKS. THIS MEANS YOU WILL NEVER KNOW      !
+!     IF IT DIES IN PRODUCTION, WHICH MEANS YOU WILL NEVER KNOW IF YOU'RE      !
+!    LETTING YOUR USERS DOWN. YOU SHOULD ADD A HEALTHCHECK FOR EACH OF YOUR    !
+!         APPLICATION'S DEPENDENCIES WHICH FULLY (BUT LIGHTLY) TESTS IT.       !
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+INFO  [2023-04-05 10:47:01,755] org.eclipse.jetty.server.handler.ContextHandler: Started i.d.j.MutableServletContextHandler@670d0f14{/,null,AVAILABLE}
+INFO  [2023-04-05 10:47:01,808] org.eclipse.jetty.server.AbstractConnector: Started application@618f0ba{HTTP/1.1, (http/1.1)}{0.0.0.0:8080}
+INFO  [2023-04-05 10:47:01,814] org.eclipse.jetty.server.AbstractConnector: Started admin@4dcfca8f{HTTP/1.1, (http/1.1)}{0.0.0.0:8081}
+INFO  [2023-04-05 10:47:01,814] org.eclipse.jetty.server.Server: Started @6838ms
+INFO  [2023-04-05 10:47:01,841] io.appform.dropwizard.actors.connectivity.actor.NamespacedQueuesTest: Starting rabbitMQ server. Docker image: rabbitmq:3-alpine
+INFO  [2023-04-05 10:47:02,020] org.testcontainers.dockerclient.DockerClientProviderStrategy: Loaded org.testcontainers.dockerclient.UnixSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first
+INFO  [2023-04-05 10:47:03,351] org.testcontainers.dockerclient.DockerClientProviderStrategy: Found Docker environment with local Unix socket (unix:///var/run/docker.sock)
+INFO  [2023-04-05 10:47:03,362] org.testcontainers.DockerClientFactory: Docker host IP address is localhost
+INFO  [2023-04-05 10:47:03,482] org.testcontainers.DockerClientFactory: Connected to docker: 
+  Server Version: 20.10.21
+  API Version: 1.41
+  Operating System: Docker Desktop
+  Total Memory: 9699 MB
+INFO  [2023-04-05 10:47:03,496] org.testcontainers.utility.ImageNameSubstitutor: Image name substitution will be performed by: DefaultImageNameSubstitutor (composite of 'ConfigurationFileImageNameSubstitutor' and 'PrefixingImageNameSubstitutor')
+INFO  [2023-04-05 10:47:04,307] org.testcontainers.utility.RegistryAuthLocator: Credential helper/store (docker-credential-desktop) does not have credentials for index.docker.io
+INFO  [2023-04-05 10:47:05,187] org.testcontainers.DockerClientFactory: Ryuk started - will monitor and terminate Testcontainers containers on JVM exit
+INFO  [2023-04-05 10:47:05,187] org.testcontainers.DockerClientFactory: Checking the system...
+INFO  [2023-04-05 10:47:05,190] org.testcontainers.DockerClientFactory: ?? Docker server version should be at least 1.6.0
+INFO  [2023-04-05 10:47:05,271] org.testcontainers.DockerClientFactory: ?? Docker environment should have more than 2GB free disk space
+INFO  [2023-04-05 10:47:05,318] docker[rabbitmq:3.8-alpine]: Creating container for image: rabbitmq:3.8-alpine
+INFO  [2023-04-05 10:47:05,362] docker[rabbitmq:3.8-alpine]: Starting container with ID: d8eeb159c005ad7c0c52f1e50d51b8d660830f46dcac7299d8ec207ad7c3fb20
+INFO  [2023-04-05 10:47:05,605] docker[rabbitmq:3.8-alpine]: Container rabbitmq:3.8-alpine is starting: d8eeb159c005ad7c0c52f1e50d51b8d660830f46dcac7299d8ec207ad7c3fb20
+INFO  [2023-04-05 10:47:13,293] docker[rabbitmq:3.8-alpine]: Container rabbitmq:3.8-alpine started in PT8.021S
+INFO  [2023-04-05 10:47:13,294] io.appform.dropwizard.actors.connectivity.actor.NamespacedQueuesTest: Started RabbitMQ server
+INFO  [2023-04-05 10:47:13,302] io.appform.dropwizard.actors.connectivity.actor.NamespacedQueuesTest: RabbitMQ connection details: RMQConfig(brokers=[Broker(host=localhost, port=55275)], userName=guest, threadPoolSize=0, password=guest, virtualHost=/, secure=false, startupGracePeriodSeconds=0, certStorePath=null, certPassword=null, serverCertStorePath=null, serverCertPassword=null, connections=null)
+INFO  [2023-04-05 10:47:13,316] io.appform.dropwizard.actors.connectivity.RMQConnection: Starting RMQ connection [test-conn]
+INFO  [2023-04-05 10:47:13,496] io.appform.dropwizard.actors.connectivity.RMQConnection: Started RMQ connection [test-conn] 
+INFO  [2023-04-05 10:47:13,558] io.appform.dropwizard.actors.base.UnmanagedPublisher: Created exchange: test-exchange-1
+INFO  [2023-04-05 10:47:13,565] io.appform.dropwizard.actors.base.UnmanagedPublisher: Created exchange: test-exchange-1_SIDELINE
+INFO  [2023-04-05 10:47:13,593] io.appform.dropwizard.actors.connectivity.RMQConnection: Created queue: namespace1.rabbitmq.actors.publisher-1_SIDELINE bound to test-exchange-1_SIDELINE
+INFO  [2023-04-05 10:47:13,600] io.appform.dropwizard.actors.connectivity.RMQConnection: Created queue: namespace1.rabbitmq.actors.publisher-1 bound to test-exchange-1
+ERROR [2023-04-05 10:47:13,951] io.appform.dropwizard.actors.connectivity.actor.NamespacedQueuesTest: Error while making API call to RabbitMQ
+INFO  [2023-04-05 10:47:13,971] io.appform.dropwizard.actors.connectivity.actor.NamespacedQueuesTest: Starting rabbitMQ server. Docker image: rabbitmq:3-alpine
+INFO  [2023-04-05 10:47:13,973] docker[rabbitmq:3.8-alpine]: Creating container for image: rabbitmq:3.8-alpine
+INFO  [2023-04-05 10:47:14,016] docker[rabbitmq:3.8-alpine]: Starting container with ID: 64d3319a036f60f57e577766f1c0cc75b397a3735c48fed9b41dc838e3db758b
+INFO  [2023-04-05 10:47:14,227] docker[rabbitmq:3.8-alpine]: Container rabbitmq:3.8-alpine is starting: 64d3319a036f60f57e577766f1c0cc75b397a3735c48fed9b41dc838e3db758b
+INFO  [2023-04-05 10:47:21,701] docker[rabbitmq:3.8-alpine]: Container rabbitmq:3.8-alpine started in PT7.729S
+INFO  [2023-04-05 10:47:21,702] io.appform.dropwizard.actors.connectivity.actor.NamespacedQueuesTest: Started RabbitMQ server
+INFO  [2023-04-05 10:47:21,703] io.appform.dropwizard.actors.connectivity.actor.NamespacedQueuesTest: RabbitMQ connection details: RMQConfig(brokers=[Broker(host=localhost, port=55281)], userName=guest, threadPoolSize=0, password=guest, virtualHost=/, secure=false, startupGracePeriodSeconds=0, certStorePath=null, certPassword=null, serverCertStorePath=null, serverCertPassword=null, connections=null)
+INFO  [2023-04-05 10:47:21,705] io.appform.dropwizard.actors.connectivity.RMQConnection: Starting RMQ connection [test-conn]
+INFO  [2023-04-05 10:47:21,715] io.appform.dropwizard.actors.connectivity.RMQConnection: Started RMQ connection [test-conn] 
+INFO  [2023-04-05 10:47:21,719] io.appform.dropwizard.actors.base.UnmanagedPublisher: Created exchange: test-exchange-1
+INFO  [2023-04-05 10:47:21,721] io.appform.dropwizard.actors.base.UnmanagedPublisher: Created exchange: test-exchange-1_SIDELINE
+INFO  [2023-04-05 10:47:21,729] io.appform.dropwizard.actors.connectivity.RMQConnection: Created queue: rabbitmq.actors.publisher-1_SIDELINE bound to test-exchange-1_SIDELINE
+INFO  [2023-04-05 10:47:21,736] io.appform.dropwizard.actors.connectivity.RMQConnection: Created queue: rabbitmq.actors.publisher-1 bound to test-exchange-1
+ERROR [2023-04-05 10:47:21,750] io.appform.dropwizard.actors.connectivity.actor.NamespacedQueuesTest: Error while making API call to RabbitMQ
+INFO  [2023-04-05 10:47:21,758] io.appform.dropwizard.actors.connectivity.actor.NamespacedQueuesTest: Starting rabbitMQ server. Docker image: rabbitmq:3-alpine
+INFO  [2023-04-05 10:47:21,761] docker[rabbitmq:3.8-alpine]: Creating container for image: rabbitmq:3.8-alpine
+INFO  [2023-04-05 10:47:21,795] docker[rabbitmq:3.8-alpine]: Starting container with ID: 3ac56cfe2852a2bbf32dfd12acec6496dbeb4f44277aef1d4a2d39e991b7391f
+INFO  [2023-04-05 10:47:22,012] docker[rabbitmq:3.8-alpine]: Container rabbitmq:3.8-alpine is starting: 3ac56cfe2852a2bbf32dfd12acec6496dbeb4f44277aef1d4a2d39e991b7391f
+INFO  [2023-04-05 10:47:29,520] docker[rabbitmq:3.8-alpine]: Container rabbitmq:3.8-alpine started in PT7.76S
+INFO  [2023-04-05 10:47:29,520] io.appform.dropwizard.actors.connectivity.actor.NamespacedQueuesTest: Started RabbitMQ server
+INFO  [2023-04-05 10:47:29,521] io.appform.dropwizard.actors.connectivity.actor.NamespacedQueuesTest: RabbitMQ connection details: RMQConfig(brokers=[Broker(host=localhost, port=55287)], userName=guest, threadPoolSize=0, password=guest, virtualHost=/, secure=false, startupGracePeriodSeconds=0, certStorePath=null, certPassword=null, serverCertStorePath=null, serverCertPassword=null, connections=null)
+INFO  [2023-04-05 10:47:29,522] io.appform.dropwizard.actors.connectivity.RMQConnection: Starting RMQ connection [test-conn]
+INFO  [2023-04-05 10:47:29,534] io.appform.dropwizard.actors.connectivity.RMQConnection: Started RMQ connection [test-conn] 
+INFO  [2023-04-05 10:47:29,537] io.appform.dropwizard.actors.base.UnmanagedPublisher: Created exchange: test-exchange-1
+INFO  [2023-04-05 10:47:29,539] io.appform.dropwizard.actors.base.UnmanagedPublisher: Created exchange: test-exchange-1_SIDELINE
+INFO  [2023-04-05 10:47:29,547] io.appform.dropwizard.actors.connectivity.RMQConnection: Created queue: rabbitmq.actors.publisher-1_SIDELINE bound to test-exchange-1_SIDELINE
+INFO  [2023-04-05 10:47:29,555] io.appform.dropwizard.actors.connectivity.RMQConnection: Created queue: rabbitmq.actors.publisher-1 bound to test-exchange-1
+ERROR [2023-04-05 10:47:39,599] io.appform.dropwizard.actors.connectivity.actor.NamespacedQueuesTest: Error while making API call to RabbitMQ
+INFO  [2023-04-05 10:47:39,669] org.eclipse.jetty.server.AbstractConnector: Stopped application@618f0ba{HTTP/1.1, (http/1.1)}{0.0.0.0:8080}
+INFO  [2023-04-05 10:47:39,670] org.eclipse.jetty.server.AbstractConnector: Stopped admin@4dcfca8f{HTTP/1.1, (http/1.1)}{0.0.0.0:8081}
+INFO  [2023-04-05 10:47:39,672] org.eclipse.jetty.server.handler.ContextHandler: Stopped i.d.j.MutableServletContextHandler@670d0f14{/,null,STOPPED}
+INFO  [2023-04-05 10:47:39,699] org.eclipse.jetty.server.handler.ContextHandler: Stopped i.d.j.MutableServletContextHandler@374c7c24{/,null,STOPPED}
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 42.723 s - in io.appform.dropwizard.actors.connectivity.actor.NamespacedQueuesTest
+[INFO] Running io.appform.dropwizard.actors.base.UnmanagedPublisherTest
+INFO  [2023-04-05 10:47:40,473] io.dropwizard.server.DefaultServerFactory: Registering jersey handler with root path prefix: /
+INFO  [2023-04-05 10:47:40,473] io.dropwizard.server.DefaultServerFactory: Registering admin handler with root path prefix: /
+INFO  [2023-04-05 10:47:40,474] io.dropwizard.server.ServerFactory: Starting RabbitMQBundleTestApplication
+INFO  [2023-04-05 10:47:40,483] org.eclipse.jetty.setuid.SetUIDListener: Opened application@7f8792f6{HTTP/1.1, (http/1.1)}{0.0.0.0:8080}
+INFO  [2023-04-05 10:47:40,483] org.eclipse.jetty.setuid.SetUIDListener: Opened admin@4292184b{HTTP/1.1, (http/1.1)}{0.0.0.0:8081}
+INFO  [2023-04-05 10:47:40,483] org.eclipse.jetty.server.Server: jetty-9.4.44.v20210927; built: 2021-09-27T23:02:44.612Z; git: 8da83308eeca865e495e53ef315a249d63ba9332; jvm 1.8.0_322-b06
+INFO  [2023-04-05 10:47:40,724] io.dropwizard.jersey.DropwizardResourceConfig: The following paths were found for the configured resources:
+
+    NONE
+
+INFO  [2023-04-05 10:47:40,728] org.eclipse.jetty.server.handler.ContextHandler: Started i.d.j.MutableServletContextHandler@3f4e0bc8{/,null,AVAILABLE}
+INFO  [2023-04-05 10:47:40,729] io.dropwizard.setup.AdminEnvironment: tasks = 
+
+    POST    /tasks/log-level (io.dropwizard.servlets.tasks.LogConfigurationTask)
+    POST    /tasks/gc (io.dropwizard.servlets.tasks.GarbageCollectionTask)
+
+WARN  [2023-04-05 10:47:40,730] io.dropwizard.setup.AdminEnvironment: 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!    THIS APPLICATION HAS NO HEALTHCHECKS. THIS MEANS YOU WILL NEVER KNOW      !
+!     IF IT DIES IN PRODUCTION, WHICH MEANS YOU WILL NEVER KNOW IF YOU'RE      !
+!    LETTING YOUR USERS DOWN. YOU SHOULD ADD A HEALTHCHECK FOR EACH OF YOUR    !
+!         APPLICATION'S DEPENDENCIES WHICH FULLY (BUT LIGHTLY) TESTS IT.       !
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+INFO  [2023-04-05 10:47:40,731] org.eclipse.jetty.server.handler.ContextHandler: Started i.d.j.MutableServletContextHandler@570fb709{/,null,AVAILABLE}
+INFO  [2023-04-05 10:47:40,739] org.eclipse.jetty.server.AbstractConnector: Started application@7f8792f6{HTTP/1.1, (http/1.1)}{0.0.0.0:8080}
+INFO  [2023-04-05 10:47:40,746] org.eclipse.jetty.server.AbstractConnector: Started admin@4292184b{HTTP/1.1, (http/1.1)}{0.0.0.0:8081}
+INFO  [2023-04-05 10:47:40,747] org.eclipse.jetty.server.Server: Started @45768ms
+INFO  [2023-04-05 10:47:40,751] io.appform.dropwizard.actors.base.UnmanagedPublisherTest: Starting rabbitMQ server. Docker image: rabbitmq:3-alpine
+INFO  [2023-04-05 10:47:40,753] docker[rabbitmq:3.8-alpine]: Creating container for image: rabbitmq:3.8-alpine
+INFO  [2023-04-05 10:47:40,820] docker[rabbitmq:3.8-alpine]: Starting container with ID: 04aca49ef2c5e22165b25eba35b0f9ec7f91f3fb39d384430ee30c28d750d3cc
+INFO  [2023-04-05 10:47:41,081] docker[rabbitmq:3.8-alpine]: Container rabbitmq:3.8-alpine is starting: 04aca49ef2c5e22165b25eba35b0f9ec7f91f3fb39d384430ee30c28d750d3cc
+INFO  [2023-04-05 10:47:48,480] docker[rabbitmq:3.8-alpine]: Container rabbitmq:3.8-alpine started in PT7.728S
+INFO  [2023-04-05 10:47:48,482] io.appform.dropwizard.actors.base.UnmanagedPublisherTest: Started RabbitMQ server
+INFO  [2023-04-05 10:47:48,482] io.appform.dropwizard.actors.base.UnmanagedPublisherTest: RabbitMQ connection details: RMQConfig(brokers=[Broker(host=localhost, port=55293)], userName=guest, threadPoolSize=0, password=guest, virtualHost=/, secure=false, startupGracePeriodSeconds=0, certStorePath=null, certPassword=null, serverCertStorePath=null, serverCertPassword=null, connections=null)
+INFO  [2023-04-05 10:47:48,487] io.appform.dropwizard.actors.connectivity.RMQConnection: Starting RMQ connection [test-conn]
+INFO  [2023-04-05 10:47:48,500] io.appform.dropwizard.actors.connectivity.RMQConnection: Started RMQ connection [test-conn] 
+INFO  [2023-04-05 10:47:48,503] io.appform.dropwizard.actors.base.UnmanagedPublisher: Created exchange: test-exchange-1
+INFO  [2023-04-05 10:47:48,505] io.appform.dropwizard.actors.base.UnmanagedPublisher: Created exchange: test-exchange-1_SIDELINE
+INFO  [2023-04-05 10:47:48,511] io.appform.dropwizard.actors.connectivity.RMQConnection: Created queue: rabbitmq.actors.publisher-1_SIDELINE bound to test-exchange-1_SIDELINE
+INFO  [2023-04-05 10:47:48,517] io.appform.dropwizard.actors.connectivity.RMQConnection: Created queue: rabbitmq.actors.publisher-1 bound to test-exchange-1
+INFO  [2023-04-05 10:47:48,544] io.appform.dropwizard.actors.base.UnmanagedPublisher: Published 1 messages with confirmListener in -2 ms
+INFO  [2023-04-05 10:47:48,562] org.eclipse.jetty.server.AbstractConnector: Stopped application@7f8792f6{HTTP/1.1, (http/1.1)}{0.0.0.0:8080}
+INFO  [2023-04-05 10:47:48,563] org.eclipse.jetty.server.AbstractConnector: Stopped admin@4292184b{HTTP/1.1, (http/1.1)}{0.0.0.0:8081}
+INFO  [2023-04-05 10:47:48,564] org.eclipse.jetty.server.handler.ContextHandler: Stopped i.d.j.MutableServletContextHandler@570fb709{/,null,STOPPED}
+INFO  [2023-04-05 10:47:48,578] org.eclipse.jetty.server.handler.ContextHandler: Stopped i.d.j.MutableServletContextHandler@3f4e0bc8{/,null,STOPPED}
+[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 8.856 s <<< FAILURE! - in io.appform.dropwizard.actors.base.UnmanagedPublisherTest
+[ERROR] io.appform.dropwizard.actors.base.UnmanagedPublisherTest.testQueuesAreRemovedAfterTtl  Time elapsed: 7.801 s  <<< FAILURE!
+java.lang.AssertionError: expected:<0> but was:<1>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at org.junit.Assert.assertEquals(Assert.java:633)
+	at io.appform.dropwizard.actors.base.UnmanagedPublisherTest.testQueuesAreRemovedAfterTtl(UnmanagedPublisherTest.java:88)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.contrib.java.lang.system.EnvironmentVariables$EnvironmentVariablesStatement.evaluate(EnvironmentVariables.java:122)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.BlockJUnit4ClassRunner$1.evaluate(BlockJUnit4ClassRunner.java:100)
+	at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:366)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:103)
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:63)
+	at org.junit.runners.ParentRunner$4.run(ParentRunner.java:331)
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:79)
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:329)
+	at org.junit.runners.ParentRunner.access$100(ParentRunner.java:66)
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:293)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:27)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:413)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:137)
+	at org.junit.runner.JUnitCore.run(JUnitCore.java:115)
+	at org.junit.vintage.engine.execution.RunnerExecutor.execute(RunnerExecutor.java:42)
+	at org.junit.vintage.engine.VintageTestEngine.executeAllChildren(VintageTestEngine.java:80)
+	at org.junit.vintage.engine.VintageTestEngine.execute(VintageTestEngine.java:72)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:107)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:88)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:54)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:67)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:52)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:114)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:86)
+	at org.junit.platform.launcher.core.DefaultLauncherSession$DelegatingLauncher.execute(DefaultLauncherSession.java:86)
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:55)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:223)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:175)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:139)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:456)
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:169)
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:595)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:581)
+
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Failures: 
+[ERROR]   UnmanagedPublisherTest.testQueuesAreRemovedAfterTtl:88 expected:<0> but was:<1>
+[INFO] 
+[ERROR] Tests run: 4, Failures: 1, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:09 min
+[INFO] Finished at: 2023-04-05T16:17:49+05:30
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.0.0-M8:test (default-test) on project dropwizard-rabbitmq-actors: There are test failures.
+[ERROR] 
+[ERROR] Please refer to /Users/saurav.kumar3/Desktop/dropwizard-rabbitmq-actors/target/surefire-reports for the individual test results.
+[ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
