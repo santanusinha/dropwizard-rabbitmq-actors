@@ -198,7 +198,7 @@ public class NamespacedQueuesTest {
 
     private static RMQConfig getRMQConfig(GenericContainer rabbitmqContainer) {
         RMQConfig rmqConfig = new RMQConfig();
-        Integer mappedPort = rabbitmqContainer.getMappedPort(5672);
+        Integer mappedPort = rabbitmqContainer.getMappedPort(RABBITMQ_MANAGEMENT_PORT);
         String host = rabbitmqContainer.getContainerIpAddress();
         List<Broker> brokers = new ArrayList<Broker>();
         brokers.add(new Broker(host, mappedPort));

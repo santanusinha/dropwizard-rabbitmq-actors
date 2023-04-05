@@ -115,7 +115,6 @@ public class UnmanagedPublisher<Message> {
     }
 
     /**
-     * Note: Timeout is in MilliSeconds, Function take a list of message as input and return not ack msg as output
      * @param messages : Messages to be published
      * @param properties
      * @param timeout : in MS timeout for waiting on countDownLatch
@@ -151,14 +150,14 @@ public class UnmanagedPublisher<Message> {
             }
         }
 
-        if (!publishAckLatch.await(unit.toMillis(timeout), TimeUnit.MILLISECONDS)) {
+        if (!publishAckLatch.await(timeout, unit)) {
             log.error("Timed out waiting for publish acks");
         }
 
         long endTime = System.nanoTime();
 
-        log.info(String.format("Published %d messages with confirmListener in %d ms", messages.size() - outstandingConfirms.size(),
-                Duration.ofNanos(startTime - endTime).toMillis()));
+        log.info(String.format("Published %d messages with confirmListener in %d ms. Total Messages : %d", messages.size() - outstandingConfirms.size(),
+                Duration.ofNanos(startTime - endTime).toMillis()), messages.size());
         nackedMessages.addAll(outstandingConfirms.values());
         return nackedMessages;
     }
@@ -205,7 +204,6 @@ public class UnmanagedPublisher<Message> {
     public void start() throws Exception {
         final String exchange = config.getExchange();
         final String dlx = config.getExchange() + "_SIDELINE";
-        this.publishChannel = connection.newChannel();
         if (config.isDelayed()) {
             ensureDelayedExchange(exchange);
         } else {
@@ -213,6 +211,7 @@ public class UnmanagedPublisher<Message> {
         }
         ensureExchange(dlx);
 
+        this.publishChannel = connection.newChannel();
         connection.ensure(queueName + "_SIDELINE", queueName, dlx,
                 connection.rmqOpts(config));
         if (config.isSharded()) {
