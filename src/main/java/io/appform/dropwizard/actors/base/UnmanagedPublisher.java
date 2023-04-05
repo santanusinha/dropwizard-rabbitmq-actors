@@ -11,16 +11,15 @@ import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.RandomUtils;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
@@ -73,16 +72,8 @@ public class UnmanagedPublisher<Message> {
 
     public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
         String routingKey;
-        if (config.isSharded()) {
-            routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
-        } else {
-            routingKey = queueName;
-        }
+        routingKey = NamingUtils.getRoutingKey(queueName, config);
         publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
-    }
-
-    private final int getShardId() {
-        return RandomUtils.nextInt(0, config.getShardCount());
     }
 
     public final long pendingMessagesCount() {
@@ -122,48 +113,23 @@ public class UnmanagedPublisher<Message> {
      * @return : List of message nacked
      * @throws Exception
      */
-    public final List<Message> publishWithConfirmListener(List<Message> messages, AMQP.BasicProperties properties,
+    public List<Message> publishWithConfirmListener(List<Message> messages, AMQP.BasicProperties properties,
             long timeout, @NotNull TimeUnit unit) throws Exception {
         publishChannel.confirmSelect();
         ConcurrentNavigableMap<Long, Message> outstandingConfirms = new ConcurrentSkipListMap<>();
-        final CountDownLatch publishAckLatch = new CountDownLatch(messages.size());
+        List<Message> nackedMessages = new ArrayList<>();
+        CountDownLatch publishAckLatch = new CountDownLatch(messages.size());
+
         publishChannel.addConfirmListener((sequenceNumber, multiple) -> {
-            if (multiple) {
-                ConcurrentNavigableMap<Long, Message> confirmed = outstandingConfirms.headMap(
-                        sequenceNumber, true
-                );
-                for(int i =0;i<confirmed.size();i++)
-                    publishAckLatch.countDown();
-                confirmed.clear();
-            } else {
-                publishAckLatch.countDown();
-                outstandingConfirms.remove(sequenceNumber);
-            }
-            log.info(String.format("Message with delivery tag %s acknoledged", sequenceNumber));
+            messagesAck(sequenceNumber, multiple, outstandingConfirms, publishAckLatch);
         }, (sequenceNumber, multiple) -> {
-            {
-                if(multiple == true)
-                {
-                    ConcurrentNavigableMap<Long, Message> confirmed = outstandingConfirms.headMap(
-                            sequenceNumber, true
-                    );
-                    for(int i =0;i<confirmed.size();i++)
-                        publishAckLatch.countDown();
-                }
-                else
-                    publishAckLatch.countDown();
-            }
-            log.debug(String.format("Message nacked with multiple= %s : %s", multiple, outstandingConfirms.get(sequenceNumber)));
+            nackedMessages.addAll(messagesNack(sequenceNumber, multiple, outstandingConfirms, publishAckLatch));
         });
 
-        String routingKey;
-        if (config.isSharded()) {
-            routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
-        } else {
-            routingKey = queueName;
-        }
+        String routingKey = NamingUtils.getRoutingKey(queueName, config);
 
         long startTime = System.nanoTime();
+
         for (Message message : messages) {
             try {
                 outstandingConfirms.put(publishChannel.getNextPublishSeqNo(), message);
@@ -180,9 +146,49 @@ public class UnmanagedPublisher<Message> {
         }
 
         long endTime = System.nanoTime();
-        log.info(String.format("Published %,d messages with confirmListener in %,d ms%n", messages.size() - outstandingConfirms.size(),
+
+        log.info(String.format("Published %d messages with confirmListener in %d ms", messages.size() - outstandingConfirms.size(),
                 Duration.ofNanos(startTime - endTime).toMillis()));
-        return outstandingConfirms.values().stream().collect(Collectors.toList());
+        nackedMessages.addAll(outstandingConfirms.values());
+        return nackedMessages;
+    }
+
+
+    private void messagesAck(long sequenceNumber, boolean multiple, ConcurrentNavigableMap<Long, Message> outstandingConfirms, CountDownLatch publishAckLatch)
+    {
+        if (multiple) {
+            ConcurrentNavigableMap<Long, Message> confirmed = outstandingConfirms.headMap(
+                    sequenceNumber, true
+            );
+            for(int i =0;i<confirmed.size();i++)
+                publishAckLatch.countDown();
+            confirmed.clear();
+        } else {
+            publishAckLatch.countDown();
+            outstandingConfirms.remove(sequenceNumber);
+        }
+    }
+
+    private List<Message> messagesNack(long sequenceNumber, boolean multiple, ConcurrentNavigableMap<Long, Message> outstandingConfirms, CountDownLatch publishAckLatch)
+    {
+        List<Message> nackedMessages = new ArrayList<>();
+        if(multiple == true)
+        {
+            ConcurrentNavigableMap<Long, Message> nacked = outstandingConfirms.headMap(
+                    sequenceNumber, true
+            );
+            for(int i =0;i<nacked.size();i++)
+                publishAckLatch.countDown();
+            nackedMessages.addAll(nacked.values());
+            nacked.clear();
+        }
+        else
+        {
+            publishAckLatch.countDown();
+            nackedMessages.add(outstandingConfirms.get(sequenceNumber));
+            outstandingConfirms.remove(sequenceNumber);
+        }
+        return nackedMessages;
     }
 
 
@@ -202,8 +208,8 @@ public class UnmanagedPublisher<Message> {
         if (config.isSharded()) {
             int bound = config.getShardCount();
             for (int shardId = 0; shardId < bound; shardId++) {
-                connection.ensure(NamingUtils.getShardedQueueName(queueName, shardId), config.getExchange(),
-                                  connection.rmqOpts(dlx, config));
+                connection.ensure(NamingUtils.getRoutingKey(queueName, config), config.getExchange(),
+                        connection.rmqOpts(dlx, config));
             }
         } else {
             connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx, config));
