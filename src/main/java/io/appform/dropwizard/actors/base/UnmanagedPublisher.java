@@ -135,12 +135,12 @@ public class UnmanagedPublisher<Message> {
             nackedMessages.addAll(messagesNack(sequenceNumber, multiple, outstandingConfirms, publishAckLatch));
         });
 
-        String routingKey = NamingUtils.getRoutingKey(queueName, config);
 
         long startTime = System.nanoTime();
 
         for (Message message : messages) {
             try {
+                String routingKey = NamingUtils.getRoutingKey(queueName, config);
                 outstandingConfirms.put(publishChannel.getNextPublishSeqNo(), message);
                 publishChannel.basicPublish(config.getExchange(), routingKey, properties,
                         mapper().writeValueAsBytes(message));
