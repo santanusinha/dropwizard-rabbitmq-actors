@@ -42,6 +42,7 @@ import javax.net.ssl.SSLContext;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyStore;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -158,8 +159,10 @@ public class RMQConnection implements Managed {
 
     public Map<String, Object> rmqOpts(final ActorConfig actorConfig) {
         final Map<String, Object> ttlOpts = getActorTTLOpts(actorConfig.getTtlConfig());
+        final Map<String, Object> priorityOpts = getPriorityOpts(actorConfig);
         return ImmutableMap.<String, Object>builder()
                 .putAll(ttlOpts)
+                .putAll(priorityOpts)
                 .put("x-ha-policy", "all")
                 .put("ha-mode", "all")
                 .build();
@@ -168,8 +171,10 @@ public class RMQConnection implements Managed {
     public Map<String, Object> rmqOpts(final String deadLetterExchange,
                                        final ActorConfig actorConfig) {
         final Map<String, Object> ttlOpts = getActorTTLOpts(actorConfig.getTtlConfig());
+        final Map<String, Object> priorityOpts = getPriorityOpts(actorConfig);
         return ImmutableMap.<String, Object>builder()
                 .putAll(ttlOpts)
+                .putAll(priorityOpts)
                 .put("x-ha-policy", "all")
                 .put("ha-mode", "all")
                 .put("x-dead-letter-exchange", deadLetterExchange)
@@ -233,4 +238,15 @@ public class RMQConnection implements Managed {
         }
         return ttlOpts;
     }
+
+    private Map<String, Object> getPriorityOpts(final ActorConfig actorConfig) {
+        if(actorConfig.isPriorityQueue()) {
+            return ImmutableMap.<String, Object>builder()
+                    .put("x-max-priority", actorConfig.getMaxPriority())
+                    .build();
+        } else {
+            return Collections.emptyMap();
+        }
+    }
+
 }

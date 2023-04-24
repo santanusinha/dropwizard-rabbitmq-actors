@@ -53,6 +53,12 @@ public class ActorConfig {
     private boolean delayed = false;
 
     @Builder.Default
+    private boolean priorityQueue = false;
+
+    @Builder.Default
+    private int maxPriority = 10;
+
+    @Builder.Default
     private DelayType delayType = DelayType.DELAYED;
 
     @NotNull
