@@ -23,9 +23,7 @@ import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.junit.jupiter.api.Assertions;
 import org.testcontainers.containers.GenericContainer;
 
@@ -45,8 +43,6 @@ public class ExpiryMessagesTest {
     private static final String RABBITMQ_USERNAME = "guest";
     private static final String RABBITMQ_PASSWORD = "guest";
     private static RMQConnection connection;
-    @Rule
-    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
     @BeforeClass
     @SneakyThrows
