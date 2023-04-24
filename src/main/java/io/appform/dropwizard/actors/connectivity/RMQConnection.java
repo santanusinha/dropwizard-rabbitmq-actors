@@ -113,7 +113,8 @@ public class RMQConnection implements Managed {
         connection = factory.newConnection(executorService,
                 config.getBrokers().stream()
                         .map(broker -> new Address(broker.getHost(), broker.getPort()))
-                        .toArray(Address[]::new)
+                        .toArray(Address[]::new),
+                name
         );
         connection.addBlockedListener(new BlockedListener() {
             @Override
@@ -148,6 +149,11 @@ public class RMQConnection implements Managed {
         channel.queueDeclare(queueName, true, false, false, rmqOpts);
         channel.queueBind(queueName, exchange, routingQueue);
         log.info("Created queue: {} bound to {}", queueName, exchange);
+    }
+
+    public void addBinding(String queueName, String exchange, String routingKey) throws Exception {
+        channel.queueBind(queueName, exchange, routingKey);
+        log.info("Created binding for queue : {} bound to {} routing Key {}", queueName, exchange, routingKey);
     }
 
     public Map<String, Object> rmqOpts(final ActorConfig actorConfig) {
@@ -211,10 +217,6 @@ public class RMQConnection implements Managed {
 
     public Channel newChannel() throws IOException {
         return connection.createChannel();
-    }
-
-    private String getSideline(String name) {
-        return String.format("%s_%s", name, "SIDELINE");
     }
 
     private Map<String, Object> getActorTTLOpts(final TtlConfig ttlConfig) {

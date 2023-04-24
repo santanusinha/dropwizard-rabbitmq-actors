@@ -10,10 +10,16 @@ import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.lang3.RandomUtils;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Collections;
+import java.util.HashMap;
+
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
@@ -38,7 +44,7 @@ public class UnmanagedPublisher<Message> {
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
     }
 
-    public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
+    public final void publishWithDelay(final Message message, final long delayMilliseconds) throws Exception {
         log.info("Publishing message to exchange with delay: {}", delayMilliseconds);
         if (!config.isDelayed()) {
             log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
@@ -60,28 +66,53 @@ public class UnmanagedPublisher<Message> {
         }
     }
 
-    public final void publish(Message message) throws Exception {
+    public final void publishWithExpiry(final Message message, final long expiryInMs) throws Exception {
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                .deliveryMode(2)
+                .build();
+        if (expiryInMs > 0) {
+            val expiresAt = Instant.now().toEpochMilli() + expiryInMs;
+            properties = properties.builder()
+                    .headers(ImmutableMap.of(MESSAGE_EXPIRY_TEXT, expiresAt))
+                    .build();
+        }
+        publish(message, properties);
+    }
+
+    public final void publish(final Message message) throws Exception {
         publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
     }
 
-    public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
+    public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
         String routingKey;
         if (config.isSharded()) {
             routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
         } else {
             routingKey = queueName;
         }
-        publishChannel.basicPublish(config.getExchange(), routingKey, properties, mapper().writeValueAsBytes(message));
+        val enrichedProperties = getEnrichedProperties(properties);
+        publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
     }
 
-    private final int getShardId() {
+    private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties) {
+        HashMap<String, Object> enrichedHeaders = new HashMap<>();
+        if (properties.getHeaders() != null) {
+            enrichedHeaders.putAll(properties.getHeaders());
+        }
+        enrichedHeaders.put(MESSAGE_PUBLISHED_TEXT, Instant.now().toEpochMilli());
+        return properties.builder()
+                .headers(Collections.unmodifiableMap(enrichedHeaders))
+                .build();
+    }
+
+    private int getShardId() {
         return RandomUtils.nextInt(0, config.getShardCount());
     }
 
     public final long pendingMessagesCount() {
         try {
             if (config.isSharded()) {
-                int messageCount  = 0 ;
+                long messageCount  = 0 ;
                 for (int i = 0; i < config.getShardCount(); i++) {
                     String shardedQueueName = NamingUtils.getShardedQueueName(queueName, i);
                     messageCount += publishChannel.messageCount(shardedQueueName);
@@ -99,7 +130,7 @@ public class UnmanagedPublisher<Message> {
 
     public final long pendingSidelineMessagesCount() {
         try {
-            return publishChannel.messageCount(queueName + "_SIDELINE");
+            return publishChannel.messageCount(NamingUtils.getSideline(queueName));
         } catch (IOException e) {
             log.error("Issue getting message count. Will return max", e);
         }
@@ -108,7 +139,7 @@ public class UnmanagedPublisher<Message> {
 
     public void start() throws Exception {
         final String exchange = config.getExchange();
-        final String dlx = config.getExchange() + "_SIDELINE";
+        final String dlx = NamingUtils.getSideline(config.getExchange());
         if (config.isDelayed()) {
             ensureDelayedExchange(exchange);
         } else {
@@ -117,13 +148,14 @@ public class UnmanagedPublisher<Message> {
         ensureExchange(dlx);
 
         this.publishChannel = connection.newChannel();
-        connection.ensure(queueName + "_SIDELINE", queueName, dlx,
-                connection.rmqOpts(config));
+        String sidelineQueueName = NamingUtils.getSideline(queueName);
+        connection.ensure(sidelineQueueName, queueName, dlx, connection.rmqOpts(config));
         if (config.isSharded()) {
             int bound = config.getShardCount();
             for (int shardId = 0; shardId < bound; shardId++) {
-                connection.ensure(NamingUtils.getShardedQueueName(queueName, shardId), config.getExchange(),
-                                  connection.rmqOpts(dlx, config));
+                String shardedQueueName = NamingUtils.getShardedQueueName(queueName, shardId);
+                connection.ensure(shardedQueueName, config.getExchange(), connection.rmqOpts(dlx, config));
+                connection.addBinding(sidelineQueueName, dlx, shardedQueueName);
             }
         } else {
             connection.ensure(queueName, config.getExchange(), connection.rmqOpts(dlx, config));
@@ -178,8 +210,12 @@ public class UnmanagedPublisher<Message> {
 
     public void stop() throws Exception {
         try {
-            publishChannel.close();
-            log.info("Publisher channel closed for [{}] with prefix [{}]", name, config.getPrefix());
+            if(publishChannel.isOpen()) {
+                publishChannel.close();
+                log.info("Publisher channel closed for [{}] with prefix [{}]", name, config.getPrefix());
+            } else {
+                log.warn("Publisher channel already closed for [{}] with prefix [{}]", name, config.getPrefix());
+            }
         } catch (Exception e) {
             log.error(String.format("Error closing publisher channel for [%s] with prefix [%s]", name, config.getPrefix()), e);
             throw e;

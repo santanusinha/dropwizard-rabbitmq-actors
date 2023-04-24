@@ -18,7 +18,6 @@ package io.appform.dropwizard.actors.actor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
@@ -30,9 +29,11 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.lang3.ClassUtils;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.Set;
 
 /**
@@ -78,6 +79,7 @@ public abstract class BaseActor<Message> implements Managed {
         actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory,
                 exceptionHandlingFactory, clazz,
                 this::handle,
+                this::handleExpiredMessages,
                 this::isExceptionIgnorable);
     }
 
@@ -96,6 +98,7 @@ public abstract class BaseActor<Message> implements Managed {
         actorImpl = new UnmanagedBaseActor<>(name, config, connectionRegistry, mapper, retryStrategyFactory,
                 exceptionHandlingFactory, clazz,
                 this::handle,
+                this::handleExpiredMessages,
                 this::isExceptionIgnorable);
     }
 
@@ -104,6 +107,13 @@ public abstract class BaseActor<Message> implements Managed {
      */
     protected boolean handle(Message message, MessageMetadata messageMetadata) throws Exception {
         return handle(message);
+    }
+
+    /*
+        Override this method in your code in case you want to handle the expired messages separately
+     */
+    protected boolean handleExpiredMessages(Message message, MessageMetadata messageMetadata) throws Exception {
+        return true;
     }
 
     /*
@@ -120,15 +130,23 @@ public abstract class BaseActor<Message> implements Managed {
                 .anyMatch(exceptionType -> ClassUtils.isAssignable(t.getClass(), exceptionType));
     }
 
-    public final void publishWithDelay(Message message, long delayMilliseconds) throws Exception {
+    public final void publishWithDelay(final Message message, final long delayMilliseconds) throws Exception {
         actorImpl.publishWithDelay(message, delayMilliseconds);
     }
 
-    public final void publish(Message message) throws Exception {
-        publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
+    public final void publishWithExpiry(final Message message, final long expiryInMs) throws Exception {
+        actorImpl.publishWithExpiry(message, expiryInMs);
     }
 
-    public final void publish(Message message, AMQP.BasicProperties properties) throws Exception {
+    public final void publish(final Message message) throws Exception {
+        val properties = new AMQP.BasicProperties.Builder()
+                .deliveryMode(2)
+                .timestamp(new Date())
+                .build();
+        publish(message, properties);
+    }
+
+    public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
         actorImpl.publish(message, properties);
     }
 

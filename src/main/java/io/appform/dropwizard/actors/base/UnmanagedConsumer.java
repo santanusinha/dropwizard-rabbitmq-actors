@@ -26,6 +26,7 @@ public class UnmanagedConsumer<Message> {
     private final Class<? extends Message> clazz;
     private final int prefetchCount;
     private final MessageHandlingFunction<Message, Boolean> handlerFunction;
+    private final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction;
     private final Function<Throwable, Boolean> errorCheckFunction;
     private final String queueName;
     private final RetryStrategy retryStrategy;
@@ -41,6 +42,7 @@ public class UnmanagedConsumer<Message> {
                              final ExceptionHandlingFactory exceptionHandlingFactory,
                              final Class<? extends Message> clazz,
                              final MessageHandlingFunction<Message, Boolean> handlerFunction,
+                             final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
                              final Function<Throwable, Boolean> errorCheckFunction) {
         this.name = NamingUtils.prefixWithNamespace(name);
         this.config = config;
@@ -49,6 +51,7 @@ public class UnmanagedConsumer<Message> {
         this.clazz = clazz;
         this.prefetchCount = config.getPrefetchCount();
         this.handlerFunction = handlerFunction;
+        this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
         this.errorCheckFunction = errorCheckFunction;
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
         this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());
@@ -60,7 +63,7 @@ public class UnmanagedConsumer<Message> {
             Channel consumeChannel = connection.newChannel();
             final Handler<Message> handler =
                     new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction, retryStrategy,
-                                  exceptionHandler, handlerFunction);
+                                  exceptionHandler, handlerFunction, expiredMessageHandlingFunction);
             String queueNameForConsumption;
             if (config.isSharded()) {
                 queueNameForConsumption = NamingUtils.getShardedQueueName(queueName, i % config.getShardCount());
@@ -78,9 +81,16 @@ public class UnmanagedConsumer<Message> {
         handlers.forEach(handler -> {
             try {
                 final Channel channel = handler.getChannel();
-                channel.basicCancel(handler.getTag());
-                channel.close();
-                log.info("Consumer channel closed for [{}] with prefix [{}]", name, config.getPrefix());
+                if(channel.isOpen()) {
+                    channel.basicCancel(handler.getTag());
+                    //Wait till the handler completes consuming and ack'ing the current message.
+                    log.info("Waiting for handler to complete processing the current message..");
+                    while(handler.isRunning());
+                    channel.close();
+                    log.info("Consumer channel closed for [{}] with prefix [{}]", name, config.getPrefix());
+                } else {
+                    log.warn("Consumer channel already closed for [{}] with prefix [{}]", name, config.getPrefix());
+                }
             } catch (Exception e) {
                 log.error(String.format("Error closing consumer channel [%s] for [%s] with prefix [%s]", handler.getTag(), name, config.getPrefix()), e);
             }
