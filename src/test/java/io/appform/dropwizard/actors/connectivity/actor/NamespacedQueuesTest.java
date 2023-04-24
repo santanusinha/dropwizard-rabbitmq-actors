@@ -50,8 +50,8 @@ import java.util.concurrent.Executors;
 @Slf4j
 public class NamespacedQueuesTest {
 
-    private static final int RABBITMQ_MANAGEMENT_PORT = 15672;
-    private static final String RABBITMQ_DOCKER_IMAGE = "rabbitmq:3.8.34-management";
+    private static final int RABBITMQ_MANAGEMENT_PORT = 5672;
+    private static final String RABBITMQ_DOCKER_IMAGE = "rabbitmq:3.8-alpine";
     private static final String RABBITMQ_USERNAME = "guest";
     private static final String RABBITMQ_PASSWORD = "guest";
     private static final String NAMESPACE_ENV_NAME = "namespace1";
@@ -71,9 +71,6 @@ public class NamespacedQueuesTest {
         app.after();
     }
 
-    @Rule
-    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
-
     private RMQConfig config;
     private int mappedManagementPort;
 
@@ -86,7 +83,6 @@ public class NamespacedQueuesTest {
      */
     @Test
     public void testQueuesAreNamespacedWhenFeatureEnvIsSet() throws Exception {
-        environmentVariables.set("NAMESPACE_ENV_NAME", NAMESPACE_ENV_NAME);
         GenericContainer rabbitMQContainer = rabbitMQContainer();
         mappedManagementPort = rabbitMQContainer.getMappedPort(RABBITMQ_MANAGEMENT_PORT);
         config = getRMQConfig(rabbitMQContainer);
@@ -264,6 +260,7 @@ public class NamespacedQueuesTest {
 
     private static GenericContainer rabbitMQContainer() {
         RabbitMQContainerConfiguration containerConfiguration = new RabbitMQContainerConfiguration();
+        containerConfiguration.setDockerImage(RABBITMQ_DOCKER_IMAGE);
         log.info("Starting rabbitMQ server. Docker image: {}", containerConfiguration.getDockerImage());
 
         GenericContainer rabbitMQ =
@@ -283,7 +280,7 @@ public class NamespacedQueuesTest {
 
     private static RMQConfig getRMQConfig(GenericContainer rabbitmqContainer) {
         RMQConfig rmqConfig = new RMQConfig();
-        Integer mappedPort = rabbitmqContainer.getMappedPort(5672);
+        Integer mappedPort = rabbitmqContainer.getMappedPort(RABBITMQ_MANAGEMENT_PORT);
         String host = rabbitmqContainer.getContainerIpAddress();
         List<Broker> brokers = new ArrayList<Broker>();
         brokers.add(new Broker(host, mappedPort));

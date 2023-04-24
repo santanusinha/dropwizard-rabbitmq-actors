@@ -100,7 +100,9 @@
         <guava.version>31.0.1-jre</guava.version>
         <test.container.version>1.0.6</test.container.version>
         <okhttp.version>4.9.3</okhttp.version>
+        <mockito.version>4.4.0</mockito.version>
         <amqp-client.version>5.14.1</amqp-client.version>
+        <junit.version>4.13.2</junit.version>
     </properties>
 
     <dependencyManagement>
@@ -109,6 +111,11 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.java.dev.jna</groupId>
+                <artifactId>jna</artifactId>
+                <version>5.8.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -119,6 +126,12 @@
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.dropwizard</groupId>
@@ -161,6 +174,21 @@
             <artifactId>dropwizard-testing</artifactId>
             <version>${dropwizard.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>junit</groupId>
+                    <artifactId>junit</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.junit.vintage</groupId>
+                    <artifactId>jupiter-vintage-engine</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>2.10.5</version>
         </dependency>
         <dependency>
             <groupId>io.appform.testcontainer</groupId>
@@ -194,7 +222,7 @@
             <exclusions>
                 <exclusion>
                     <groupId>junit</groupId>
-                    <artifactId>junit</artifactId>
+                    <artifactId>junit-dep</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -202,17 +230,6 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <version>5.8.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.vintage</groupId>
-            <artifactId>junit-vintage-engine</artifactId>
-            <version>5.8.1</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>junit</groupId>
-                    <artifactId>junit</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
     </dependencies>
 
@@ -222,9 +239,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.8.1</version>
                     <configuration>
-                        <source>1.8</source>
-                        <target>1.8</target>
+                        <release>17</release>
+                        <source>17</source>
+                        <target>17</target>
+                        <encoding>UTF-8</encoding>
                     </configuration>
                 </plugin>
             </plugins>
