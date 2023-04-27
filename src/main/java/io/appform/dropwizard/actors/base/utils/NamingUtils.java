@@ -6,6 +6,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class NamingUtils {
     public static final String NAMESPACE_ENV_NAME = "NAMESPACE_ENV_NAME";
+    public static final String NAMESPACE_PROPERTY_NAME = "rmq.actors.namespace";
 
     public String queueName(String prefix, String name) {
         final String nameWithPrefix = String.format("%s.%s", prefix, name);
@@ -17,7 +18,10 @@ public class NamingUtils {
     }
 
     public String prefixWithNamespace(String name) {
-        final String namespace = System.getenv(NAMESPACE_ENV_NAME);
+        String namespace = System.getenv(NAMESPACE_ENV_NAME);
+        namespace = CommonUtils.isEmpty(namespace)
+                    ? System.getProperty(NAMESPACE_PROPERTY_NAME, "")
+                    : namespace;
         if (CommonUtils.isEmpty(namespace)) {
             return name;
         }
