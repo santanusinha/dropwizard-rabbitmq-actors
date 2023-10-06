@@ -31,6 +31,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.ClassUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collections;
 import java.util.Date;
@@ -76,7 +77,7 @@ public abstract class BaseActor<Message> implements Managed {
         this.droppedExceptionTypes
                 = null == droppedExceptionTypes
                 ? Collections.emptySet() : droppedExceptionTypes;
-        actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory,
+        actorImpl = new UnmanagedBaseActor<>(name, StringUtils.EMPTY, config, connection, mapper, retryStrategyFactory,
                 exceptionHandlingFactory, clazz,
                 this::handle,
                 this::handleExpiredMessages,
@@ -92,10 +93,24 @@ public abstract class BaseActor<Message> implements Managed {
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
+        this(name, StringUtils.EMPTY, config, connectionRegistry, mapper, retryStrategyFactory,
+                exceptionHandlingFactory, clazz, droppedExceptionTypes);
+    }
+
+    protected BaseActor(
+            String name,
+            String consumerTag,
+            ActorConfig config,
+            ConnectionRegistry connectionRegistry,
+            ObjectMapper mapper,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            Set<Class<?>> droppedExceptionTypes) {
         this.droppedExceptionTypes
                 = null == droppedExceptionTypes
                 ? Collections.emptySet() : droppedExceptionTypes;
-        actorImpl = new UnmanagedBaseActor<>(name, config, connectionRegistry, mapper, retryStrategyFactory,
+        actorImpl = new UnmanagedBaseActor<>(name, consumerTag, config, connectionRegistry, mapper, retryStrategyFactory,
                 exceptionHandlingFactory, clazz,
                 this::handle,
                 this::handleExpiredMessages,

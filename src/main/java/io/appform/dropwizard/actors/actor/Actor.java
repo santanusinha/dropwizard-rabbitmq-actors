@@ -27,6 +27,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * A simpler derivation of {@link BaseActor} to be used in most common actor use cases. This is managed by dropwizard.
@@ -63,7 +64,21 @@ public abstract class Actor<MessageType extends Enum<MessageType>, Message> exte
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
-        super(type.name(), config, connectionRegistry, mapper, retryStrategyFactory, exceptionHandlingFactory,
+        this(type, StringUtils.EMPTY, config, connectionRegistry, mapper, retryStrategyFactory, exceptionHandlingFactory,
+                clazz, droppedExceptionTypes);
+    }
+
+    protected Actor(
+            MessageType type,
+            String consumerTag,
+            ActorConfig config,
+            ConnectionRegistry connectionRegistry,
+            ObjectMapper mapper,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            Set<Class<?>> droppedExceptionTypes) {
+        super(type.name(), consumerTag, config, connectionRegistry, mapper, retryStrategyFactory, exceptionHandlingFactory,
                 clazz, droppedExceptionTypes);
         this.type = type;
     }

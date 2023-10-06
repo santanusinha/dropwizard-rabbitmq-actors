@@ -96,6 +96,44 @@ public class UnmanagedBaseActor<Message> {
                 handlerFunction, expiredMessageHandlingFunction, errorCheckFunction);
     }
 
+    public UnmanagedBaseActor(
+            String name,
+            String consumerTag,
+            ActorConfig config,
+            RMQConnection connection,
+            ObjectMapper mapper,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            MessageHandlingFunction<Message, Boolean> handlerFunction,
+            MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
+            Function<Throwable, Boolean> errorCheckFunction) {
+        this(new UnmanagedPublisher<>(name, config, connection, mapper),
+                new UnmanagedConsumer<>(
+                        name, consumerTag, config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory,
+                        clazz, handlerFunction, expiredMessageHandlingFunction, errorCheckFunction));
+    }
+
+    public UnmanagedBaseActor(
+            String name,
+            String consumerTag,
+            ActorConfig config,
+            ConnectionRegistry connectionRegistry,
+            ObjectMapper mapper,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            MessageHandlingFunction<Message, Boolean> handlerFunction,
+            MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
+            Function<Throwable, Boolean> errorCheckFunction) {
+        val consumerConnection = connectionRegistry.createOrGet(consumerConnectionName(config.getConsumer()));
+        val producerConnection = connectionRegistry.createOrGet(producerConnectionName(config.getProducer()));
+        this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper);
+        this.consumeActor = new UnmanagedConsumer<>(
+                name, consumerTag, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory,
+                clazz, handlerFunction, expiredMessageHandlingFunction, errorCheckFunction);
+    }
+
     public void start() throws Exception {
         if (nonNull(publishActor)) {
             publishActor.start();
