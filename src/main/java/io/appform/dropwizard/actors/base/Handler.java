@@ -63,11 +63,13 @@ public class Handler<Message> extends DefaultConsumer {
 
     private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) throws Exception {
         running = true;
-        val result = expired
-                ? expiredMessageHandlingFunction.apply(message, messageMetadata)
-                : messageHandlingFunction.apply(message, messageMetadata);
-        running = false;
-        return result;
+        try {
+            return expired
+                    ? expiredMessageHandlingFunction.apply(message, messageMetadata)
+                    : messageHandlingFunction.apply(message, messageMetadata);
+        } finally {
+            running = false;
+        }
     }
 
     @Override
