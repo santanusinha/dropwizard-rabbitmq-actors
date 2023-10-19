@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import com.rabbitmq.client.Channel;
 import io.appform.dropwizard.actors.actor.ActorConfig;
+import io.appform.dropwizard.actors.actor.ConsumerConfig;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
@@ -11,10 +12,12 @@ import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.function.Function;
+import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public class UnmanagedConsumer<Message> {
@@ -70,10 +73,11 @@ public class UnmanagedConsumer<Message> {
             } else {
                 queueNameForConsumption = queueName;
             }
-            final String tag = consumeChannel.basicConsume(queueNameForConsumption, false, handler);
+
+            final String tag = consumeChannel.basicConsume(queueNameForConsumption, false, getConsumerTag(i), handler);
             handler.setTag(tag);
             handlers.add(handler);
-            log.info("Started consumer {} of type {}", i, name);
+            log.info("Started consumer {} of type {} with tag {}", i, name, tag);
         }
     }
 
@@ -95,5 +99,12 @@ public class UnmanagedConsumer<Message> {
                 log.error(String.format("Error closing consumer channel [%s] for [%s] with prefix [%s]", handler.getTag(), name, config.getPrefix()), e);
             }
         });
+    }
+
+    private String getConsumerTag(int consumerIndex) {
+        return Optional.ofNullable(config.getConsumer())
+                .map(ConsumerConfig::getTagPrefix)
+                .map(configuredTag -> configuredTag + "_" + consumerIndex)
+                .orElse(StringUtils.EMPTY);
     }
 }
