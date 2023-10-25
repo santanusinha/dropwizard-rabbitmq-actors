@@ -95,12 +95,24 @@ public class TagsBasedConsumerTest {
         assertEquals("Expected consumer tag not generated", StringUtils.EMPTY, actualTag);
     }
 
-    private UnmanagedConsumer<String> createConsumer(String consumerTag) throws IOException {
+    @Test
+    public void testStartWithEmptyNotNullTag() throws Exception {
+        final UnmanagedConsumer<String> consumer = createConsumer(StringUtils.EMPTY);
+        consumer.start();
+        ArgumentCaptor<String> consumerTagArgCaptor = ArgumentCaptor.forClass(String.class);
+        verify(channel, Mockito.times(1)).basicConsume(anyString(), anyBoolean(), consumerTagArgCaptor.capture(),
+                any(Consumer.class));
+        String actualTag = consumerTagArgCaptor.getValue();
+        assertNotNull(actualTag);
+        assertEquals("Expected consumer tag not generated", StringUtils.EMPTY, actualTag);
+    }
+
+    private UnmanagedConsumer<String> createConsumer(String tagPrefix) throws IOException {
         when(actorConfig.getConcurrency()).thenReturn(1);
         when(actorConfig.getPrefix()).thenReturn("test-prefix");
         when(actorConfig.isSharded()).thenReturn(false);
         when(actorConfig.getShardCount()).thenReturn(1);
-        when(actorConfig.getConsumer()).thenReturn(ConsumerConfig.builder().tagPrefix(consumerTag).build());
+        when(actorConfig.getConsumer()).thenReturn(ConsumerConfig.builder().tagPrefix(tagPrefix).build());
         when(rmqConnection.newChannel()).thenReturn(channel);
 
         when(retryStrategyFactory.create(any())).thenReturn(retryStrategy);

@@ -104,7 +104,8 @@ public class UnmanagedConsumer<Message> {
     private String getConsumerTag(int consumerIndex) {
         return Optional.ofNullable(config.getConsumer())
                 .map(ConsumerConfig::getTagPrefix)
-                .map(configuredTag -> configuredTag + "_" + consumerIndex)
+                .filter(StringUtils::isNotBlank)
+                .map(tagPrefix -> tagPrefix + "_" + consumerIndex)
                 .orElse(StringUtils.EMPTY);
     }
 }
