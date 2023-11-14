@@ -17,6 +17,7 @@
 
 package io.appform.dropwizard.actors.connectivity;
 
+import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheck;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -31,6 +32,8 @@ import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
+import io.appform.dropwizard.actors.metrics.MetricObserver;
+import io.appform.dropwizard.actors.observers.RMQPublishObserver;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Environment;
 import lombok.Getter;
@@ -58,6 +61,7 @@ public class RMQConnection implements Managed {
     private final TtlConfig ttlConfig;
     private Connection connection;
     private Channel channel;
+    private RMQPublishObserver rootObserver;
 
 
     public RMQConnection(final String name,
@@ -129,6 +133,7 @@ public class RMQConnection implements Managed {
             }
         });
         channel = connection.createChannel();
+        setupObservers(config, environment.metrics());
         environment.healthChecks().register(String.format("rmqconnection-%s-%s", connection, UUID.randomUUID()), healthcheck());
         log.info(String.format("Started RMQ connection [%s] ", name));
     }
@@ -249,4 +254,8 @@ public class RMQConnection implements Managed {
         }
     }
 
+    private void setupObservers(final RMQConfig config,
+                                final MetricRegistry metricRegistry) {
+        this.rootObserver = new MetricObserver(config, metricRegistry);
+    }
 }

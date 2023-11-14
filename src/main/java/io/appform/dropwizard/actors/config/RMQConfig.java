@@ -89,4 +89,6 @@ public class RMQConfig {
     @Valid
     private List<ConnectionConfig> connections;
 
+    @Builder.Default
+    private boolean metricsEnabled = false;
 }

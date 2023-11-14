@@ -6,6 +6,6 @@ import lombok.Value;
 @Value
 @Builder
 public class ObserverContext {
-    String opType;
+    String operation;
     String queueName;
 }
