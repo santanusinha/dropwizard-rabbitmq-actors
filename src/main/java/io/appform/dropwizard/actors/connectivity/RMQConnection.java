@@ -32,7 +32,7 @@ import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
-import io.appform.dropwizard.actors.metrics.MetricObserver;
+import io.appform.dropwizard.actors.metrics.PublishMetricObserver;
 import io.appform.dropwizard.actors.observers.RMQPublishObserver;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Environment;
@@ -61,6 +61,7 @@ public class RMQConnection implements Managed {
     private final TtlConfig ttlConfig;
     private Connection connection;
     private Channel channel;
+    @Getter
     private RMQPublishObserver rootObserver;
 
 
@@ -256,6 +257,6 @@ public class RMQConnection implements Managed {
 
     private void setupObservers(final RMQConfig config,
                                 final MetricRegistry metricRegistry) {
-        this.rootObserver = new MetricObserver(config, metricRegistry);
+        this.rootObserver = new PublishMetricObserver(config, metricRegistry);
     }
 }

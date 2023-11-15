@@ -4,7 +4,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Timer;
 import io.appform.dropwizard.actors.config.RMQConfig;
-import io.appform.dropwizard.actors.observers.ObserverContext;
+import io.appform.dropwizard.actors.observers.PublishObserverContext;
 import io.appform.dropwizard.actors.observers.RMQPublishObserver;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -17,22 +17,22 @@ import java.util.function.Supplier;
 
 
 @Slf4j
-public class MetricObserver extends RMQPublishObserver {
+public class PublishMetricObserver extends RMQPublishObserver {
     private final RMQConfig rmqConfig;
     private final MetricRegistry metricRegistry;
 
     @Getter
     private final Map<MetricKeyData, MetricData> metricCache = new ConcurrentHashMap<>();
 
-    public MetricObserver(final RMQConfig rmqConfig,
-                          final MetricRegistry metricRegistry) {
+    public PublishMetricObserver(final RMQConfig rmqConfig,
+                                 final MetricRegistry metricRegistry) {
         this.rmqConfig = rmqConfig;
         this.metricRegistry = metricRegistry;
     }
 
     @Override
-    public <T> T execute(ObserverContext context, Supplier<T> supplier) {
-        if (!rmqConfig.isMetricsEnabled()) {
+    public <T> T execute(PublishObserverContext context, Supplier<T> supplier) {
+        if (!MetricUtil.isMetricApplicable(rmqConfig.getMetricConfig(), context.getQueueName())) {
             return proceed(context, supplier);
         }
         val metricData = getMetricData(context);
@@ -50,7 +50,7 @@ public class MetricObserver extends RMQPublishObserver {
         }
     }
 
-    private MetricData getMetricData(final ObserverContext context) {
+    private MetricData getMetricData(final PublishObserverContext context) {
         val metricKeyData = MetricKeyData.builder()
                 .queueName(context.getQueueName())
                 .operation(context.getOperation())

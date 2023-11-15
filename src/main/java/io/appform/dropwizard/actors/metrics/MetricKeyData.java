@@ -1,17 +1,13 @@
 package io.appform.dropwizard.actors.metrics;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.Value;
 
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
 @Data
-@EqualsAndHashCode
+@Value
 public class MetricKeyData {
-    private String queueName;
-    private String operation;
+    String queueName;
+    String operation;
 }

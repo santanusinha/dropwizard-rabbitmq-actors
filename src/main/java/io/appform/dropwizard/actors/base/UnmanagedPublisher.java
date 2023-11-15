@@ -9,6 +9,8 @@ import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.observers.PublishObserverContext;
+import io.appform.dropwizard.actors.observers.RMQPublishObserver;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.RandomUtils;
@@ -29,7 +31,7 @@ public class UnmanagedPublisher<Message> {
     private final RMQConnection connection;
     private final ObjectMapper mapper;
     private final String queueName;
-
+    private final RMQPublishObserver observer;
     private Channel publishChannel;
 
     public UnmanagedPublisher(
@@ -42,6 +44,7 @@ public class UnmanagedPublisher<Message> {
         this.connection = connection;
         this.mapper = mapper;
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
+        this.observer = connection.getRootObserver();
     }
 
     public final void publishWithDelay(final Message message, final long delayMilliseconds) throws Exception {
@@ -90,8 +93,11 @@ public class UnmanagedPublisher<Message> {
         } else {
             routingKey = queueName;
         }
-        val enrichedProperties = getEnrichedProperties(properties);
-        publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
+        val context = PublishObserverContext.builder().queueName(queueName).build();
+        observer.execute(context, () -> {
+            val enrichedProperties = getEnrichedProperties(properties);
+            publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
+        });
     }
 
     private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties) {

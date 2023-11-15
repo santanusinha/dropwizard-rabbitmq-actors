@@ -1,14 +1,26 @@
 package io.appform.dropwizard.actors.metrics;
 
+import io.appform.dropwizard.actors.config.MetricConfig;
 import lombok.experimental.UtilityClass;
 import lombok.val;
 
 @UtilityClass
 public class MetricUtil {
 
-    private static final String RMQ_PREFIX = "rmqconnection";
+    private static final String RMQ_PREFIX = "rmq";
     private static final String DELIMITER = ".";
     private static final String DELIMITER_REPLACEMENT = "_";
+
+    public boolean isMetricApplicable(final MetricConfig metricConfig, final String queueName) {
+        if (metricConfig == null) {
+            return false;
+        }
+        if (metricConfig.isEnabledForAll()) {
+            return true;
+        }
+        return metricConfig.getEnabledForQueues() != null
+                && metricConfig.getEnabledForQueues().contains(queueName);
+    }
 
     public String getMetricPrefix(final MetricKeyData metricKeyData) {
         return getMetricPrefix(metricKeyData.getQueueName(), metricKeyData.getOperation());
