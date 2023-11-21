@@ -12,6 +12,10 @@ public abstract class RMQPublishObserver {
     @Getter
     private RMQPublishObserver next;
 
+    protected RMQPublishObserver(RMQPublishObserver next) {
+        this.next = next;
+    }
+
     public abstract <T> T execute(final PublishObserverContext context, Supplier<T> supplier);
 
     public final RMQPublishObserver setNext(final RMQPublishObserver next) {

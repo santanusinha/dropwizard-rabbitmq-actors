@@ -26,6 +26,7 @@ public class PublishMetricObserver extends RMQPublishObserver {
 
     public PublishMetricObserver(final RMQConfig rmqConfig,
                                  final MetricRegistry metricRegistry) {
+        super(null);
         this.rmqConfig = rmqConfig;
         this.metricRegistry = metricRegistry;
     }
