@@ -59,15 +59,20 @@ public class UnmanagedPublisher<Message> {
                     .operation(PublishOperations.PUBLISH_WITH_DELAY.name())
                     .queueName(queueName)
                     .build();
-            observer.execute(context, () ->
-                publishChannel.basicPublish(ttlExchange(config),
-                        queueName,
-                        new AMQP.BasicProperties.Builder()
-                                .expiration(String.valueOf(delayMilliseconds))
-                                .deliveryMode(2)
-                                .build(),
-                        mapper().writeValueAsBytes(message))
-            );
+            observer.execute(context, () -> {
+                try {
+                    publishChannel.basicPublish(ttlExchange(config),
+                            queueName,
+                            new AMQP.BasicProperties.Builder()
+                                    .expiration(String.valueOf(delayMilliseconds))
+                                    .deliveryMode(2)
+                                    .build(),
+                            mapper().writeValueAsBytes(message));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            });
         } else {
             publish(message, new AMQP.BasicProperties.Builder()
                     .headers(Collections.singletonMap("x-delay", delayMilliseconds))
@@ -103,7 +108,12 @@ public class UnmanagedPublisher<Message> {
         val context = PublishObserverContext.builder().operation(operation).queueName(queueName).build();
         observer.execute(context, () -> {
             val enrichedProperties = getEnrichedProperties(properties);
-            publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
+            try {
+                publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
         });
     }
 
