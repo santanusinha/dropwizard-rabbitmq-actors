@@ -102,7 +102,7 @@ public class Handler<Message> extends DefaultConsumer {
                                                 final byte[] body) throws IOException {
         val expired = isExpired(properties);
         val message = mapper.readValue(body, clazz);
-        return () -> handle(message, getMessageMetadata(envelope, properties), expired);
+        return () -> handle(message, populateMessageMeta(envelope, properties), expired);
     }
 
     private long getDelayInMs(final AMQP.BasicProperties properties) {
@@ -123,7 +123,7 @@ public class Handler<Message> extends DefaultConsumer {
         return false;
     }
 
-    private MessageMetadata getMessageMetadata(final Envelope envelope, final AMQP.BasicProperties properties) {
+    private MessageMetadata populateMessageMeta(final Envelope envelope, final AMQP.BasicProperties properties) {
         val delayInMs = getDelayInMs(properties);
         return new MessageMetadata(envelope.isRedeliver(), delayInMs, properties.getHeaders());
     }

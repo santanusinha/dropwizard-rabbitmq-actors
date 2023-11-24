@@ -113,7 +113,7 @@ public class MessageHeadersAccessibilityTest {
      */
     @Test
     public void shouldBeAbleToAccessHeadersViaMessageMetadata() throws Exception {
-        testDataHolder = new AtomicReference<>(null);
+        AtomicReference<Map<String, Object>> testDataHolder = new AtomicReference<>(null);
         val queueName = "test-queue-1";
         val objectMapper = new ObjectMapper();
         val actorConfig = new ActorConfig();
@@ -131,7 +131,12 @@ public class MessageHeadersAccessibilityTest {
         val consumer = new UnmanagedConsumer<>(
                 queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(),
                 new ExceptionHandlingFactory(),
-                Map.class, this::handle, (x, y) -> true, (x) -> true);
+                Map.class,
+                (msg, metadata) -> {
+                    testDataHolder.set(Map.of("MESSAGE", msg, "METADATA", metadata));
+                    return true;
+                },
+                (x, y) -> true, (x) -> true);
         consumer.start();
 
         Thread.sleep(1000);
@@ -152,8 +157,4 @@ public class MessageHeadersAccessibilityTest {
         Assertions.assertTrue(StringUtils.equals("test-value", String.valueOf(msgHeaders.get("test-header"))));
     }
 
-    private boolean handle(Map<String, String> msg, MessageMetadata messageMetadata) {
-        testDataHolder.set(Map.of("MESSAGE", msg, "METADATA", messageMetadata));
-        return true;
-    }
 }
