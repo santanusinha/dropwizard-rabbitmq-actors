@@ -61,10 +61,10 @@ public class Handler<Message> extends DefaultConsumer {
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
     }
 
-    private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) throws Exception {
+    private boolean handle(final Message message, final MessageMetadata messageMetadata) throws Exception {
         running = true;
         try {
-            return expired
+            return isExpired(messageMetadata.getProperties())
                     ? expiredMessageHandlingFunction.apply(message, messageMetadata)
                     : messageHandlingFunction.apply(message, messageMetadata);
         } finally {
@@ -102,10 +102,8 @@ public class Handler<Message> extends DefaultConsumer {
     private Callable<Boolean> getHandleCallable(final Envelope envelope,
                                                 final AMQP.BasicProperties properties,
                                                 final byte[] body) throws IOException {
-        val delayInMs = getDelayInMs(properties);
-        val expired = isExpired(properties);
         val message = mapper.readValue(body, clazz);
-        return () -> handle(message, messageProperties(envelope, delayInMs), expired);
+        return () -> handle(message, populateMessageMeta(envelope, properties));
     }
 
     private long getDelayInMs(final AMQP.BasicProperties properties) {
@@ -113,9 +111,8 @@ public class Handler<Message> extends DefaultConsumer {
                 && properties.getHeaders().containsKey(MESSAGE_PUBLISHED_TEXT)) {
             val publishedAt = (long) properties.getHeaders().get(MESSAGE_PUBLISHED_TEXT);
             return Math.max(Instant.now().toEpochMilli() - publishedAt, 0);
-        } else {
-            return -1;
         }
+        return -1;
     }
 
     private boolean isExpired(final AMQP.BasicProperties properties) {
@@ -127,7 +124,8 @@ public class Handler<Message> extends DefaultConsumer {
         return false;
     }
 
-    private MessageMetadata messageProperties(final Envelope envelope, final long messageDelay) {
-        return new MessageMetadata(envelope.isRedeliver(), messageDelay);
+    private MessageMetadata populateMessageMeta(final Envelope envelope, final AMQP.BasicProperties properties) {
+        val delayInMs = getDelayInMs(properties);
+        return new MessageMetadata(envelope.isRedeliver(), delayInMs, properties);
     }
 }
