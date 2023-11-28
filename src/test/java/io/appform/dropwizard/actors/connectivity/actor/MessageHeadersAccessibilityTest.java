@@ -7,6 +7,8 @@ import com.rabbitmq.client.AMQP.BasicProperties.Builder;
 import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
+import io.appform.dropwizard.actors.actor.metadata.MessageMetaContext;
+import io.appform.dropwizard.actors.actor.metadata.generators.MessageMetadataGenerator;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.config.Broker;
@@ -19,7 +21,10 @@ import io.appform.testcontainers.rabbitmq.config.RabbitMQContainerConfiguration;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.SneakyThrows;
@@ -37,6 +42,8 @@ public class MessageHeadersAccessibilityTest {
 
     public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app =
             new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class);
+    private static final String CUSTOM_HEADER_KEY = "customHeaderKey";
+    private static final String CUSTOM_HEADER_VALUE = "value1234";
     private static final int RABBITMQ_MANAGEMENT_PORT = 15672;
     private static final String RABBITMQ_DOCKER_IMAGE = "rabbitmq:3.8.34-management";
     private static final String RABBITMQ_USERNAME = "guest";
@@ -111,6 +118,7 @@ public class MessageHeadersAccessibilityTest {
         val objectMapper = new ObjectMapper();
         val actorConfig = new ActorConfig();
         actorConfig.setExchange("test-exchange-1");
+        actorConfig.setMessageMetaGeneratorClasses(List.of(CustomMessageMetaHeaderGenerator.class.getName()));
         val publisher = new UnmanagedPublisher<>(
                 queueName, actorConfig, connection, objectMapper);
         publisher.start();
@@ -144,13 +152,25 @@ public class MessageHeadersAccessibilityTest {
         Object objMeta = testDataHolder.get().get("METADATA");
         Assertions.assertNotNull(objMeta);
         Assertions.assertTrue(objMeta instanceof MessageMetadata);
-        MessageMetadata messageMetadata = (MessageMetadata) objMeta;
-        BasicProperties resultProperties = messageMetadata.getProperties();
-        Assertions.assertNotNull(resultProperties);
+        val messageMetadata = (MessageMetadata) objMeta;
 
-        Map<String, Object> msgHeaders = resultProperties.getHeaders();
+        Map<String, Object> msgHeaders = messageMetadata.getHeaders();
         Assertions.assertNotNull(msgHeaders);
         Assertions.assertTrue(StringUtils.equals("test-value", String.valueOf(msgHeaders.get("test-header"))));
+        Assertions.assertTrue(StringUtils.equals(CUSTOM_HEADER_VALUE, String.valueOf(msgHeaders.get(CUSTOM_HEADER_KEY))));
+    }
+
+    public static class CustomMessageMetaHeaderGenerator implements MessageMetadataGenerator {
+
+        @Override
+        public void generate(MessageMetaContext messageMetaContext, MessageMetadata messageMetadata) {
+            Map<String, Object> headers = messageMetaContext.getHeaders();
+            if (null == headers) {
+                headers = new HashMap<>();
+            }
+            headers.put(CUSTOM_HEADER_KEY, CUSTOM_HEADER_VALUE);
+            messageMetadata.setHeaders(headers);
+        }
     }
 
 }

@@ -8,20 +8,16 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
+import io.appform.dropwizard.actors.actor.metadata.MessageMetadataProvider;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
+import java.io.IOException;
+import java.util.concurrent.Callable;
+import java.util.function.Function;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-
-import java.io.IOException;
-import java.time.Instant;
-import java.util.concurrent.Callable;
-import java.util.function.Function;
-
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
 
 @Slf4j
 public class Handler<Message> extends DefaultConsumer {
@@ -33,7 +29,7 @@ public class Handler<Message> extends DefaultConsumer {
     private final ExceptionHandler exceptionHandler;
     private final MessageHandlingFunction<Message, Boolean> messageHandlingFunction;
     private final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction;
-
+    private final MessageMetadataProvider messageMetadataProvider;
     @Getter
     private volatile boolean running;
 
@@ -49,7 +45,8 @@ public class Handler<Message> extends DefaultConsumer {
                    final RetryStrategy retryStrategy,
                    final ExceptionHandler exceptionHandler,
                    final MessageHandlingFunction<Message, Boolean> messageHandlingFunction,
-                   final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction) throws Exception {
+                   final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
+                   final MessageMetadataProvider messageMetadataProvider) throws Exception {
         super(channel);
         this.mapper = mapper;
         this.clazz = clazz;
@@ -59,12 +56,13 @@ public class Handler<Message> extends DefaultConsumer {
         this.exceptionHandler = exceptionHandler;
         this.messageHandlingFunction = messageHandlingFunction;
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
+        this.messageMetadataProvider = messageMetadataProvider;
     }
 
     private boolean handle(final Message message, final MessageMetadata messageMetadata) throws Exception {
         running = true;
         try {
-            return isExpired(messageMetadata.getProperties())
+            return messageMetadata.isExpired()
                     ? expiredMessageHandlingFunction.apply(message, messageMetadata)
                     : messageHandlingFunction.apply(message, messageMetadata);
         } finally {
@@ -103,29 +101,7 @@ public class Handler<Message> extends DefaultConsumer {
                                                 final AMQP.BasicProperties properties,
                                                 final byte[] body) throws IOException {
         val message = mapper.readValue(body, clazz);
-        return () -> handle(message, populateMessageMeta(envelope, properties));
+        return () -> handle(message, messageMetadataProvider.createMetadata(envelope, properties));
     }
 
-    private long getDelayInMs(final AMQP.BasicProperties properties) {
-        if (properties.getHeaders() != null
-                && properties.getHeaders().containsKey(MESSAGE_PUBLISHED_TEXT)) {
-            val publishedAt = (long) properties.getHeaders().get(MESSAGE_PUBLISHED_TEXT);
-            return Math.max(Instant.now().toEpochMilli() - publishedAt, 0);
-        }
-        return -1;
-    }
-
-    private boolean isExpired(final AMQP.BasicProperties properties) {
-        if (properties.getHeaders() != null
-                && properties.getHeaders().containsKey(MESSAGE_EXPIRY_TEXT)) {
-            val expiresAt = (long) properties.getHeaders().get(MESSAGE_EXPIRY_TEXT);
-            return Instant.now().toEpochMilli() >= expiresAt;
-        }
-        return false;
-    }
-
-    private MessageMetadata populateMessageMeta(final Envelope envelope, final AMQP.BasicProperties properties) {
-        val delayInMs = getDelayInMs(properties);
-        return new MessageMetadata(envelope.isRedeliver(), delayInMs, properties);
-    }
 }

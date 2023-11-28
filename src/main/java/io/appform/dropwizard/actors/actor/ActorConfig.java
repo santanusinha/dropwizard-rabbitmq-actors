@@ -17,23 +17,26 @@
 package io.appform.dropwizard.actors.actor;
 
 import io.appform.dropwizard.actors.TtlConfig;
+import io.appform.dropwizard.actors.actor.metadata.generators.MessageDelayMetaGenerator;
+import io.appform.dropwizard.actors.actor.metadata.generators.MessageExpiredMetaGenerator;
+import io.appform.dropwizard.actors.actor.metadata.generators.MessageReDeliveredMetaGenerator;
 import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConfig;
 import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
 import io.dropwizard.validation.ValidationMethod;
+import java.util.List;
+import java.util.Objects;
+import javax.validation.Valid;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
-
-import javax.validation.Valid;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-import java.util.Objects;
 
 /**
  * Configuration for an actor
@@ -45,6 +48,13 @@ import java.util.Objects;
 @NoArgsConstructor
 @Builder
 public class ActorConfig {
+
+    public static final List<String> DEFAULT_METADATA_GENERATORS = List.of(
+            MessageReDeliveredMetaGenerator.class.getName(),
+            MessageDelayMetaGenerator.class.getName(),
+            MessageExpiredMetaGenerator.class.getName()
+    );
+
     @NotNull
     @NotEmpty
     private String exchange;
@@ -95,6 +105,8 @@ public class ActorConfig {
     @Min(2)
     @Max(32)
     private Integer shardCount;
+
+    private List<String> messageMetaGeneratorClasses;
 
     public boolean isSharded() {
         return Objects.nonNull(shardCount);
