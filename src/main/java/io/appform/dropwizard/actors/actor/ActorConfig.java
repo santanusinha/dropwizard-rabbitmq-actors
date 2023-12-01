@@ -61,6 +61,9 @@ public class ActorConfig {
     @Builder.Default
     private DelayType delayType = DelayType.DELAYED;
 
+    @Builder.Default
+    private QueueType queueType = QueueType.CLASSIC;
+
     @NotNull
     @NotEmpty
     @Builder.Default

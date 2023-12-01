@@ -177,6 +177,7 @@ public class RMQConnection implements Managed {
                 .putAll(priorityOpts)
                 .put("x-ha-policy", "all")
                 .put("ha-mode", "all")
+                .put("x-queue-type", actorConfig.getQueueType())
                 .put("x-dead-letter-exchange", deadLetterExchange)
                 .build();
     }
