@@ -17,14 +17,16 @@
 package io.appform.dropwizard.actors.utils;
 
 import com.google.common.base.Strings;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
+@Slf4j
 public class CommonUtils {
 
     public static boolean isEmpty(Collection<?> collection) {
@@ -43,5 +45,23 @@ public class CommonUtils {
         return CommonUtils.isEmpty(retriableExceptions)
                 || (null != exception
                 && retriableExceptions.contains(exception.getClass().getSimpleName()));
+    }
+
+    public static <T> Optional<T> extractMessagePropertiesHeader(final Map<String, Object> headers,
+                                                          final String key,
+                                                          final Class<T> clazz) {
+        if (null == headers || !headers.containsKey(key)) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(headers.get(key))
+                .filter(value -> {
+                    if (clazz == value.getClass()) {
+                        return true;
+                    }
+                    log.warn("Cannot cast {} to class {}", value, clazz);
+                    return false;
+                })
+                .map(clazz::cast);
     }
 }

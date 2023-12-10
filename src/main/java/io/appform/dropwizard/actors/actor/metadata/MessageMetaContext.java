@@ -1,18 +1,18 @@
-package io.appform.dropwizard.actors.actor;
+package io.appform.dropwizard.actors.actor.metadata;
 
 import java.util.Date;
 import java.util.Map;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
+/**
+ * Ref : <a href="https://www.rabbitmq.com/amqp-0-9-1-reference.html#class.basic">AMQP properties</a>
+ */
 @Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public final class MessageMetadata {
+public class MessageMetaContext {
 
+    private boolean redelivered;
     private String contentType;
     private String contentEncoding;
     private Map<String,Object> headers;
@@ -22,14 +22,9 @@ public final class MessageMetadata {
     private String replyTo;
     private String expiration;
     private String messageId;
-    private Date msgSentTimestamp;
+    private Date timestamp;
     private String type;
     private String userId;
     private String appId;
     private String clusterId;
-
-    // custom fields
-    private boolean redelivered;
-    private long delayInMs;
-    private boolean expired;
 }
