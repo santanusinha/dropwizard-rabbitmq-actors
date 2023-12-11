@@ -7,16 +7,22 @@ import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.ConsumerConfig;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
+import io.appform.dropwizard.actors.common.ConsumerOperations;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
+import io.appform.dropwizard.actors.observers.PublishObserverContext;
+import io.appform.dropwizard.actors.observers.RMQPublishObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
+
+import java.io.IOException;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.function.Function;
+import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
@@ -34,6 +40,7 @@ public class UnmanagedConsumer<Message> {
     private final String queueName;
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
+    private final RMQPublishObserver observer;
 
     private final List<Handler<Message>> handlers = Lists.newArrayList();
 
@@ -59,6 +66,7 @@ public class UnmanagedConsumer<Message> {
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
         this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());
         this.exceptionHandler = exceptionHandlingFactory.create(config.getExceptionHandlerConfig());
+        this.observer = connection.getRootObserver();
     }
 
     public void start() throws Exception {
@@ -74,7 +82,19 @@ public class UnmanagedConsumer<Message> {
                 queueNameForConsumption = queueName;
             }
 
-            final String tag = consumeChannel.basicConsume(queueNameForConsumption, false, getConsumerTag(i), handler);
+            val context = PublishObserverContext.builder()
+                    .operation(ConsumerOperations.CONSUME.name())
+                    .queueName(queueName)
+                    .build();
+            int finalI = i;
+            final String tag = observer.execute(context, () -> {
+                try {
+                    return consumeChannel.basicConsume(queueNameForConsumption, false, getConsumerTag(finalI), handler);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            });
             handler.setTag(tag);
             handlers.add(handler);
             log.info("Started consumer {} of type {} with tag {}", i, name, tag);

@@ -32,6 +32,7 @@ import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
+import io.appform.dropwizard.actors.metrics.ConsumerMetricObserver;
 import io.appform.dropwizard.actors.metrics.PublishMetricObserver;
 import io.appform.dropwizard.actors.observers.RMQPublishObserver;
 import io.appform.dropwizard.actors.observers.TerminalObserver;
@@ -276,8 +277,9 @@ public class RMQConnection implements Managed {
             if (null == observer) {
                 return;
             }
-            this.rootObserver = observer.setNext(rootObserver);
+            rootObserver = observer.setNext(rootObserver);
         }
+        rootObserver = new ConsumerMetricObserver(config, metricRegistry).setNext(rootObserver);
         this.rootObserver = new PublishMetricObserver(config, metricRegistry).setNext(rootObserver);
     }
 }
