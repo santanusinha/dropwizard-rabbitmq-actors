@@ -59,7 +59,7 @@ public class UnmanagedPublisher<Message> {
                     .operation(PublishOperations.PUBLISH_WITH_DELAY.name())
                     .queueName(queueName)
                     .build();
-            observer.execute(context, () -> {
+            observer.executePublish(context, () -> {
                 try {
                     publishChannel.basicPublish(ttlExchange(config),
                             queueName,
@@ -106,7 +106,7 @@ public class UnmanagedPublisher<Message> {
             routingKey = queueName;
         }
         val context = PublishObserverContext.builder().operation(operation).queueName(queueName).build();
-        observer.execute(context, () -> {
+        observer.executePublish(context, () -> {
             val enrichedProperties = getEnrichedProperties(properties);
             try {
                 publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));

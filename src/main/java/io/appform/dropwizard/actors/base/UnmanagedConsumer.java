@@ -87,7 +87,7 @@ public class UnmanagedConsumer<Message> {
                     .queueName(queueName)
                     .build();
             int finalI = i;
-            final String tag = observer.execute(context, () -> {
+            final String tag = observer.executeConsume(context, () -> {
                 try {
                     return consumeChannel.basicConsume(queueNameForConsumption, false, getConsumerTag(finalI), handler);
                 } catch (IOException e) {

@@ -3,16 +3,13 @@ package io.appform.dropwizard.actors.metrics;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Timer;
-import io.appform.dropwizard.actors.common.PublishOperations;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.observers.PublishObserverContext;
 import io.appform.dropwizard.actors.observers.RMQPublishObserver;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.apache.commons.lang3.EnumUtils;
 
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -35,15 +32,15 @@ public class PublishMetricObserver extends RMQPublishObserver {
     }
 
     @Override
-    public <T> T execute(PublishObserverContext context, Supplier<T> supplier) {
-        if (!EnumUtils.isValidEnum(PublishOperations.class, context.getOperation()) || !MetricUtil.isMetricApplicable(rmqConfig.getMetricConfig(), context.getQueueName())) {
-            return proceed(context, supplier);
+    public <T> T executePublish(PublishObserverContext context, Supplier<T> supplier) {
+        if (!MetricUtil.isMetricApplicable(rmqConfig.getMetricConfig(), context.getQueueName())) {
+            return proceedPublish(context, supplier);
         }
         val metricData = getMetricData(context);
         metricData.getTotal().mark();
         val timer = metricData.getTimer().time();
         try {
-            val response = proceed(context, supplier);
+            val response = proceedPublish(context, supplier);
             metricData.getSuccess().mark();
             return response;
         } catch (Throwable t) {
@@ -54,6 +51,25 @@ public class PublishMetricObserver extends RMQPublishObserver {
         }
     }
 
+    @Override
+    public <T> T executeConsume(PublishObserverContext context, Supplier<T> supplier) {
+        if (!MetricUtil.isMetricApplicable(rmqConfig.getMetricConfig(), context.getQueueName())) {
+            return proceedConsume(context, supplier);
+        }
+        val metricData = getMetricData(context);
+        metricData.getTotal().mark();
+        val timer = metricData.getTimer().time();
+        try {
+            val response = proceedConsume(context, supplier);
+            metricData.getSuccess().mark();
+            return response;
+        } catch (Throwable t) {
+            metricData.getFailed().mark();
+            throw t;
+        } finally {
+            timer.stop();
+        }
+    }
     private MetricData getMetricData(final PublishObserverContext context) {
         val metricKeyData = MetricKeyData.builder()
                 .queueName(context.getQueueName())

@@ -11,7 +11,12 @@ public final class TerminalObserver extends RMQPublishObserver {
     }
 
     @Override
-    public <T> T execute(PublishObserverContext context, Supplier<T> supplier) {
-        return proceed(context, supplier);
+    public <T> T executePublish(PublishObserverContext context, Supplier<T> supplier) {
+        return proceedPublish(context, supplier);
+    }
+
+    @Override
+    public <T> T executeConsume(PublishObserverContext context, Supplier<T> supplier) {
+        return proceedConsume(context, supplier);
     }
 }
