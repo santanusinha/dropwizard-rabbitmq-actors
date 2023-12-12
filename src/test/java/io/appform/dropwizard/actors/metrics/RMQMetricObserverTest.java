@@ -14,9 +14,9 @@ import java.util.ArrayList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class PublishMetricObserverTest {
+class RMQMetricObserverTest {
 
-    private PublishMetricObserver publishMetricObserver;
+    private RMQMetricObserver publishMetricObserver;
     private RMQConfig config;
     private final MetricRegistry metricRegistry = new MetricRegistry();;
 
@@ -31,14 +31,14 @@ class PublishMetricObserverTest {
                 .startupGracePeriodSeconds(1)
                 .metricConfig(MetricConfig.builder().enabledForAll(true).build())
                 .build();
-        this.publishMetricObserver = new PublishMetricObserver(config, metricRegistry);
+        this.publishMetricObserver = new RMQMetricObserver(config, metricRegistry);
     }
 
     @Test
     void testExecuteWhenMetricNotApplicable() {
         val config = this.config;
         config.setMetricConfig(MetricConfig.builder().enabledForAll(false).build());
-        val publishMetricObserver = new PublishMetricObserver(config, metricRegistry);
+        val publishMetricObserver = new RMQMetricObserver(config, metricRegistry);
         assertEquals(terminate(),
                 publishMetricObserver.executePublish(PublishObserverContext.builder().build(), this::terminate));
     }

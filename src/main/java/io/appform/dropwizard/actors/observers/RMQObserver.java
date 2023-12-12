@@ -7,12 +7,12 @@ import java.util.function.Supplier;
 /**
  *
  */
-public abstract class RMQPublishObserver {
+public abstract class RMQObserver {
 
     @Getter
-    private RMQPublishObserver next;
+    private RMQObserver next;
 
-    protected RMQPublishObserver(RMQPublishObserver next) {
+    protected RMQObserver(RMQObserver next) {
         this.next = next;
     }
 
@@ -20,7 +20,7 @@ public abstract class RMQPublishObserver {
 
     public abstract <T> T executeConsume(final PublishObserverContext context, Supplier<T> supplier);
 
-    public final RMQPublishObserver setNext(final RMQPublishObserver next) {
+    public final RMQObserver setNext(final RMQObserver next) {
         this.next = next;
         return this;
     }

@@ -12,7 +12,7 @@ import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.PublishObserverContext;
-import io.appform.dropwizard.actors.observers.RMQPublishObserver;
+import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 
@@ -40,7 +40,7 @@ public class UnmanagedConsumer<Message> {
     private final String queueName;
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
-    private final RMQPublishObserver observer;
+    private final RMQObserver observer;
 
     private final List<Handler<Message>> handlers = Lists.newArrayList();
 
@@ -84,7 +84,7 @@ public class UnmanagedConsumer<Message> {
 
             val context = PublishObserverContext.builder()
                     .operation(ConsumerOperations.CONSUME.name())
-                    .queueName(queueName)
+                    .queueName(queueNameForConsumption)
                     .build();
             int finalI = i;
             final String tag = observer.executeConsume(context, () -> {

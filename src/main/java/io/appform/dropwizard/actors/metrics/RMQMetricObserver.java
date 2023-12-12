@@ -5,7 +5,7 @@ import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Timer;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.observers.PublishObserverContext;
-import io.appform.dropwizard.actors.observers.RMQPublishObserver;
+import io.appform.dropwizard.actors.observers.RMQObserver;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -17,15 +17,15 @@ import java.util.function.Supplier;
 
 
 @Slf4j
-public class PublishMetricObserver extends RMQPublishObserver {
+public class RMQMetricObserver extends RMQObserver {
     private final RMQConfig rmqConfig;
     private final MetricRegistry metricRegistry;
 
     @Getter
     private final Map<MetricKeyData, MetricData> metricCache = new ConcurrentHashMap<>();
 
-    public PublishMetricObserver(final RMQConfig rmqConfig,
-                                 final MetricRegistry metricRegistry) {
+    public RMQMetricObserver(final RMQConfig rmqConfig,
+                             final MetricRegistry metricRegistry) {
         super(null);
         this.rmqConfig = rmqConfig;
         this.metricRegistry = metricRegistry;

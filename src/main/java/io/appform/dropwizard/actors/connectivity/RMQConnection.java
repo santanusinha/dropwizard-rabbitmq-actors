@@ -32,8 +32,8 @@ import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
-import io.appform.dropwizard.actors.metrics.PublishMetricObserver;
-import io.appform.dropwizard.actors.observers.RMQPublishObserver;
+import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
+import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.observers.TerminalObserver;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Environment;
@@ -65,9 +65,9 @@ public class RMQConnection implements Managed {
     private Connection connection;
     private Channel channel;
 
-    private final List<RMQPublishObserver> observers = new ArrayList<>();
+    private final List<RMQObserver> observers = new ArrayList<>();
     @Getter
-    private RMQPublishObserver rootObserver;
+    private RMQObserver rootObserver;
 
 
     public RMQConnection(final String name,
@@ -260,7 +260,7 @@ public class RMQConnection implements Managed {
         }
     }
 
-    public final void registerObserver(final RMQPublishObserver observer) {
+    public final void registerObserver(final RMQObserver observer) {
         if (null == observer) {
             return;
         }
@@ -278,7 +278,6 @@ public class RMQConnection implements Managed {
             }
             rootObserver = observer.setNext(rootObserver);
         }
-//        rootObserver = new ConsumerMetricObserver(config, metricRegistry).setNext(rootObserver);
-        this.rootObserver = new PublishMetricObserver(config, metricRegistry).setNext(rootObserver);
+        this.rootObserver = new RMQMetricObserver(config, metricRegistry).setNext(rootObserver);
     }
 }
