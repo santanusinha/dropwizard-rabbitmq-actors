@@ -53,9 +53,11 @@ public class RMQMetricObserver extends RMQObserver {
 
     @Override
     public <T> T executeConsume(PublishObserverContext context, Supplier<T> supplier) {
+        log.info("Inside ConsumerMetricObserver.executeConsume");
         if (!MetricUtil.isMetricApplicable(rmqConfig.getMetricConfig(), context.getQueueName())) {
             return proceedConsume(context, supplier);
         }
+        log.info("Executing ConsumerMetricObserver.executeConsume");
         val metricData = getMetricData(context);
         metricData.getTotal().mark();
         val timer = metricData.getTimer().time();
