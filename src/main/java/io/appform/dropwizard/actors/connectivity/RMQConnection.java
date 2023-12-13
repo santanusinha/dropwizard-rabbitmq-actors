@@ -17,7 +17,6 @@
 
 package io.appform.dropwizard.actors.connectivity;
 
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheck;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -32,9 +31,7 @@ import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
-import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.observers.RMQObserver;
-import io.appform.dropwizard.actors.observers.TerminalObserver;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Environment;
 import lombok.Getter;
@@ -67,19 +64,20 @@ public class RMQConnection implements Managed {
 
     private final List<RMQObserver> observers = new ArrayList<>();
     @Getter
-    private RMQObserver rootObserver;
+    private final RMQObserver rootObserver;
 
 
     public RMQConnection(final String name,
                          final RMQConfig config,
                          final ExecutorService executorService,
                          final Environment environment,
-                         final TtlConfig ttlConfig) {
+                         final TtlConfig ttlConfig, RMQObserver rootObserver) {
         this.name = name;
         this.config = config;
         this.executorService = executorService;
         this.environment = environment;
         this.ttlConfig = ttlConfig;
+        this.rootObserver = rootObserver;
     }
 
 
@@ -139,7 +137,6 @@ public class RMQConnection implements Managed {
             }
         });
         channel = connection.createChannel();
-        setupObservers(config, environment.metrics());
         environment.healthChecks().register(String.format("rmqconnection-%s-%s", connection, UUID.randomUUID()), healthcheck());
         log.info(String.format("Started RMQ connection [%s] ", name));
     }
@@ -258,26 +255,5 @@ public class RMQConnection implements Managed {
         } else {
             return Collections.emptyMap();
         }
-    }
-
-    public final void registerObserver(final RMQObserver observer) {
-        if (null == observer) {
-            return;
-        }
-        this.observers.add(observer);
-        log.info("Registered observer: " + observer.getClass().getSimpleName());
-    }
-
-    private void setupObservers(final RMQConfig config,
-                                final MetricRegistry metricRegistry) {
-        //Terminal observer calls the actual method
-        rootObserver = new TerminalObserver();
-        for (var observer : observers) {
-            if (null == observer) {
-                return;
-            }
-            rootObserver = observer.setNext(rootObserver);
-        }
-        this.rootObserver = new RMQMetricObserver(config, metricRegistry).setNext(rootObserver);
     }
 }

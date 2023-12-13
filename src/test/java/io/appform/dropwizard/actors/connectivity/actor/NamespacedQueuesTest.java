@@ -13,6 +13,7 @@ import io.appform.dropwizard.actors.config.Broker;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.utils.ActorType;
 import io.appform.dropwizard.actors.utils.AsyncOperationHelper;
@@ -51,6 +52,7 @@ public class NamespacedQueuesTest {
 
     public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app =
             new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class);
+    private final MetricRegistry metricRegistry = new MetricRegistry();
 
     @BeforeClass
     @SneakyThrows
@@ -89,7 +91,7 @@ public class NamespacedQueuesTest {
         config = getRMQConfig(rabbitMQContainer);
 
         RMQConnection connection = new RMQConnection("test-conn", config,
-                Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build());
+                Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build(), new RMQMetricObserver(config, metricRegistry));
         connection.start();
 
         ActorConfig actorConfig = new ActorConfig();
@@ -120,7 +122,7 @@ public class NamespacedQueuesTest {
         config = getRMQConfig(rabbitMQContainer);
 
         RMQConnection connection = new RMQConnection("test-conn", config,
-                Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build());
+                Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build(), new RMQMetricObserver(config, metricRegistry));
         connection.start();
 
         ActorConfig actorConfig = new ActorConfig();
@@ -154,7 +156,7 @@ public class NamespacedQueuesTest {
                 .ttl(Duration.ofSeconds(5))
                 .build();
         RMQConnection connection = new RMQConnection("test-conn", config,
-                Executors.newSingleThreadExecutor(), app.getEnvironment(), ttlConfig);
+                Executors.newSingleThreadExecutor(), app.getEnvironment(), ttlConfig, new RMQMetricObserver(config, metricRegistry));
         connection.start();
 
         ActorConfig actorConfig = new ActorConfig();
@@ -180,7 +182,7 @@ public class NamespacedQueuesTest {
         config = getRMQConfig(rabbitMQContainer);
 
         RMQConnection connection = new RMQConnection("test-conn", config,
-                Executors.newSingleThreadExecutor(), app.getEnvironment(), null);
+                Executors.newSingleThreadExecutor(), app.getEnvironment(), null, new RMQMetricObserver(config, metricRegistry));
         connection.start();
 
         ActorConfig actorConfig = AsyncOperationHelper.buildActorConfig();
@@ -194,7 +196,7 @@ public class NamespacedQueuesTest {
                                                   new Configuration());
         ConnectionRegistry registry = new ConnectionRegistry(environment,
                 (name, coreSize) -> Executors.newFixedThreadPool(1),
-                config, TtlConfig.builder().build());
+                config, TtlConfig.builder().build(), new RMQMetricObserver(config, metricRegistry));
         SidelineTestActor actor = new SidelineTestActor(actorConfig, registry, objectMapper,
                 new RetryStrategyFactory(), new ExceptionHandlingFactory());
         actor.start();

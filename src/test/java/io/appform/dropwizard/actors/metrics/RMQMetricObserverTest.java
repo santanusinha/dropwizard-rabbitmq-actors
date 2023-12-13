@@ -18,7 +18,7 @@ class RMQMetricObserverTest {
 
     private RMQMetricObserver publishMetricObserver;
     private RMQConfig config;
-    private final MetricRegistry metricRegistry = new MetricRegistry();;
+    private final MetricRegistry metricRegistry = new MetricRegistry();
 
     @BeforeEach
     public void setup() {

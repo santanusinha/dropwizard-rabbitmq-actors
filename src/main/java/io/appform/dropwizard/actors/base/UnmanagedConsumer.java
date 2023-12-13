@@ -72,9 +72,7 @@ public class UnmanagedConsumer<Message> {
     public void start() throws Exception {
         for (int i = 1; i <= config.getConcurrency(); i++) {
             Channel consumeChannel = connection.newChannel();
-            final Handler<Message> handler =
-                    new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction, retryStrategy,
-                                  exceptionHandler, handlerFunction, expiredMessageHandlingFunction);
+
             String queueNameForConsumption;
             if (config.isSharded()) {
                 queueNameForConsumption = NamingUtils.getShardedQueueName(queueName, i % config.getShardCount());
@@ -82,19 +80,12 @@ public class UnmanagedConsumer<Message> {
                 queueNameForConsumption = queueName;
             }
 
-            val context = PublishObserverContext.builder()
-                    .operation(ConsumerOperations.CONSUME.name())
-                    .queueName(queueNameForConsumption)
-                    .build();
-            int finalI = i;
-            final String tag = observer.executeConsume(context, () -> {
-                try {
-                    return consumeChannel.basicConsume(queueNameForConsumption, false, getConsumerTag(finalI), handler);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                return null;
-            });
+            final Handler<Message> handler =
+                    new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction, retryStrategy,
+                                  exceptionHandler, handlerFunction, expiredMessageHandlingFunction, observer,
+                            queueNameForConsumption);
+
+            final String tag = consumeChannel.basicConsume(queueNameForConsumption, false, getConsumerTag(i), handler);
             handler.setTag(tag);
             handlers.add(handler);
             log.info("Started consumer {} of type {} with tag {}", i, name, tag);

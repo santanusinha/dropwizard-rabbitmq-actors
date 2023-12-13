@@ -16,10 +16,14 @@
 
 package io.appform.dropwizard.actors;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Preconditions;
 import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
+import io.appform.dropwizard.actors.observers.RMQObserver;
+import io.appform.dropwizard.actors.observers.TerminalObserver;
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.setup.Bootstrap;
@@ -28,6 +32,8 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 
 /**
@@ -38,6 +44,9 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
 
     @Getter
     private ConnectionRegistry connectionRegistry;
+    @Getter
+    private RMQObserver rootObserver;
+    private final List<RMQObserver> observers = new ArrayList<>();
 
     private RMQConfig rmqConfig;
 
@@ -51,8 +60,9 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
         val executorServiceProvider = getExecutorServiceProvider(t);
         val ttlConfig = ttlConfig();
         Preconditions.checkNotNull(executorServiceProvider, "Null executor service provider provided");
+        setupObservers(rmqConfig, environment.metrics());
         this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, rmqConfig,
-                ttlConfig == null ? TtlConfig.builder().build(): ttlConfig);
+                ttlConfig == null ? TtlConfig.builder().build(): ttlConfig, rootObserver);
         environment.lifecycle().manage(connectionRegistry);
     }
 
@@ -77,5 +87,27 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
      */
     protected ExecutorServiceProvider getExecutorServiceProvider(T t) {
         return (name, coreSize) -> Executors.newFixedThreadPool(coreSize);
+    }
+
+    public final void registerObserver(final RMQObserver observer) {
+        if (null == observer) {
+            return;
+        }
+        this.observers.add(observer);
+        log.info("Registered observer: " + observer.getClass().getSimpleName());
+    }
+
+    private void setupObservers(final RMQConfig config,
+                                final MetricRegistry metricRegistry) {
+        //Terminal observer calls the actual method
+        rootObserver = new TerminalObserver();
+        for (var observer : observers) {
+            if (null == observer) {
+                return;
+            }
+            rootObserver = observer.setNext(rootObserver);
+        }
+        this.rootObserver = new RMQMetricObserver(config, metricRegistry).setNext(rootObserver);
+        log.info("Root observer is {}", this.rootObserver);
     }
 }

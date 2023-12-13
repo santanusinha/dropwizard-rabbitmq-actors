@@ -8,6 +8,7 @@ import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
+import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.common.PublishOperations;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.observers.PublishObserverContext;
@@ -66,7 +67,7 @@ public class UnmanagedPublisher<Message> {
                             new AMQP.BasicProperties.Builder()
                                     .expiration(String.valueOf(delayMilliseconds))
                                     .deliveryMode(2)
-                                    .headers(Collections.singletonMap("custom-header", "published_in_que_" + queueName))
+                                    .headers(Collections.singletonMap(Constants.SPYGLASS_SOURCE_ID, queueName))
                                     .build(),
                             mapper().writeValueAsBytes(message));
                 } catch (IOException e) {
@@ -124,7 +125,7 @@ public class UnmanagedPublisher<Message> {
             enrichedHeaders.putAll(properties.getHeaders());
         }
         enrichedHeaders.put(MESSAGE_PUBLISHED_TEXT, Instant.now().toEpochMilli());
-        enrichedHeaders.put("custom-header", "published_in_que_" + queueName);
+        enrichedHeaders.put(Constants.SPYGLASS_SOURCE_ID, queueName);
         return properties.builder()
                 .headers(Collections.unmodifiableMap(enrichedHeaders))
                 .build();

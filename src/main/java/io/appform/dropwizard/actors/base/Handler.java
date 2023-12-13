@@ -8,7 +8,11 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
+import io.appform.dropwizard.actors.common.Constants;
+import io.appform.dropwizard.actors.common.ConsumerOperations;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
+import io.appform.dropwizard.actors.observers.PublishObserverContext;
+import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import lombok.Getter;
 import lombok.Setter;
@@ -33,6 +37,8 @@ public class Handler<Message> extends DefaultConsumer {
     private final ExceptionHandler exceptionHandler;
     private final MessageHandlingFunction<Message, Boolean> messageHandlingFunction;
     private final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction;
+    private final RMQObserver observer;
+    private final String queueName;
 
     @Getter
     private volatile boolean running;
@@ -49,10 +55,14 @@ public class Handler<Message> extends DefaultConsumer {
                    final RetryStrategy retryStrategy,
                    final ExceptionHandler exceptionHandler,
                    final MessageHandlingFunction<Message, Boolean> messageHandlingFunction,
-                   final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction) throws Exception {
+                   final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
+                   final RMQObserver observer,
+                   final String queueName) throws Exception {
         super(channel);
         this.mapper = mapper;
         this.clazz = clazz;
+        this.observer = observer;
+        this.queueName = queueName;
         getChannel().basicQos(prefetchCount);
         this.errorCheckFunction = errorCheckFunction;
         this.retryStrategy = retryStrategy;
@@ -61,15 +71,24 @@ public class Handler<Message> extends DefaultConsumer {
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
     }
 
-    private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) throws Exception {
+    private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired, final String spyglassSourceId) throws Exception {
         running = true;
-        try {
-            return expired
-                    ? expiredMessageHandlingFunction.apply(message, messageMetadata)
-                    : messageHandlingFunction.apply(message, messageMetadata);
-        } finally {
-            running = false;
-        }
+        val context = PublishObserverContext.builder()
+                .operation(ConsumerOperations.CONSUME.name())
+                .queueName(queueName)
+                .build();
+        return observer.executeConsume(context, () -> {
+            try {
+                return expired
+                        ? expiredMessageHandlingFunction.apply(message, messageMetadata)
+                        : messageHandlingFunction.apply(message, messageMetadata);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            } finally {
+                running = false;
+            }
+        });
     }
 
     @Override
@@ -107,7 +126,12 @@ public class Handler<Message> extends DefaultConsumer {
         val delayInMs = getDelayInMs(properties);
         val expired = isExpired(properties);
         val message = mapper.readValue(body, clazz);
-        return () -> handle(message, messageProperties(envelope, delayInMs), expired);
+        val spyglassSourceId = getSpyglassSourceId(properties);
+        return () -> handle(message, messageProperties(envelope, delayInMs), expired, spyglassSourceId);
+    }
+
+    private String getSpyglassSourceId(AMQP.BasicProperties properties) {
+        return properties.getHeaders().getOrDefault(Constants.SPYGLASS_SOURCE_ID, "").toString();
     }
 
     private long getDelayInMs(final AMQP.BasicProperties properties) {
