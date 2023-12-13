@@ -78,6 +78,8 @@ public class Handler<Message> extends DefaultConsumer {
                                final AMQP.BasicProperties properties,
                                final byte[] body) throws IOException {
         try {
+            log.info("Inside Handler.handleDelivery");
+            log.info("Properties are: {}", properties);
             val handleCallable = getHandleCallable(envelope, properties, body);
 
             if (retryStrategy.execute(handleCallable)) {
