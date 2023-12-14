@@ -21,6 +21,8 @@ import lombok.val;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 
@@ -71,7 +73,7 @@ public class Handler<Message> extends DefaultConsumer {
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
     }
 
-    private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired, final String spyglassSourceId) throws Exception {
+    private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired, final Map<String, Object> headers) throws Exception {
         running = true;
         val context = PublishObserverContext.builder()
                 .operation(ConsumerOperations.CONSUME.name())
@@ -88,7 +90,7 @@ public class Handler<Message> extends DefaultConsumer {
             } finally {
                 running = false;
             }
-        });
+        }, headers);
     }
 
     @Override
@@ -126,8 +128,7 @@ public class Handler<Message> extends DefaultConsumer {
         val delayInMs = getDelayInMs(properties);
         val expired = isExpired(properties);
         val message = mapper.readValue(body, clazz);
-        val spyglassSourceId = getSpyglassSourceId(properties);
-        return () -> handle(message, messageProperties(envelope, delayInMs), expired, spyglassSourceId);
+        return () -> handle(message, messageProperties(envelope, delayInMs), expired, properties.getHeaders());
     }
 
     private String getSpyglassSourceId(AMQP.BasicProperties properties) {

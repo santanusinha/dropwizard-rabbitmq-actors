@@ -60,21 +60,21 @@ public class UnmanagedPublisher<Message> {
                     .operation(PublishOperations.PUBLISH_WITH_DELAY.name())
                     .queueName(queueName)
                     .build();
-            observer.executePublish(context, () -> {
+            observer.executePublish(context, headers -> {
                 try {
                     publishChannel.basicPublish(ttlExchange(config),
                             queueName,
                             new AMQP.BasicProperties.Builder()
                                     .expiration(String.valueOf(delayMilliseconds))
                                     .deliveryMode(2)
-                                    .headers(Collections.singletonMap(Constants.SPYGLASS_SOURCE_ID, queueName))
+                                    .headers(headers)
                                     .build(),
                             mapper().writeValueAsBytes(message));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 return null;
-            });
+            }, new HashMap<>());
         } else {
             publish(message, new AMQP.BasicProperties.Builder()
                     .headers(Collections.singletonMap("x-delay", delayMilliseconds))
@@ -108,19 +108,22 @@ public class UnmanagedPublisher<Message> {
             routingKey = queueName;
         }
         val context = PublishObserverContext.builder().operation(operation).queueName(routingKey).build();
-        observer.executePublish(context, () -> {
-            val enrichedProperties = getEnrichedProperties(properties);
+        observer.executePublish(context, headers -> {
+            val enrichedProperties = getEnrichedProperties(properties, headers);
             try {
                 publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
             } catch (IOException e) {
                 e.printStackTrace();
             }
             return null;
-        });
+        }, new HashMap<>());
     }
 
-    private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties) {
+    private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties, HashMap<String, Object> headers) {
         HashMap<String, Object> enrichedHeaders = new HashMap<>();
+        if (headers != null) {
+            enrichedHeaders.putAll(headers);
+        }
         if (properties.getHeaders() != null) {
             enrichedHeaders.putAll(properties.getHeaders());
         }

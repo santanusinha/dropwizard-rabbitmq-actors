@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,8 +40,9 @@ class RMQMetricObserverTest {
         val config = this.config;
         config.setMetricConfig(MetricConfig.builder().enabledForAll(false).build());
         val publishMetricObserver = new RMQMetricObserver(config, metricRegistry);
-        assertEquals(terminate(),
-                publishMetricObserver.executePublish(PublishObserverContext.builder().build(), this::terminate));
+        val headers = new HashMap<String, Object>();
+        assertEquals(terminate(headers),
+                publishMetricObserver.executePublish(PublishObserverContext.builder().build(), this::terminate, headers));
     }
 
     @Test
@@ -49,7 +51,8 @@ class RMQMetricObserverTest {
                 .operation(PublishOperations.PUBLISH.name())
                 .queueName("default")
                 .build();
-        assertEquals(terminate(), publishMetricObserver.executePublish(context, this::terminate));
+        val headers = new HashMap<String, Object>();
+        assertEquals(terminate(headers), publishMetricObserver.executePublish(context, this::terminate, headers));
         val key = MetricKeyData.builder().operation(context.getOperation()).queueName(context.getQueueName()).build();
         validateMetrics(publishMetricObserver.getMetricCache().get(key), 1, 0);
     }
@@ -60,7 +63,7 @@ class RMQMetricObserverTest {
                 .operation(PublishOperations.PUBLISH.name())
                 .queueName("default")
                 .build();
-        assertThrows(RuntimeException.class, () -> publishMetricObserver.executePublish(context, this::terminateWithException));
+        assertThrows(RuntimeException.class, () -> publishMetricObserver.executePublish(context, this::terminateWithException, new HashMap<>()));
         val key = MetricKeyData.builder().operation(context.getOperation()).queueName(context.getQueueName()).build();
         validateMetrics(publishMetricObserver.getMetricCache().get(key), 0, 1);
     }
@@ -74,11 +77,11 @@ class RMQMetricObserverTest {
         assertEquals(failedCount, metricData.getFailed().getCount());
     }
 
-    private Integer terminate() {
+    private Integer terminate(HashMap<String, Object> headers) {
         return 1;
     }
 
-    private Integer terminateWithException() {
+    private Integer terminateWithException(HashMap<String, Object> headers) {
         throw new RuntimeException();
     }
 }
