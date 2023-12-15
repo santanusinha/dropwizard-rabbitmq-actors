@@ -8,8 +8,7 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
-import io.appform.dropwizard.actors.common.Constants;
-import io.appform.dropwizard.actors.common.ConsumerOperations;
+import io.appform.dropwizard.actors.common.RMQOperations;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.PublishObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
@@ -21,7 +20,6 @@ import lombok.val;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
@@ -76,7 +74,7 @@ public class Handler<Message> extends DefaultConsumer {
     private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired, final Map<String, Object> headers) throws Exception {
         running = true;
         val context = PublishObserverContext.builder()
-                .operation(ConsumerOperations.CONSUME.name())
+                .operation(RMQOperations.CONSUME.name())
                 .queueName(queueName)
                 .build();
         return observer.executeConsume(context, () -> {
@@ -99,8 +97,6 @@ public class Handler<Message> extends DefaultConsumer {
                                final AMQP.BasicProperties properties,
                                final byte[] body) throws IOException {
         try {
-            log.info("Inside Handler.handleDelivery");
-            log.info("Properties are: {}", properties);
             val handleCallable = getHandleCallable(envelope, properties, body);
 
             if (retryStrategy.execute(handleCallable)) {
@@ -129,10 +125,6 @@ public class Handler<Message> extends DefaultConsumer {
         val expired = isExpired(properties);
         val message = mapper.readValue(body, clazz);
         return () -> handle(message, messageProperties(envelope, delayInMs), expired, properties.getHeaders());
-    }
-
-    private String getSpyglassSourceId(AMQP.BasicProperties properties) {
-        return properties.getHeaders().getOrDefault(Constants.SPYGLASS_SOURCE_ID, "").toString();
     }
 
     private long getDelayInMs(final AMQP.BasicProperties properties) {

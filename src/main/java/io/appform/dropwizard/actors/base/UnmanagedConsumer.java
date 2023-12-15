@@ -7,22 +7,19 @@ import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.ConsumerConfig;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
-import io.appform.dropwizard.actors.common.ConsumerOperations;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
-import io.appform.dropwizard.actors.observers.PublishObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 
-import java.io.IOException;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.function.Function;
-import lombok.val;
+
 import org.apache.commons.lang3.StringUtils;
 
 @Slf4j

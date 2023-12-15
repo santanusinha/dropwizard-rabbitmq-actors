@@ -22,7 +22,7 @@ import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.common.Constants;
-import io.appform.dropwizard.actors.common.PublishOperations;
+import io.appform.dropwizard.actors.common.RMQOperations;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategy;
 import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategyVisitor;
@@ -128,7 +128,7 @@ public class UnmanagedBaseActor<Message> {
     }
 
     public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
-        publishActor().publish(message, properties, PublishOperations.PUBLISH.name());
+        publishActor().publish(message, properties, RMQOperations.PUBLISH.name());
     }
 
     public final long pendingMessagesCount() {

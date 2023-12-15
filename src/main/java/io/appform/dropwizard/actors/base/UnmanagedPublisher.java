@@ -8,8 +8,7 @@ import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
-import io.appform.dropwizard.actors.common.Constants;
-import io.appform.dropwizard.actors.common.PublishOperations;
+import io.appform.dropwizard.actors.common.RMQOperations;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.observers.PublishObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
@@ -57,7 +56,7 @@ public class UnmanagedPublisher<Message> {
 
         if (config.getDelayType() == DelayType.TTL) {
             val context = PublishObserverContext.builder()
-                    .operation(PublishOperations.PUBLISH_WITH_DELAY.name())
+                    .operation(RMQOperations.PUBLISH_WITH_DELAY.name())
                     .queueName(queueName)
                     .build();
             observer.executePublish(context, headers -> {
@@ -79,7 +78,7 @@ public class UnmanagedPublisher<Message> {
             publish(message, new AMQP.BasicProperties.Builder()
                     .headers(Collections.singletonMap("x-delay", delayMilliseconds))
                     .deliveryMode(2)
-                    .build(), PublishOperations.PUBLISH_WITH_DELAY.name());
+                    .build(), RMQOperations.PUBLISH_WITH_DELAY.name());
         }
     }
 
@@ -93,11 +92,11 @@ public class UnmanagedPublisher<Message> {
                     .headers(ImmutableMap.of(MESSAGE_EXPIRY_TEXT, expiresAt))
                     .build();
         }
-        publish(message, properties, PublishOperations.PUBLISH_WITH_EXPIRY.name());
+        publish(message, properties, RMQOperations.PUBLISH_WITH_EXPIRY.name());
     }
 
     public final void publish(final Message message) throws Exception {
-        publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC, PublishOperations.PUBLISH.name());
+        publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC, RMQOperations.PUBLISH.name());
     }
 
     public final void publish(final Message message, final AMQP.BasicProperties properties, final String operation) throws Exception {
@@ -128,7 +127,6 @@ public class UnmanagedPublisher<Message> {
             enrichedHeaders.putAll(properties.getHeaders());
         }
         enrichedHeaders.put(MESSAGE_PUBLISHED_TEXT, Instant.now().toEpochMilli());
-        enrichedHeaders.put(Constants.SPYGLASS_SOURCE_ID, queueName);
         return properties.builder()
                 .headers(Collections.unmodifiableMap(enrichedHeaders))
                 .build();
