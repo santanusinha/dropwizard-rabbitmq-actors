@@ -1,6 +1,9 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.0.28-9
+Added header forwarding
+
 ## 2.0.28-2
 - Fixed pending count for sharded queues
 
