@@ -21,6 +21,7 @@ import com.codahale.metrics.health.HealthCheck;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.rabbitmq.client.Address;
 import com.rabbitmq.client.BlockedListener;
 import com.rabbitmq.client.Channel;
@@ -29,16 +30,12 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.StandardMetricsCollector;
 import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.actor.ActorConfig;
+import io.appform.dropwizard.actors.actor.HaMode;
+import io.appform.dropwizard.actors.actor.QueueType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Environment;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
-import org.apache.http.ssl.SSLContexts;
-
-import javax.net.ssl.SSLContext;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyStore;
@@ -47,6 +44,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import javax.net.ssl.SSLContext;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.ssl.SSLContexts;
 
 @Slf4j
 public class RMQConnection implements Managed {
@@ -160,26 +162,54 @@ public class RMQConnection implements Managed {
     public Map<String, Object> rmqOpts(final ActorConfig actorConfig) {
         final Map<String, Object> ttlOpts = getActorTTLOpts(actorConfig.getTtlConfig());
         final Map<String, Object> priorityOpts = getPriorityOpts(actorConfig);
-        return ImmutableMap.<String, Object>builder()
+        Builder<String, Object> builder = ImmutableMap.<String, Object>builder()
                 .putAll(ttlOpts)
-                .putAll(priorityOpts)
-                .put("x-ha-policy", "all")
-                .put("ha-mode", "all")
-                .build();
+                .putAll(priorityOpts);
+        if (actorConfig.getQueueType() == QueueType.CLASSIC) {
+            builder.putAll(buildClassicQueue(actorConfig).build());
+        } else if (actorConfig.getQueueType() == QueueType.QUORUM) {
+            builder.putAll(buildQuorumQueue(actorConfig).build());
+        }
+        return builder.build();
+    }
+
+    public Builder<String, Object> buildQuorumQueue(ActorConfig actorConfig) {
+        return ImmutableMap.<String, Object>builder()
+                .put("x-queue-type", QueueType.QUORUM.toString()
+                        .toLowerCase())
+                .put("x-quorum-initial-group-size", actorConfig.getQuorumInitialGroupSize());
+    }
+
+    public Builder<String, Object> buildClassicQueue(ActorConfig actorConfig) {
+        Builder<String, Object> builder = ImmutableMap.<String, Object>builder()
+                .put("x-queue-type", QueueType.CLASSIC.toString()
+                        .toLowerCase())
+                .put("ha-mode", actorConfig.getHaMode()
+                        .toString()
+                        .toLowerCase());
+        if (actorConfig.getHaMode() == HaMode.EXACTLY) {
+            builder.put("ha-params", actorConfig.getHaParams());
+        }
+        if (actorConfig.isLazyMode()) {
+            builder.put("x-queue-mode", "lazy");
+        }
+        return builder;
     }
 
     public Map<String, Object> rmqOpts(final String deadLetterExchange,
                                        final ActorConfig actorConfig) {
         final Map<String, Object> ttlOpts = getActorTTLOpts(actorConfig.getTtlConfig());
         final Map<String, Object> priorityOpts = getPriorityOpts(actorConfig);
-        return ImmutableMap.<String, Object>builder()
+        Builder<String, Object> builder = ImmutableMap.<String, Object>builder()
                 .putAll(ttlOpts)
                 .putAll(priorityOpts)
-                .put("x-ha-policy", "all")
-                .put("ha-mode", "all")
-                .put("x-queue-type", actorConfig.getQueueType().toString().toLowerCase())
-                .put("x-dead-letter-exchange", deadLetterExchange)
-                .build();
+                .put("x-dead-letter-exchange", deadLetterExchange);
+        if (actorConfig.getQueueType() == QueueType.CLASSIC) {
+            builder.putAll(buildClassicQueue(actorConfig).build());
+        } else if (actorConfig.getQueueType() == QueueType.QUORUM) {
+            builder.putAll(buildQuorumQueue(actorConfig).build());
+        }
+        return builder.build();
     }
 
     public HealthCheck healthcheck() {
