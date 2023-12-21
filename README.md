@@ -8,6 +8,7 @@ Provides actor abstraction on RabbitMQ for dropwizard based projects.
     <groupId>io.appform.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors</artifactId>
     <version>2.0.28-10</version>
+>>>>>>> master
 </dependency>
 ```
 
