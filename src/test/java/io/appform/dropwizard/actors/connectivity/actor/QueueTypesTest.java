@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -53,8 +52,8 @@ public class QueueTypesTest {
 
         app.before();
 
-        val rabbitMQContainer = rabbitMQContainer();
-        val config = getRMQConfig(rabbitMQContainer);
+        GenericContainer rabbitMQContainer = rabbitMQContainer();
+        RMQConfig config = getRMQConfig(rabbitMQContainer);
 
         connection = new RMQConnection("test-conn", config, Executors.newSingleThreadExecutor(), app.getEnvironment(),
                 TtlConfig.builder()
@@ -70,7 +69,7 @@ public class QueueTypesTest {
     }
 
     private static GenericContainer rabbitMQContainer() {
-        val containerConfiguration = new RabbitMQContainerConfiguration();
+        RabbitMQContainerConfiguration containerConfiguration = new RabbitMQContainerConfiguration();
         log.info("Starting rabbitMQ server. Docker image: {}", containerConfiguration.getDockerImage());
 
         GenericContainer rabbitMQ = new GenericContainer(RABBITMQ_DOCKER_IMAGE).withEnv("RABBITMQ_DEFAULT_VHOST",
@@ -88,10 +87,10 @@ public class QueueTypesTest {
     }
 
     private static RMQConfig getRMQConfig(GenericContainer rabbitmqContainer) {
-        val rmqConfig = new RMQConfig();
-        val mappedPort = rabbitmqContainer.getMappedPort(5672);
-        val host = rabbitmqContainer.getContainerIpAddress();
-        val brokers = new ArrayList<Broker>();
+        RMQConfig rmqConfig = new RMQConfig();
+        Integer mappedPort = rabbitmqContainer.getMappedPort(5672);
+        String host = rabbitmqContainer.getContainerIpAddress();
+        ArrayList<Broker> brokers = new ArrayList<Broker>();
         brokers.add(new Broker(host, mappedPort));
         rmqConfig.setBrokers(brokers);
         rmqConfig.setUserName(RABBITMQ_USERNAME);
@@ -102,44 +101,69 @@ public class QueueTypesTest {
     }
 
     public static Stream<Arguments> provideActorConfig() {
-        return Stream.of(Arguments.of(ActorConfig.builder()
+        return Stream.of(Arguments.of(buildClassicQueue(), "classic-queue-ha-all"),
+                Arguments.of(buildCustomClassicQueue(), "classic-queue-ha-2"),
+                Arguments.of(buildQuorumQueue(), "quorumQueue"),
+                Arguments.of(buildCustomQuorumQueue(), "quorumQueue-groupSize-5"),
+                Arguments.of(buildLazyQueue(), "lazy-queue"));
+    }
+
+    private static ActorConfig buildLazyQueue() {
+        return ActorConfig.builder()
                 .queueType(QueueType.CLASSIC)
-                .exchange(TEST_EXCHANGE)
-                .build(), "classic-queue-ha-all"), Arguments.of(ActorConfig.builder()
+                .lazyMode(true)
+                .build();
+    }
+
+    private static ActorConfig buildCustomQuorumQueue() {
+        return ActorConfig.builder()
+                .queueType(QueueType.QUORUM)
+                .quorumInitialGroupSize(5)
+                .build();
+    }
+
+    private static ActorConfig buildQuorumQueue() {
+        return ActorConfig.builder()
+                .queueType(QueueType.QUORUM)
+                .build();
+    }
+
+    private static ActorConfig buildCustomClassicQueue() {
+        return ActorConfig.builder()
                 .queueType(QueueType.CLASSIC)
                 .exchange(TEST_EXCHANGE)
                 .haMode(HaMode.EXACTLY)
                 .haParams("2")
-                .build(), "classic-queue-ha-2"), Arguments.of(ActorConfig.builder()
-                .queueType(QueueType.QUORUM)
-                .build(), "quorumQueue"), Arguments.of(ActorConfig.builder()
-                .queueType(QueueType.QUORUM)
-                .quorumInitialGroupSize(5)
-                .build(), "quorumQueue-groupSize-5"), Arguments.of(ActorConfig.builder()
+                .build();
+    }
+
+    private static ActorConfig buildClassicQueue() {
+        return ActorConfig.builder()
                 .queueType(QueueType.CLASSIC)
-                .lazyMode(true)
-                .build(), "lazy-queue"));
+                .exchange(TEST_EXCHANGE)
+                .build();
     }
 
     /**
      * This test does the following:
      * - Publisher publishes a message
-     * - Consumer will consume the message and verifies that headers are accessible
+     * - Consumer will consume the message and verifies that the queues are properly setup
      */
     @ParameterizedTest
     @MethodSource("provideActorConfig")
-    public void testConsumer(ActorConfig actorConfig,
+    void testConsumer(ActorConfig actorConfig,
                              String queueName) throws Exception {
         AtomicReference<Map<String, Object>> testDataHolder = new AtomicReference<>(null);
-        val objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = new ObjectMapper();
         actorConfig.setExchange("test-exchange-1");
-        val publisher = new UnmanagedPublisher<>(queueName, actorConfig, connection, objectMapper);
+        UnmanagedPublisher<Object> publisher = new UnmanagedPublisher<>(queueName, actorConfig, connection,
+                objectMapper);
         publisher.start();
 
-        val message = ImmutableMap.of("key", "test-message");
+        ImmutableMap<String, String> message = ImmutableMap.of("key", "test-message");
         publisher.publish(message);
 
-        val consumer = new UnmanagedConsumer<>(queueName, actorConfig, connection, objectMapper,
+        UnmanagedConsumer<Map> consumer = new UnmanagedConsumer<>(queueName, actorConfig, connection, objectMapper,
                 new RetryStrategyFactory(), new ExceptionHandlingFactory(), Map.class, (msg, metadata) -> {
             testDataHolder.set(Map.of("MESSAGE", msg));
             return true;
