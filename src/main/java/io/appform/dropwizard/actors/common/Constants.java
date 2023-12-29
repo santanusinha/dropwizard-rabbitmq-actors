@@ -6,8 +6,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Constants {
 
-    public static final String DEFAULT_CONNECTION_NAME = "default";
+    public static final String DEFAULT_PRODUCER_CONNECTION_NAME = "defaultproducer";
 
+    public static final String DEFAULT_CONSUMER_CONNECTION_NAME = "defaultconsumer";
     public static final int DEFAULT_THREADS_PER_CONNECTION = 10;
 
     public static final int MAX_THREADS_PER_CONNECTION = 300;

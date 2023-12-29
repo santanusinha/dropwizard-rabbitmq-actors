@@ -63,7 +63,8 @@ public class ConnectionRegistry implements Managed {
     }
 
     private int determineThreadPoolSize(String connectionName) {
-        if (Objects.equals(connectionName, Constants.DEFAULT_CONNECTION_NAME)) {
+        if (Objects.equals(connectionName, Constants.DEFAULT_PRODUCER_CONNECTION_NAME) ||
+                Objects.equals(connectionName, Constants.DEFAULT_CONSUMER_CONNECTION_NAME)) {
             return rmqConfig.getThreadPoolSize();
         }
 
