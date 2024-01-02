@@ -10,7 +10,7 @@ import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.common.RMQOperations;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
-import io.appform.dropwizard.actors.observers.PublishObserverContext;
+import io.appform.dropwizard.actors.observers.ObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 
 import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
 import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
@@ -55,12 +56,13 @@ public class UnmanagedPublisher<Message> {
         }
 
         if (config.getDelayType() == DelayType.TTL) {
-            val context = PublishObserverContext.builder()
+            val context = ObserverContext.builder()
                     .operation(RMQOperations.PUBLISH_WITH_DELAY.name())
                     .queueName(queueName)
                     .build();
-            observer.executePublish(context, headers -> {
+            observer.executePublish(context, () -> {
                 try {
+                    val headers = context.getHeaders();
                     publishChannel.basicPublish(ttlExchange(config),
                             queueName,
                             new AMQP.BasicProperties.Builder()
@@ -73,7 +75,7 @@ public class UnmanagedPublisher<Message> {
                     e.printStackTrace();
                 }
                 return null;
-            }, new HashMap<>());
+            });
         } else {
             publish(message, new AMQP.BasicProperties.Builder()
                     .headers(Collections.singletonMap("x-delay", delayMilliseconds))
@@ -106,8 +108,9 @@ public class UnmanagedPublisher<Message> {
         } else {
             routingKey = queueName;
         }
-        val context = PublishObserverContext.builder().operation(operation).queueName(routingKey).build();
-        observer.executePublish(context, headers -> {
+        val context = ObserverContext.builder().operation(operation).queueName(routingKey).build();
+        observer.executePublish(context, () -> {
+            val headers = context.getHeaders();
             val enrichedProperties = getEnrichedProperties(properties, headers);
             try {
                 publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
@@ -115,11 +118,11 @@ public class UnmanagedPublisher<Message> {
                 e.printStackTrace();
             }
             return null;
-        }, new HashMap<>());
+        });
     }
 
-    private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties, HashMap<String, Object> headers) {
-        HashMap<String, Object> enrichedHeaders = new HashMap<>();
+    private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties, Map<String, Object> headers) {
+        Map<String, Object> enrichedHeaders = new HashMap<>();
         if (headers != null) {
             enrichedHeaders.putAll(headers);
         }

@@ -10,7 +10,7 @@ import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.common.RMQOperations;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
-import io.appform.dropwizard.actors.observers.PublishObserverContext;
+import io.appform.dropwizard.actors.observers.ObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import lombok.Getter;
@@ -73,9 +73,10 @@ public class Handler<Message> extends DefaultConsumer {
 
     private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired, final Map<String, Object> headers) throws Exception {
         running = true;
-        val context = PublishObserverContext.builder()
+        val context = ObserverContext.builder()
                 .operation(RMQOperations.CONSUME.name())
                 .queueName(queueName)
+                .headers(headers)
                 .build();
         return observer.executeConsume(context, () -> {
             try {
@@ -88,7 +89,7 @@ public class Handler<Message> extends DefaultConsumer {
             } finally {
                 running = false;
             }
-        }, headers);
+        });
     }
 
     @Override

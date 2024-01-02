@@ -1,8 +1,5 @@
 package io.appform.dropwizard.actors.observers;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -14,13 +11,12 @@ public final class TerminalObserver extends RMQObserver {
     }
 
     @Override
-    public <T> T executePublish(PublishObserverContext context, Function<HashMap<String, Object>, T> supplier, HashMap<String, Object> headers) {
-        return proceedPublish(context, supplier, headers);
+    public <T> T executePublish(ObserverContext context, Supplier<T> supplier) {
+        return proceedPublish(context, supplier);
     }
 
     @Override
-    public <T> T executeConsume(PublishObserverContext context, Supplier<T> supplier,
-                                final Map<String, Object> headers) {
-        return proceedConsume(context, supplier, headers);
+    public <T> T executeConsume(ObserverContext context, Supplier<T> supplier) {
+        return proceedConsume(context, supplier);
     }
 }

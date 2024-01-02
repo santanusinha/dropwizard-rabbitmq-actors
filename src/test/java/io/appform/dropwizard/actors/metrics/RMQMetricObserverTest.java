@@ -4,7 +4,7 @@ import com.codahale.metrics.MetricRegistry;
 import io.appform.dropwizard.actors.common.RMQOperations;
 import io.appform.dropwizard.actors.config.MetricConfig;
 import io.appform.dropwizard.actors.config.RMQConfig;
-import io.appform.dropwizard.actors.observers.PublishObserverContext;
+import io.appform.dropwizard.actors.observers.ObserverContext;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,29 +41,29 @@ class RMQMetricObserverTest {
         config.setMetricConfig(MetricConfig.builder().enabledForAll(false).build());
         val publishMetricObserver = new RMQMetricObserver(config, metricRegistry);
         val headers = new HashMap<String, Object>();
-        assertEquals(terminate(headers),
-                publishMetricObserver.executePublish(PublishObserverContext.builder().build(), this::terminate, headers));
+        assertEquals(terminate(),
+                publishMetricObserver.executePublish(ObserverContext.builder().build(), this::terminate));
     }
 
     @Test
     void testExecuteWithNoException() {
-        val context = PublishObserverContext.builder()
+        val context = ObserverContext.builder()
                 .operation(RMQOperations.PUBLISH.name())
                 .queueName("default")
                 .build();
         val headers = new HashMap<String, Object>();
-        assertEquals(terminate(headers), publishMetricObserver.executePublish(context, this::terminate, headers));
+        assertEquals(terminate(), publishMetricObserver.executePublish(context, this::terminate));
         val key = MetricKeyData.builder().operation(context.getOperation()).queueName(context.getQueueName()).build();
         validateMetrics(publishMetricObserver.getMetricCache().get(key), 1, 0);
     }
 
     @Test
     void testExecuteWithException() {
-        val context = PublishObserverContext.builder()
+        val context = ObserverContext.builder()
                 .operation(RMQOperations.PUBLISH.name())
                 .queueName("default")
                 .build();
-        assertThrows(RuntimeException.class, () -> publishMetricObserver.executePublish(context, this::terminateWithException, new HashMap<>()));
+        assertThrows(RuntimeException.class, () -> publishMetricObserver.executePublish(context, this::terminateWithException));
         val key = MetricKeyData.builder().operation(context.getOperation()).queueName(context.getQueueName()).build();
         validateMetrics(publishMetricObserver.getMetricCache().get(key), 0, 1);
     }
@@ -77,11 +77,11 @@ class RMQMetricObserverTest {
         assertEquals(failedCount, metricData.getFailed().getCount());
     }
 
-    private Integer terminate(HashMap<String, Object> headers) {
+    private Integer terminate() {
         return 1;
     }
 
-    private Integer terminateWithException(HashMap<String, Object> headers) {
+    private Integer terminateWithException() {
         throw new RuntimeException();
     }
 }
