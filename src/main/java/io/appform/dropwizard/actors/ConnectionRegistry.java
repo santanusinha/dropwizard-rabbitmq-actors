@@ -1,6 +1,7 @@
 package io.appform.dropwizard.actors;
 
 import io.appform.dropwizard.actors.common.Constants;
+import io.appform.dropwizard.actors.common.ErrorCode;
 import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.ConnectionConfig;
@@ -43,6 +44,12 @@ public class ConnectionRegistry implements Managed {
     }
 
     public RMQConnection createOrGet(String connectionName, int threadPoolSize) {
+
+        if (Constants.DEFAULT_CONNECTIONS.contains(connectionName)) {
+            throw new RabbitmqActorException(ErrorCode.CONNECTION_NAME_RESERVED_FOR_INTERNAL_USE,
+                    "Please don't use default connection names", null);
+        }
+
         return connections.computeIfAbsent(connectionName, connection -> {
             log.info(String.format("Creating new RMQ connection with name [%s] having [%d] threads", connection,
                     threadPoolSize));
@@ -63,8 +70,7 @@ public class ConnectionRegistry implements Managed {
     }
 
     private int determineThreadPoolSize(String connectionName) {
-        if (Objects.equals(connectionName, Constants.DEFAULT_PRODUCER_CONNECTION_NAME) ||
-                Objects.equals(connectionName, Constants.DEFAULT_CONSUMER_CONNECTION_NAME)) {
+        if (Constants.DEFAULT_CONNECTIONS.contains(connectionName)) {
             return rmqConfig.getThreadPoolSize();
         }
 

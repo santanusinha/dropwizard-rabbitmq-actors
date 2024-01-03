@@ -20,5 +20,8 @@ package io.appform.dropwizard.actors.common;
  * Error codes
  */
 public enum ErrorCode {
+
+    CONNECTION_NAME_RESERVED_FOR_INTERNAL_USE,
+
     INTERNAL_ERROR
 }
