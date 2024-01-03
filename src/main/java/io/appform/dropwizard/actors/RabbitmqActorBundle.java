@@ -23,7 +23,7 @@ import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.observers.RMQObserver;
-import io.appform.dropwizard.actors.observers.TerminalObserver;
+import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.setup.Bootstrap;
@@ -100,7 +100,7 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     private void setupObservers(final RMQConfig config,
                                 final MetricRegistry metricRegistry) {
         //Terminal observer calls the actual method
-        rootObserver = new TerminalObserver();
+        rootObserver = new TerminalRMQObserver();
         for (var observer : observers) {
             if (null == observer) {
                 return;

@@ -1,5 +1,6 @@
 package io.appform.dropwizard.actors.observers;
 
+import io.appform.dropwizard.actors.common.RMQOperation;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Setter;
@@ -10,7 +11,7 @@ import java.util.Map;
 @Builder
 @Setter
 public class ObserverContext {
-    String operation;
+    RMQOperation operation;
     String queueName;
     Map<String, Object> headers;
 }

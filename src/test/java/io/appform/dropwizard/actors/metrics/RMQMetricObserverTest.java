@@ -1,7 +1,7 @@
 package io.appform.dropwizard.actors.metrics;
 
 import com.codahale.metrics.MetricRegistry;
-import io.appform.dropwizard.actors.common.RMQOperations;
+import io.appform.dropwizard.actors.common.RMQOperation;
 import io.appform.dropwizard.actors.config.MetricConfig;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.observers.ObserverContext;
@@ -48,7 +48,7 @@ class RMQMetricObserverTest {
     @Test
     void testExecuteWithNoException() {
         val context = ObserverContext.builder()
-                .operation(RMQOperations.PUBLISH.name())
+                .operation(RMQOperation.PUBLISH)
                 .queueName("default")
                 .build();
         val headers = new HashMap<String, Object>();
@@ -60,7 +60,7 @@ class RMQMetricObserverTest {
     @Test
     void testExecuteWithException() {
         val context = ObserverContext.builder()
-                .operation(RMQOperations.PUBLISH.name())
+                .operation(RMQOperation.PUBLISH)
                 .queueName("default")
                 .build();
         assertThrows(RuntimeException.class, () -> publishMetricObserver.executePublish(context, this::terminateWithException));

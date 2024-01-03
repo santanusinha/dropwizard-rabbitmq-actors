@@ -43,10 +43,8 @@ import javax.net.ssl.SSLContext;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyStore;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -62,7 +60,6 @@ public class RMQConnection implements Managed {
     private Connection connection;
     private Channel channel;
 
-    private final List<RMQObserver> observers = new ArrayList<>();
     @Getter
     private final RMQObserver rootObserver;
 
@@ -71,7 +68,8 @@ public class RMQConnection implements Managed {
                          final RMQConfig config,
                          final ExecutorService executorService,
                          final Environment environment,
-                         final TtlConfig ttlConfig, RMQObserver rootObserver) {
+                         final TtlConfig ttlConfig,
+                         final RMQObserver rootObserver) {
         this.name = name;
         this.config = config;
         this.executorService = executorService;
@@ -256,4 +254,5 @@ public class RMQConnection implements Managed {
             return Collections.emptyMap();
         }
     }
+
 }

@@ -5,8 +5,8 @@ import java.util.function.Supplier;
 /**
  *
  */
-public final class TerminalObserver extends RMQObserver {
-    public TerminalObserver() {
+public final class TerminalRMQObserver extends RMQObserver {
+    public TerminalRMQObserver() {
         super(null);
     }
 

@@ -1,6 +1,6 @@
 package io.appform.dropwizard.actors.common;
 
-public enum RMQOperations {
+public enum RMQOperation {
     CONSUME,
     PUBLISH,
     PUBLISH_WITH_DELAY,

@@ -79,8 +79,7 @@ public class UnmanagedConsumer<Message> {
 
             final Handler<Message> handler =
                     new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction, retryStrategy,
-                                  exceptionHandler, handlerFunction, expiredMessageHandlingFunction, observer,
-                            queueNameForConsumption);
+                                  exceptionHandler, handlerFunction, expiredMessageHandlingFunction, observer, queueName);
 
             final String tag = consumeChannel.basicConsume(queueNameForConsumption, false, getConsumerTag(i), handler);
             handler.setTag(tag);

@@ -8,7 +8,8 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
-import io.appform.dropwizard.actors.common.RMQOperations;
+import io.appform.dropwizard.actors.common.RMQOperation;
+import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.ObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
@@ -71,10 +72,13 @@ public class Handler<Message> extends DefaultConsumer {
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
     }
 
-    private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired, final Map<String, Object> headers) throws Exception {
+    private boolean handle(final Message message,
+                           final MessageMetadata messageMetadata,
+                           final boolean expired,
+                           final Map<String, Object> headers) throws Exception {
         running = true;
         val context = ObserverContext.builder()
-                .operation(RMQOperations.CONSUME.name())
+                .operation(RMQOperation.CONSUME)
                 .queueName(queueName)
                 .headers(headers)
                 .build();
@@ -84,8 +88,8 @@ public class Handler<Message> extends DefaultConsumer {
                         ? expiredMessageHandlingFunction.apply(message, messageMetadata)
                         : messageHandlingFunction.apply(message, messageMetadata);
             } catch (Exception e) {
-                e.printStackTrace();
-                return null;
+                log.error("Error while handling message: {}", e);
+                throw RabbitmqActorException.propagate(e);
             } finally {
                 running = false;
             }

@@ -7,7 +7,7 @@ import lombok.val;
 @UtilityClass
 public class MetricUtil {
 
-    private static final String RMQ_PREFIX = "rmq";
+    private static final String RMQ_PREFIX = "rmq.actor";
     private static final String DELIMITER = ".";
     private static final String DELIMITER_REPLACEMENT = "_";
 
@@ -23,7 +23,7 @@ public class MetricUtil {
     }
 
     public String getMetricPrefix(final MetricKeyData metricKeyData) {
-        return getMetricPrefix(metricKeyData.getQueueName(), metricKeyData.getOperation());
+        return getMetricPrefix(metricKeyData.getQueueName(), metricKeyData.getOperation().name());
     }
 
     private String getMetricPrefix(String... metricNames) {
