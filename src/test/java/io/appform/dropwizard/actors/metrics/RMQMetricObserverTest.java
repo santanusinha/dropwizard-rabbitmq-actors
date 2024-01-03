@@ -10,7 +10,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -40,7 +39,6 @@ class RMQMetricObserverTest {
         val config = this.config;
         config.setMetricConfig(MetricConfig.builder().enabledForAll(false).build());
         val publishMetricObserver = new RMQMetricObserver(config, metricRegistry);
-        val headers = new HashMap<String, Object>();
         assertEquals(terminate(),
                 publishMetricObserver.executePublish(ObserverContext.builder().build(), this::terminate));
     }
@@ -51,7 +49,6 @@ class RMQMetricObserverTest {
                 .operation(RMQOperation.PUBLISH)
                 .queueName("default")
                 .build();
-        val headers = new HashMap<String, Object>();
         assertEquals(terminate(), publishMetricObserver.executePublish(context, this::terminate));
         val key = MetricKeyData.builder().operation(context.getOperation()).queueName(context.getQueueName()).build();
         validateMetrics(publishMetricObserver.getMetricCache().get(key), 1, 0);
