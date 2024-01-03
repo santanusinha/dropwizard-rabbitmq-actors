@@ -1,5 +1,6 @@
 package io.appform.dropwizard.actors;
 
+import com.google.common.base.Joiner;
 import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.common.ErrorCode;
 import io.appform.dropwizard.actors.common.RabbitmqActorException;
@@ -47,7 +48,8 @@ public class ConnectionRegistry implements Managed {
 
         if (Constants.DEFAULT_CONNECTIONS.contains(connectionName)) {
             throw new RabbitmqActorException(ErrorCode.CONNECTION_NAME_RESERVED_FOR_INTERNAL_USE,
-                    "Please don't use default connection names", null);
+                    String.format("These connection names are reserved for internal usage: [%s]",
+                            Joiner.on(',').join(Constants.DEFAULT_CONNECTIONS)), null);
         }
 
         return connections.computeIfAbsent(connectionName, connection -> {
