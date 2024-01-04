@@ -30,7 +30,6 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.StandardMetricsCollector;
 import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.actor.ActorConfig;
-import io.appform.dropwizard.actors.actor.HaMode;
 import io.appform.dropwizard.actors.actor.QueueType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
@@ -165,30 +164,33 @@ public class RMQConnection implements Managed {
         Builder<String, Object> builder = ImmutableMap.<String, Object>builder()
                 .putAll(ttlOpts)
                 .putAll(priorityOpts);
-        if (actorConfig.getQueueType() == QueueType.CLASSIC) {
-            builder.putAll(buildClassicQueue(actorConfig).build());
-        } else if (actorConfig.getQueueType() == QueueType.QUORUM) {
-            builder.putAll(buildQuorumQueue(actorConfig).build());
+        switch (actorConfig.getQueueType()) {
+            case CLASSIC -> builder.putAll(buildClassicQueue(actorConfig).build());
+            case QUORUM -> builder.putAll(buildQuorumQueue(actorConfig).build());
         }
         return builder.build();
     }
 
-    public Builder<String, Object> buildQuorumQueue(ActorConfig actorConfig) {
+    public Builder<String, Object> buildQuorumQueue(final ActorConfig actorConfig) {
         return ImmutableMap.<String, Object>builder()
                 .put("x-queue-type", QueueType.QUORUM.toString()
                         .toLowerCase())
                 .put("x-quorum-initial-group-size", actorConfig.getQuorumInitialGroupSize());
     }
 
-    public Builder<String, Object> buildClassicQueue(ActorConfig actorConfig) {
+    public Builder<String, Object> buildClassicQueue(final ActorConfig actorConfig) {
         Builder<String, Object> builder = ImmutableMap.<String, Object>builder()
                 .put("x-queue-type", QueueType.CLASSIC.toString()
                         .toLowerCase())
                 .put("ha-mode", actorConfig.getHaMode()
                         .toString()
                         .toLowerCase());
-        if (actorConfig.getHaMode() == HaMode.EXACTLY) {
-            builder.put("ha-params", actorConfig.getHaParams());
+        switch (actorConfig.getHaMode()) {
+            case EXACTLY -> builder.put("ha-params", actorConfig.getHaParams());
+        }
+        switch (actorConfig.getQueueType()) {
+            case CLASSIC -> builder.put("x-queue-version", 1);
+            case CLASSIC_V2 -> builder.put("x-queue-version", 2);
         }
         if (actorConfig.isLazyMode()) {
             builder.put("x-queue-mode", "lazy");
@@ -204,10 +206,9 @@ public class RMQConnection implements Managed {
                 .putAll(ttlOpts)
                 .putAll(priorityOpts)
                 .put("x-dead-letter-exchange", deadLetterExchange);
-        if (actorConfig.getQueueType() == QueueType.CLASSIC) {
-            builder.putAll(buildClassicQueue(actorConfig).build());
-        } else if (actorConfig.getQueueType() == QueueType.QUORUM) {
-            builder.putAll(buildQuorumQueue(actorConfig).build());
+        switch (actorConfig.getQueueType()) {
+            case CLASSIC, CLASSIC_V2 -> builder.putAll(buildClassicQueue(actorConfig).build());
+            case QUORUM -> builder.putAll(buildQuorumQueue(actorConfig).build());
         }
         return builder.build();
     }
