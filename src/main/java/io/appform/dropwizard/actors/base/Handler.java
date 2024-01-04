@@ -72,15 +72,11 @@ public class Handler<Message> extends DefaultConsumer {
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
     }
 
-    private boolean handle(final Message message,
-                           final MessageMetadata messageMetadata,
-                           final boolean expired,
-                           final Map<String, Object> headers) throws Exception {
+    private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) throws Exception {
         running = true;
         val context = ObserverContext.builder()
                 .operation(RMQOperation.CONSUME)
                 .queueName(queueName)
-                .headers(headers)
                 .build();
         return observer.executeConsume(context, () -> {
             try {
@@ -129,7 +125,7 @@ public class Handler<Message> extends DefaultConsumer {
         val delayInMs = getDelayInMs(properties);
         val expired = isExpired(properties);
         val message = mapper.readValue(body, clazz);
-        return () -> handle(message, messageProperties(envelope, delayInMs), expired, properties.getHeaders());
+        return () -> handle(message, messageProperties(envelope, delayInMs), expired);
     }
 
     private long getDelayInMs(final AMQP.BasicProperties properties) {

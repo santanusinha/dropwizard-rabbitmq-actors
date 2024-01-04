@@ -50,6 +50,10 @@ public class UnmanagedPublisher<Message> {
         this.observer = connection.getRootObserver();
     }
 
+    private String getRoutingKey() {
+        return config.isSharded() ? NamingUtils.getShardedQueueName(queueName, getShardId()) : queueName;
+    }
+
     public final void publishWithDelay(final Message message, final long delayMilliseconds) throws Exception {
         log.info("Publishing message to exchange with delay: {}", delayMilliseconds);
         if (!config.isDelayed()) {
@@ -57,25 +61,18 @@ public class UnmanagedPublisher<Message> {
         }
 
         if (config.getDelayType() == DelayType.TTL) {
-            String routingKey;
-            if (config.isSharded()) {
-                routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
-            } else {
-                routingKey = queueName;
-            }
+            String routingKey = getRoutingKey();
             val context = ObserverContext.builder()
                     .operation(RMQOperation.PUBLISH_WITH_EXPIRY)
                     .queueName(queueName)
                     .build();
             observer.executePublish(context, () -> {
                 try {
-                    val headers = context.getHeaders();
                     publishChannel.basicPublish(ttlExchange(config),
                             routingKey,
                             new AMQP.BasicProperties.Builder()
                                     .expiration(String.valueOf(delayMilliseconds))
                                     .deliveryMode(2)
-                                    .headers(headers)
                                     .build(),
                             mapper().writeValueAsBytes(message));
                 } catch (IOException e) {
@@ -110,16 +107,10 @@ public class UnmanagedPublisher<Message> {
     }
 
     public final void publish(final Message message, final AMQP.BasicProperties properties, final RMQOperation operation) throws Exception {
-        String routingKey;
-        if (config.isSharded()) {
-            routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
-        } else {
-            routingKey = queueName;
-        }
+        String routingKey = getRoutingKey();
         val context = ObserverContext.builder().operation(operation).queueName(queueName).build();
         observer.executePublish(context, () -> {
-            val headers = context.getHeaders();
-            val enrichedProperties = getEnrichedProperties(properties, headers);
+            val enrichedProperties = getEnrichedProperties(properties);
             try {
                 publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
             } catch (IOException e) {
@@ -130,11 +121,8 @@ public class UnmanagedPublisher<Message> {
         });
     }
 
-    private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties, Map<String, Object> headers) {
-        Map<String, Object> enrichedHeaders = new HashMap<>();
-        if (headers != null) {
-            enrichedHeaders.putAll(headers);
-        }
+    private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties) {
+        HashMap<String, Object> enrichedHeaders = new HashMap<>();
         if (properties.getHeaders() != null) {
             enrichedHeaders.putAll(properties.getHeaders());
         }
