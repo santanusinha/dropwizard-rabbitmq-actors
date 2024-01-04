@@ -9,9 +9,9 @@ import java.util.Set;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Constants {
 
-    public static final String DEFAULT_PRODUCER_CONNECTION_NAME = "defaultproducer";
+    public static final String DEFAULT_PRODUCER_CONNECTION_NAME = "__defaultproducer";
 
-    public static final String DEFAULT_CONSUMER_CONNECTION_NAME = "defaultconsumer";
+    public static final String DEFAULT_CONSUMER_CONNECTION_NAME = "__defaultconsumer";
 
     public static final Set<String> DEFAULT_CONNECTIONS = Sets.newHashSet(DEFAULT_PRODUCER_CONNECTION_NAME,
             DEFAULT_CONSUMER_CONNECTION_NAME);
