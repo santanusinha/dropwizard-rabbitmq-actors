@@ -60,7 +60,7 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
         val executorServiceProvider = getExecutorServiceProvider(t);
         val ttlConfig = ttlConfig();
         Preconditions.checkNotNull(executorServiceProvider, "Null executor service provider provided");
-        setupObservers(rmqConfig, environment.metrics());
+        setupObservers(environment.metrics());
         this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, rmqConfig,
                 ttlConfig == null ? TtlConfig.builder().build(): ttlConfig, rootObserver);
         environment.lifecycle().manage(connectionRegistry);
@@ -89,7 +89,7 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
         return (name, coreSize) -> Executors.newFixedThreadPool(coreSize);
     }
 
-    public final void registerObserver(final RMQObserver observer) {
+    public void registerObserver(final RMQObserver observer) {
         if (null == observer) {
             return;
         }
@@ -97,8 +97,7 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
         log.info("Registered observer: " + observer.getClass().getSimpleName());
     }
 
-    private void setupObservers(final RMQConfig config,
-                                final MetricRegistry metricRegistry) {
+    private void setupObservers(final MetricRegistry metricRegistry) {
         //Terminal observer calls the actual method
         rootObserver = new TerminalRMQObserver();
         for (var observer : observers) {
@@ -107,7 +106,7 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
             }
             rootObserver = observer.setNext(rootObserver);
         }
-        this.rootObserver = new RMQMetricObserver(config, metricRegistry).setNext(rootObserver);
+        this.rootObserver = new RMQMetricObserver(this.rmqConfig, metricRegistry).setNext(rootObserver);
         log.info("Root observer is {}", this.rootObserver);
     }
 }

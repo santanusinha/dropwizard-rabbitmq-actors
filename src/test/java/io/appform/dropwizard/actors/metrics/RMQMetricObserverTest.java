@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RMQMetricObserverTest {
 
-    private RMQMetricObserver publishMetricObserver;
+    private RMQMetricObserver rmqMetricObserver;
     private RMQConfig config;
     private final MetricRegistry metricRegistry = new MetricRegistry();
 
@@ -31,7 +31,7 @@ class RMQMetricObserverTest {
                 .startupGracePeriodSeconds(1)
                 .metricConfig(MetricConfig.builder().enabledForAll(true).build())
                 .build();
-        this.publishMetricObserver = new RMQMetricObserver(config, metricRegistry);
+        this.rmqMetricObserver = new RMQMetricObserver(config, metricRegistry);
     }
 
     @Test
@@ -49,9 +49,9 @@ class RMQMetricObserverTest {
                 .operation(RMQOperation.PUBLISH)
                 .queueName("default")
                 .build();
-        assertEquals(terminate(), publishMetricObserver.executePublish(context, this::terminate));
+        assertEquals(terminate(), rmqMetricObserver.executePublish(context, this::terminate));
         val key = MetricKeyData.builder().operation(context.getOperation()).queueName(context.getQueueName()).build();
-        validateMetrics(publishMetricObserver.getMetricCache().get(key), 1, 0);
+        validateMetrics(rmqMetricObserver.getMetricCache().get(key), 1, 0);
     }
 
     @Test
@@ -60,9 +60,9 @@ class RMQMetricObserverTest {
                 .operation(RMQOperation.PUBLISH)
                 .queueName("default")
                 .build();
-        assertThrows(RuntimeException.class, () -> publishMetricObserver.executePublish(context, this::terminateWithException));
+        assertThrows(RuntimeException.class, () -> rmqMetricObserver.executePublish(context, this::terminateWithException));
         val key = MetricKeyData.builder().operation(context.getOperation()).queueName(context.getQueueName()).build();
-        validateMetrics(publishMetricObserver.getMetricCache().get(key), 0, 1);
+        validateMetrics(rmqMetricObserver.getMetricCache().get(key), 0, 1);
     }
 
     private void validateMetrics(final MetricData metricData,
