@@ -60,7 +60,7 @@ public class UnmanagedPublisher<Message> {
         }
 
         if (config.getDelayType() == DelayType.TTL) {
-            String routingKey = getRoutingKey();
+            val routingKey = getRoutingKey();
             val context = ObserverContext.builder()
                     .operation(RMQOperation.PUBLISH_WITH_EXPIRY)
                     .queueName(queueName)
@@ -106,7 +106,7 @@ public class UnmanagedPublisher<Message> {
     }
 
     public final void publish(final Message message, final AMQP.BasicProperties properties, final RMQOperation operation) throws Exception {
-        String routingKey = getRoutingKey();
+        val routingKey = getRoutingKey();
         val context = ObserverContext.builder().operation(operation).queueName(queueName).build();
         observer.executePublish(context, () -> {
             val enrichedProperties = getEnrichedProperties(properties);
