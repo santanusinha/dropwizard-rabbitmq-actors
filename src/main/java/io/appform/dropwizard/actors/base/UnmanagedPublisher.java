@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
 
 import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
 import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
