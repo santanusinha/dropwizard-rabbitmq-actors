@@ -49,10 +49,6 @@ public class UnmanagedPublisher<Message> {
         this.observer = connection.getRootObserver();
     }
 
-    private String getRoutingKey() {
-        return config.isSharded() ? NamingUtils.getShardedQueueName(queueName, getShardId()) : queueName;
-    }
-
     public final void publishWithDelay(final Message message, final long delayMilliseconds) throws Exception {
         log.info("Publishing message to exchange with delay: {}", delayMilliseconds);
         if (!config.isDelayed()) {
@@ -107,7 +103,10 @@ public class UnmanagedPublisher<Message> {
 
     public final void publish(final Message message, final AMQP.BasicProperties properties, final RMQOperation operation) throws Exception {
         val routingKey = getRoutingKey();
-        val context = ObserverContext.builder().operation(operation).queueName(queueName).build();
+        val context = ObserverContext.builder()
+                .operation(operation)
+                .queueName(queueName)
+                .build();
         observer.executePublish(context, () -> {
             val enrichedProperties = getEnrichedProperties(properties);
             try {
@@ -254,5 +253,9 @@ public class UnmanagedPublisher<Message> {
 
     protected final ObjectMapper mapper() {
         return mapper;
+    }
+
+    private String getRoutingKey() {
+        return config.isSharded() ? NamingUtils.getShardedQueueName(queueName, getShardId()) : queueName;
     }
 }
