@@ -190,16 +190,22 @@
             <artifactId>jackson-annotations</artifactId>
             <version>2.10.5</version>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.appform.testcontainer</groupId>-->
+<!--            <artifactId>junit-testcontainer-commons</artifactId>-->
+<!--            <version>${test.container.version}</version>-->
+<!--            <scope>test</scope>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>io.appform.testcontainer</groupId>-->
+<!--            <artifactId>junit-testcontainer-rabbitmq</artifactId>-->
+<!--            <version>${test.container.version}</version>-->
+<!--            <scope>test</scope>-->
+<!--        </dependency>-->
         <dependency>
-            <groupId>io.appform.testcontainer</groupId>
-            <artifactId>junit-testcontainer-commons</artifactId>
-            <version>${test.container.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.appform.testcontainer</groupId>
-            <artifactId>junit-testcontainer-rabbitmq</artifactId>
-            <version>${test.container.version}</version>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>rabbitmq</artifactId>
+            <version>1.18.3</version>
             <scope>test</scope>
         </dependency>
         <dependency>

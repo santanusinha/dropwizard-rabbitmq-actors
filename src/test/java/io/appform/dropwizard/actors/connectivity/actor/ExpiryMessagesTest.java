@@ -14,9 +14,12 @@ import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.retry.config.CountLimitedFixedWaitRetryConfig;
-import io.appform.testcontainers.rabbitmq.RabbitMQStatusCheck;
-import io.appform.testcontainers.rabbitmq.config.RabbitMQContainerConfiguration;
+import io.appform.dropwizard.actors.utils.RMQContainerUtils;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -26,12 +29,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 import org.testcontainers.containers.GenericContainer;
-
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public class ExpiryMessagesTest {
@@ -52,7 +49,7 @@ public class ExpiryMessagesTest {
 
         app.before();
 
-        val rabbitMQContainer = rabbitMQContainer();
+        val rabbitMQContainer = RMQContainerUtils.startContainer();
         val config = getRMQConfig(rabbitMQContainer);
 
         connection = new RMQConnection("test-conn", config,
@@ -68,22 +65,23 @@ public class ExpiryMessagesTest {
     }
 
     private static GenericContainer rabbitMQContainer() {
-        val containerConfiguration = new RabbitMQContainerConfiguration();
-        log.info("Starting rabbitMQ server. Docker image: {}", containerConfiguration.getDockerImage());
-
-        GenericContainer rabbitMQ =
-                new GenericContainer(RABBITMQ_DOCKER_IMAGE)
-                        .withEnv("RABBITMQ_DEFAULT_VHOST", containerConfiguration.getVhost())
-                        .withEnv("RABBITMQ_DEFAULT_USER", RABBITMQ_USERNAME)
-                        .withEnv("RABBITMQ_DEFAULT_PASS", RABBITMQ_PASSWORD)
-                        .withExposedPorts(containerConfiguration.getPort(), RABBITMQ_MANAGEMENT_PORT)
-                        .waitingFor(new RabbitMQStatusCheck(containerConfiguration))
-                        .withStartupTimeout(Duration.ofSeconds(45));
-
-        rabbitMQ = rabbitMQ.withStartupCheckStrategy(new IsRunningStartupCheckStrategyWithDelay());
-        rabbitMQ.start();
-        log.info("Started RabbitMQ server");
-        return rabbitMQ;
+//        val containerConfiguration = new RabbitMQContainerConfiguration();
+//        log.info("Starting rabbitMQ server. Docker image: {}", containerConfiguration.getDockerImage());
+//
+//        GenericContainer rabbitMQ =
+//                new GenericContainer(RABBITMQ_DOCKER_IMAGE)
+//                        .withEnv("RABBITMQ_DEFAULT_VHOST", containerConfiguration.getVhost())
+//                        .withEnv("RABBITMQ_DEFAULT_USER", RABBITMQ_USERNAME)
+//                        .withEnv("RABBITMQ_DEFAULT_PASS", RABBITMQ_PASSWORD)
+//                        .withExposedPorts(containerConfiguration.getPort(), RABBITMQ_MANAGEMENT_PORT)
+//                        .waitingFor(new RabbitMQStatusCheck(containerConfiguration))
+//                        .withStartupTimeout(Duration.ofSeconds(45));
+//
+//        rabbitMQ = rabbitMQ.withStartupCheckStrategy(new IsRunningStartupCheckStrategyWithDelay());
+//        rabbitMQ.start();
+//        log.info("Started RabbitMQ server");
+//        return rabbitMQ;
+        return null;
     }
 
     private static RMQConfig getRMQConfig(GenericContainer rabbitmqContainer) {
