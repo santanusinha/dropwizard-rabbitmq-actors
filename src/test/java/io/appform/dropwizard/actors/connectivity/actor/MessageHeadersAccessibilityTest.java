@@ -14,7 +14,7 @@ import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.appform.dropwizard.actors.utils.RMQContainerUtils;
+import io.appform.dropwizard.actors.utils.RMQContainer;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 import java.util.ArrayList;
 import java.util.Map;
@@ -24,12 +24,12 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.RabbitMQContainer;
 
 @Slf4j
 public class MessageHeadersAccessibilityTest {
@@ -51,7 +51,7 @@ public class MessageHeadersAccessibilityTest {
 
         app.before();
 
-        val rabbitMQContainer = RMQContainerUtils.startContainer();
+        val rabbitMQContainer = RMQContainer.startContainer();
         val config = getRMQConfig(rabbitMQContainer);
 
         connection = new RMQConnection("test-conn", config,
@@ -66,27 +66,7 @@ public class MessageHeadersAccessibilityTest {
         app.after();
     }
 
-    private static GenericContainer rabbitMQContainer() {
-//        val containerConfiguration = new RabbitMQContainerConfiguration();
-//        log.info("Starting rabbitMQ server. Docker image: {}", containerConfiguration.getDockerImage());
-//
-//        GenericContainer rabbitMQ =
-//                new GenericContainer(RABBITMQ_DOCKER_IMAGE)
-//                        .withEnv("RABBITMQ_DEFAULT_VHOST", containerConfiguration.getVhost())
-//                        .withEnv("RABBITMQ_DEFAULT_USER", RABBITMQ_USERNAME)
-//                        .withEnv("RABBITMQ_DEFAULT_PASS", RABBITMQ_PASSWORD)
-//                        .withExposedPorts(containerConfiguration.getPort(), RABBITMQ_MANAGEMENT_PORT)
-//                        .waitingFor(new RabbitMQStatusCheck(containerConfiguration))
-//                        .withStartupTimeout(Duration.ofSeconds(45));
-//
-//        rabbitMQ = rabbitMQ.withStartupCheckStrategy(new IsRunningStartupCheckStrategyWithDelay());
-//        rabbitMQ.start();
-//        log.info("Started RabbitMQ server");
-//        return rabbitMQ;
-        return null;
-    }
-
-    private static RMQConfig getRMQConfig(GenericContainer rabbitmqContainer) {
+    private static RMQConfig getRMQConfig(RabbitMQContainer rabbitmqContainer) {
         val rmqConfig = new RMQConfig();
         val mappedPort = rabbitmqContainer.getMappedPort(5672);
         val host = rabbitmqContainer.getContainerIpAddress();
@@ -100,7 +80,7 @@ public class MessageHeadersAccessibilityTest {
         return rmqConfig;
     }
 
-    @AfterEach
+    @After
     public void clear() {
         testDataHolder = null;
     }

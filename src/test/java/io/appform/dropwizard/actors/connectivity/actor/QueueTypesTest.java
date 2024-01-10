@@ -13,7 +13,7 @@ import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.appform.dropwizard.actors.utils.RMQContainerUtils;
+import io.appform.dropwizard.actors.utils.RMQContainer;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 import java.util.ArrayList;
 import java.util.Map;
@@ -28,7 +28,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.RabbitMQContainer;
 
 @Slf4j
 public class QueueTypesTest {
@@ -36,8 +36,6 @@ public class QueueTypesTest {
     public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app = new DropwizardAppExtension<>(
             RabbitMQBundleTestApplication.class);
     public static final String TEST_EXCHANGE = "test-exchange";
-    private static final int RABBITMQ_MANAGEMENT_PORT = 15672;
-    private static final String RABBITMQ_DOCKER_IMAGE = "rabbitmq:3.8.34-management";
     private static final String RABBITMQ_USERNAME = "guest";
     private static final String RABBITMQ_PASSWORD = "guest";
     private static RMQConnection connection;
@@ -45,19 +43,15 @@ public class QueueTypesTest {
     @BeforeAll
     @SneakyThrows
     public static void beforeMethod() {
-        System.setProperty("dw." + "server.applicationConnectors[0].port", "0");
-        System.setProperty("dw." + "server.adminConnectors[0].port", "0");
-
         app.before();
 
-        GenericContainer rabbitMQContainer = RMQContainerUtils.startContainer();
+        RabbitMQContainer rabbitMQContainer = RMQContainer.startContainer();
         RMQConfig config = getRMQConfig(rabbitMQContainer);
 
         connection = new RMQConnection("test-conn", config, Executors.newSingleThreadExecutor(), app.getEnvironment(),
                 TtlConfig.builder()
                         .build());
         connection.start();
-
     }
 
     @AfterAll
@@ -66,26 +60,7 @@ public class QueueTypesTest {
         app.after();
     }
 
-    private static GenericContainer rabbitMQContainer() {
-//        RabbitMQContainerConfiguration containerConfiguration = new RabbitMQContainerConfiguration();
-//        log.info("Starting rabbitMQ server. Docker image: {}", containerConfiguration.getDockerImage());
-//
-//        GenericContainer rabbitMQ = new GenericContainer(RABBITMQ_DOCKER_IMAGE).withEnv("RABBITMQ_DEFAULT_VHOST",
-//                        containerConfiguration.getVhost())
-//                .withEnv("RABBITMQ_DEFAULT_USER", RABBITMQ_USERNAME)
-//                .withEnv("RABBITMQ_DEFAULT_PASS", RABBITMQ_PASSWORD)
-//                .withExposedPorts(containerConfiguration.getPort(), RABBITMQ_MANAGEMENT_PORT)
-//                .waitingFor(new RabbitMQStatusCheck(containerConfiguration))
-//                .withStartupTimeout(Duration.ofSeconds(45));
-//
-//        rabbitMQ = rabbitMQ.withStartupCheckStrategy(new IsRunningStartupCheckStrategyWithDelay());
-//        rabbitMQ.start();
-//        log.info("Started RabbitMQ server");
-//        return rabbitMQ;
-        return null;
-    }
-
-    private static RMQConfig getRMQConfig(GenericContainer rabbitmqContainer) {
+    private static RMQConfig getRMQConfig(RabbitMQContainer rabbitmqContainer) {
         RMQConfig rmqConfig = new RMQConfig();
         Integer mappedPort = rabbitmqContainer.getMappedPort(5672);
         String host = rabbitmqContainer.getContainerIpAddress();
@@ -104,7 +79,7 @@ public class QueueTypesTest {
                 Arguments.of(buildCustomClassicQueue(), "classic-queue-ha-2"),
                 Arguments.of(buildQuorumQueue(), "quorumQueue"),
                 Arguments.of(buildCustomQuorumQueue(), "quorumQueue-groupSize-5"),
-                Arguments.of(buildLazyQueue(), "lazy-queue"));
+                Arguments.of(buildLazyQueue(), "lazy-queue"), Arguments.of(buildClassicQueueV2(), "classic-v2"));
     }
 
     private static ActorConfig buildLazyQueue() {
@@ -139,6 +114,13 @@ public class QueueTypesTest {
     private static ActorConfig buildClassicQueue() {
         return ActorConfig.builder()
                 .queueType(QueueType.CLASSIC)
+                .exchange(TEST_EXCHANGE)
+                .build();
+    }
+
+    private static ActorConfig buildClassicQueueV2() {
+        return ActorConfig.builder()
+                .queueType(QueueType.CLASSIC_V2)
                 .exchange(TEST_EXCHANGE)
                 .build();
     }
