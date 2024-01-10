@@ -1,5 +1,9 @@
 package io.appform.dropwizard.actors.connectivity.actor;
 
+import static io.appform.dropwizard.actors.utils.RMQContainerUtils.RABBITMQ_MANAGEMENT_PORT;
+import static io.appform.dropwizard.actors.utils.RMQContainerUtils.RABBITMQ_PASSWORD;
+import static io.appform.dropwizard.actors.utils.RMQContainerUtils.RABBITMQ_USERNAME;
+
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,37 +20,40 @@ import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.utils.ActorType;
 import io.appform.dropwizard.actors.utils.AsyncOperationHelper;
+import io.appform.dropwizard.actors.utils.RMQContainerUtils;
 import io.appform.dropwizard.actors.utils.SidelineTestActor;
 import io.appform.dropwizard.actors.utils.TestMessage;
-import io.appform.testcontainers.rabbitmq.RabbitMQStatusCheck;
-import io.appform.testcontainers.rabbitmq.config.RabbitMQContainerConfiguration;
 import io.dropwizard.Configuration;
 import io.dropwizard.jackson.Jackson;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import okhttp3.*;
-import org.junit.*;
-import org.testcontainers.containers.GenericContainer;
-
-import javax.validation.Validation;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
+import javax.validation.Validation;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import okhttp3.Credentials;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.testcontainers.containers.GenericContainer;
 
 
 @Slf4j
 public class NamespacedQueuesTest {
 
-    private static final int RABBITMQ_MANAGEMENT_PORT = 15672;
-    private static final String RABBITMQ_DOCKER_IMAGE = "rabbitmq:3.8.34-management";
-    private static final String RABBITMQ_USERNAME = "guest";
-    private static final String RABBITMQ_PASSWORD = "guest";
     private static final String NAMESPACE_VALUE = "namespace1";
 
     public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app =
@@ -261,24 +268,7 @@ public class NamespacedQueuesTest {
     }
 
     private static GenericContainer rabbitMQContainer() {
-        RabbitMQContainerConfiguration containerConfiguration = new RabbitMQContainerConfiguration();
-        containerConfiguration.setDockerImage(RABBITMQ_DOCKER_IMAGE);
-        containerConfiguration.setWaitTimeoutInSeconds(300L);
-        log.info("Starting rabbitMQ server. Docker image: {}", containerConfiguration.getDockerImage());
-
-        GenericContainer rabbitMQ =
-                new GenericContainer(RABBITMQ_DOCKER_IMAGE)
-                        .withEnv("RABBITMQ_DEFAULT_VHOST", containerConfiguration.getVhost())
-                        .withEnv("RABBITMQ_DEFAULT_USER", RABBITMQ_USERNAME)
-                        .withEnv("RABBITMQ_DEFAULT_PASS", RABBITMQ_PASSWORD)
-                        .withExposedPorts(containerConfiguration.getPort(), RABBITMQ_MANAGEMENT_PORT)
-                        .waitingFor(new RabbitMQStatusCheck(containerConfiguration))
-                        .withStartupTimeout(Duration.ofSeconds(30));
-
-        rabbitMQ = rabbitMQ.withStartupCheckStrategy(new IsRunningStartupCheckStrategyWithDelay());
-        rabbitMQ.start();
-        log.info("Started RabbitMQ server");
-        return rabbitMQ;
+        return RMQContainerUtils.startContainer();
     }
 
     private static RMQConfig getRMQConfig(GenericContainer rabbitmqContainer) {
