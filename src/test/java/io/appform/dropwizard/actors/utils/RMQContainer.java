@@ -12,7 +12,7 @@ public class RMQContainer {
     public static final String RABBITMQ_USERNAME = "guest";
     public static final String RABBITMQ_PASSWORD = "guest";
     public static volatile boolean loaded = false;
-    public static RabbitMQContainer rmqContainer;
+    private static RabbitMQContainer rmqContainer;
 
     public static synchronized RabbitMQContainer startContainer() {
         synchronized (RMQContainer.class) {

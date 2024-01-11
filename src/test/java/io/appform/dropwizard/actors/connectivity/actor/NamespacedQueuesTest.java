@@ -42,13 +42,12 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.RabbitMQContainer;
 
@@ -61,26 +60,25 @@ public class NamespacedQueuesTest {
     public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app =
             new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class);
 
-    @BeforeClass
+    @BeforeAll
     @SneakyThrows
     public static void setupClass() {
         app.before();
     }
 
-    @AfterClass
+    @AfterAll
     @SneakyThrows
     public static void cleanupClass() {
         app.after();
     }
 
-    @Before
-    public void setup() {
-        System.setProperty(NamingUtils.NAMESPACE_PROPERTY_NAME, NAMESPACE_VALUE);
+    private static RabbitMQContainer rabbitMQContainer() {
+        return RMQContainer.startContainer();
     }
 
-    @After
-    public void cleanup() {
-        System.clearProperty(NamingUtils.NAMESPACE_PROPERTY_NAME);
+    @BeforeEach
+    public void setup() {
+        System.setProperty(NamingUtils.NAMESPACE_PROPERTY_NAME, NAMESPACE_VALUE);
     }
     private RMQConfig config;
 
@@ -124,6 +122,11 @@ public class NamespacedQueuesTest {
         }
     }
 
+    @AfterEach
+    public void cleanup() {
+        System.clearProperty(NamingUtils.NAMESPACE_PROPERTY_NAME);
+    }
+
     @Test
     public void testQueuesAreNotNamespacedWhenFeatureEnvNotSet() throws Exception {
         String queueName = "publisher-1";
@@ -150,7 +153,7 @@ public class NamespacedQueuesTest {
                 for (JsonNode json : jsonNode) {
                     String actualQueueName = json.get("name")
                             .asText();
-                    Assert.assertNotEquals(actualQueueName, queueNameWithNamespace);
+                    Assertions.assertNotEquals(actualQueueName, queueNameWithNamespace);
                 }
             }
             response.close();
@@ -186,11 +189,57 @@ public class NamespacedQueuesTest {
                 for (JsonNode json : jsonNode) {
                     String actualQueueName = json.get("name")
                             .asText();
-                    Assert.assertFalse(actualQueueName.contains(queueName));
+                    Assertions.assertFalse(actualQueueName.contains(queueName));
                 }
             }
             response.close();
         }
+    }
+
+    private RMQFetchMessages getBody() {
+        return new RMQFetchMessages();
+    }
+
+    private Response sendRequest(String endpoint,
+                                 int mappedManagementPort) {
+        OkHttpClient client = new OkHttpClient();
+        String credential = Credentials.basic(config.getUserName(), config.getPassword());
+        Request request = new Request.Builder().url("http://" + config.getBrokers()
+                        .get(0)
+                        .getHost() + ":" + mappedManagementPort + endpoint)
+                .header("Accept", "application/json")
+                .header("Authorization", credential)
+                .build();
+
+        try {
+            return client.newCall(request)
+                    .execute();
+        } catch (IOException e) {
+            log.error("Error while making API call to RabbitMQ", e);
+        }
+        return null;
+    }
+
+    private Response sendPostRequest(String endpoint,
+                                     String body,
+                                     int mappedManagementPort) {
+        OkHttpClient client = new OkHttpClient();
+        String credential = Credentials.basic(config.getUserName(), config.getPassword());
+        Request request = new Request.Builder().url("http://" + config.getBrokers()
+                        .get(0)
+                        .getHost() + ":" + mappedManagementPort + endpoint)
+                .header("Accept", "application/json")
+                .header("Authorization", credential)
+                .post(RequestBody.create(body.getBytes(StandardCharsets.UTF_8)))
+                .build();
+
+        try {
+            return client.newCall(request)
+                    .execute();
+        } catch (IOException e) {
+            log.error("Error while making API call to RabbitMQ", e);
+        }
+        return null;
     }
 
     @Test
@@ -229,59 +278,17 @@ public class NamespacedQueuesTest {
         String endpoint = "/api/queues/%2F/" + sidelineQueue + "/get";
 
         Response response = sendPostRequest(endpoint, objectMapper.writeValueAsString(getBody()), mappedManagementPort);
-        Assert.assertNotNull(response);
+        Assertions.assertNotNull(response);
 
         JsonNode jsonNode = objectMapper.readTree(response.body().string());
-        Assert.assertEquals( 1, jsonNode.size());
+        Assertions.assertEquals(1, jsonNode.size());
         JsonNode messageResponse = jsonNode.get(0);
-        Assert.assertEquals("test.exchange_SIDELINE", messageResponse.get("exchange").asText());
+        Assertions.assertEquals("test.exchange_SIDELINE", messageResponse.get("exchange")
+                .asText());
         TestMessage actualMessage = objectMapper.readValue(messageResponse.get("payload").asText(), TestMessage.class);
-        Assert.assertEquals(ActorType.ALWAYS_FAIL_ACTOR, actualMessage.getActorType());
-        Assert.assertEquals("test_message", actualMessage.getName());
+        Assertions.assertEquals(ActorType.ALWAYS_FAIL_ACTOR, actualMessage.getActorType());
+        Assertions.assertEquals("test_message", actualMessage.getName());
         response.close();
-    }
-
-    private RMQFetchMessages getBody() {
-        return new RMQFetchMessages();
-    }
-
-    private Response sendRequest(String endpoint, int mappedManagementPort) {
-        OkHttpClient client = new OkHttpClient();
-        String credential = Credentials.basic(config.getUserName(), config.getPassword());
-        Request request = new Request.Builder()
-                .url("http://" + config.getBrokers().get(0).getHost() + ":" + mappedManagementPort + endpoint)
-                .header("Accept", "application/json")
-                .header("Authorization", credential)
-                .build();
-
-        try {
-            return client.newCall(request).execute();
-        } catch (IOException e) {
-            log.error("Error while making API call to RabbitMQ", e);
-        }
-        return null;
-    }
-
-    private Response sendPostRequest(String endpoint, String body, int mappedManagementPort) {
-        OkHttpClient client = new OkHttpClient();
-        String credential = Credentials.basic(config.getUserName(), config.getPassword());
-        Request request = new Request.Builder()
-                .url("http://" + config.getBrokers().get(0).getHost() + ":" + mappedManagementPort + endpoint)
-                .header("Accept", "application/json")
-                .header("Authorization", credential)
-                .post(RequestBody.create(body.getBytes(StandardCharsets.UTF_8)))
-                .build();
-
-        try {
-            return client.newCall(request).execute();
-        } catch (IOException e) {
-            log.error("Error while making API call to RabbitMQ", e);
-        }
-        return null;
-    }
-
-    private static RabbitMQContainer rabbitMQContainer() {
-        return RMQContainer.startContainer();
     }
 
     private static RMQConfig getRMQConfig(GenericContainer rabbitmqContainer) {

@@ -35,8 +35,6 @@ public class ExpiryMessagesTest {
 
     public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app =
             new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class);
-    private static final int RABBITMQ_MANAGEMENT_PORT = 15672;
-    private static final String RABBITMQ_DOCKER_IMAGE = "rabbitmq:3.8.34-management";
     private static final String RABBITMQ_USERNAME = "guest";
     private static final String RABBITMQ_PASSWORD = "guest";
     private static RMQConnection connection;
@@ -49,8 +47,7 @@ public class ExpiryMessagesTest {
 
         app.before();
 
-        val rabbitMQContainer = RMQContainer.startContainer();
-        val config = getRMQConfig(rabbitMQContainer);
+        val config = getRMQConfig(RMQContainer.startContainer());
 
         connection = new RMQConnection("test-conn", config,
                 Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build());

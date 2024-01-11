@@ -1,28 +1,18 @@
 package io.appform.dropwizard.actors.actor;
 
-import com.google.common.collect.ImmutableMap;
-import java.util.Map;
-
 public enum HaMode {
     EXACTLY {
         @Override
-        public Map<String, Object> handleConfig(ActorConfig actorConfig) {
-            return ImmutableMap.<String, Object>builder()
-                    .put("ha-params", actorConfig.getHaParams())
-                    .put("ha-mode", EXACTLY.name()
-                            .toLowerCase())
-                    .build();
+        public <T> T handleConfig(HaModeVisitor<T> visitor) {
+            return visitor.visitExactly();
         }
     },
     ALL {
         @Override
-        public Map<String, Object> handleConfig(ActorConfig config) {
-            return ImmutableMap.<String, Object>builder()
-                    .put("ha-mode", ALL.name()
-                            .toLowerCase())
-                    .build();
+        public <T> T handleConfig(HaModeVisitor<T> visitor) {
+            return visitor.visitAll();
         }
     };
 
-    public abstract Map<String, Object> handleConfig(ActorConfig config);
+    public abstract <T> T handleConfig(HaModeVisitor<T> visitor);
 }

@@ -30,6 +30,7 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.StandardMetricsCollector;
 import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.actor.ActorConfig;
+import io.appform.dropwizard.actors.actor.QueueTypeVisitorImpl;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.dropwizard.lifecycle.Managed;
@@ -164,7 +165,7 @@ public class RMQConnection implements Managed {
                 .putAll(ttlOpts)
                 .putAll(priorityOpts);
         builder.putAll(actorConfig.getQueueType()
-                .handleConfig(actorConfig));
+                .handleConfig(new QueueTypeVisitorImpl(actorConfig)));
         return builder.build();
     }
 
@@ -177,7 +178,7 @@ public class RMQConnection implements Managed {
                 .putAll(priorityOpts)
                 .put("x-dead-letter-exchange", deadLetterExchange);
         builder.putAll(actorConfig.getQueueType()
-                .handleConfig(actorConfig));
+                .handleConfig(new QueueTypeVisitorImpl(actorConfig)));
         return builder.build();
     }
 
