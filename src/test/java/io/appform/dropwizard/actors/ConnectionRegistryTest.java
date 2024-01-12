@@ -1,5 +1,7 @@
 package io.appform.dropwizard.actors;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.google.common.collect.Lists;
@@ -10,13 +12,11 @@ import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.ConnectionConfig;
 import io.dropwizard.Configuration;
 import io.dropwizard.setup.Environment;
-import org.junit.Before;
-import org.junit.Test;
-
-import javax.validation.Validation;
 import java.util.concurrent.Executors;
+import javax.validation.Validation;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertTrue;
 
 public class ConnectionRegistryTest {
 
@@ -24,7 +24,7 @@ public class ConnectionRegistryTest {
 
     private Environment environment;
 
-    @Before
+    @BeforeEach
     public void setup() {
 
         environment = new Environment("testing",

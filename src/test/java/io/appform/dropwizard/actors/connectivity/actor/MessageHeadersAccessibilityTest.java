@@ -14,10 +14,8 @@ import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.appform.testcontainers.rabbitmq.RabbitMQStatusCheck;
-import io.appform.testcontainers.rabbitmq.config.RabbitMQContainerConfiguration;
+import io.appform.dropwizard.actors.utils.RMQContainer;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -26,26 +24,24 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.testcontainers.containers.GenericContainer;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.RabbitMQContainer;
 
 @Slf4j
 public class MessageHeadersAccessibilityTest {
 
     public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app =
             new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class);
-    private static final int RABBITMQ_MANAGEMENT_PORT = 15672;
-    private static final String RABBITMQ_DOCKER_IMAGE = "rabbitmq:3.8.34-management";
     private static final String RABBITMQ_USERNAME = "guest";
     private static final String RABBITMQ_PASSWORD = "guest";
     private static RMQConnection connection;
     private AtomicReference<Map<String, Object>> testDataHolder;
 
-    @BeforeClass
+    @BeforeAll
     @SneakyThrows
     public static void beforeMethod() {
         System.setProperty("dw." + "server.applicationConnectors[0].port", "0");
@@ -53,8 +49,7 @@ public class MessageHeadersAccessibilityTest {
 
         app.before();
 
-        val rabbitMQContainer = rabbitMQContainer();
-        val config = getRMQConfig(rabbitMQContainer);
+        val config = getRMQConfig(RMQContainer.startContainer());
 
         connection = new RMQConnection("test-conn", config,
                 Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build());
@@ -62,32 +57,13 @@ public class MessageHeadersAccessibilityTest {
 
     }
 
-    @AfterClass
+    @AfterAll
     @SneakyThrows
     public static void afterMethod() {
         app.after();
     }
 
-    private static GenericContainer rabbitMQContainer() {
-        val containerConfiguration = new RabbitMQContainerConfiguration();
-        log.info("Starting rabbitMQ server. Docker image: {}", containerConfiguration.getDockerImage());
-
-        GenericContainer rabbitMQ =
-                new GenericContainer(RABBITMQ_DOCKER_IMAGE)
-                        .withEnv("RABBITMQ_DEFAULT_VHOST", containerConfiguration.getVhost())
-                        .withEnv("RABBITMQ_DEFAULT_USER", RABBITMQ_USERNAME)
-                        .withEnv("RABBITMQ_DEFAULT_PASS", RABBITMQ_PASSWORD)
-                        .withExposedPorts(containerConfiguration.getPort(), RABBITMQ_MANAGEMENT_PORT)
-                        .waitingFor(new RabbitMQStatusCheck(containerConfiguration))
-                        .withStartupTimeout(Duration.ofSeconds(45));
-
-        rabbitMQ = rabbitMQ.withStartupCheckStrategy(new IsRunningStartupCheckStrategyWithDelay());
-        rabbitMQ.start();
-        log.info("Started RabbitMQ server");
-        return rabbitMQ;
-    }
-
-    private static RMQConfig getRMQConfig(GenericContainer rabbitmqContainer) {
+    private static RMQConfig getRMQConfig(RabbitMQContainer rabbitmqContainer) {
         val rmqConfig = new RMQConfig();
         val mappedPort = rabbitmqContainer.getMappedPort(5672);
         val host = rabbitmqContainer.getContainerIpAddress();
@@ -102,7 +78,7 @@ public class MessageHeadersAccessibilityTest {
     }
 
     @AfterEach
-    private void clear() {
+    public void clear() {
         testDataHolder = null;
     }
 

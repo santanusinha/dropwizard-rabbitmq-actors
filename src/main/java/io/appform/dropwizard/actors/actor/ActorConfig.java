@@ -21,19 +21,18 @@ import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConf
 import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
 import io.dropwizard.validation.ValidationMethod;
+import java.util.Objects;
+import javax.validation.Valid;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
-
-import javax.validation.Valid;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-import java.util.Objects;
 
 /**
  * Configuration for an actor
@@ -60,6 +59,24 @@ public class ActorConfig {
 
     @Builder.Default
     private DelayType delayType = DelayType.DELAYED;
+
+    @Builder.Default
+    private QueueType queueType = QueueType.CLASSIC;
+
+    @Builder.Default
+    private HaMode haMode = HaMode.ALL;
+
+    // https://www.rabbitmq.com/ha.html
+    // Would be used only if ha-mode is set to "exactly", use it to set the number of replica nodes
+    @Builder.Default
+    private String haParams = "";
+
+    // https://www.rabbitmq.com/lazy-queues.html
+    @Builder.Default
+    private boolean lazyMode = false;
+
+    @Builder.Default
+    private int quorumInitialGroupSize = 3;
 
     @NotNull
     @NotEmpty

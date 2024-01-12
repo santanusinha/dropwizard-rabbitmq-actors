@@ -1,5 +1,8 @@
 package io.appform.dropwizard.actors.base;
 
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.AMQP;
@@ -9,17 +12,13 @@ import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.apache.commons.lang3.RandomUtils;
-
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
-
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
+import org.apache.commons.lang3.RandomUtils;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
@@ -172,13 +171,7 @@ public class UnmanagedPublisher<Message> {
     private void ensureExchange(String exchange) throws IOException {
         connection.channel().exchangeDeclare(
                 exchange,
-                "direct",
-                true,
-                false,
-                ImmutableMap.<String, Object>builder()
-                        .put("x-ha-policy", "all")
-                        .put("ha-mode", "all")
-                        .build());
+                "direct", true);
         log.info("Created exchange: {}", exchange);
     }
 
@@ -186,14 +179,13 @@ public class UnmanagedPublisher<Message> {
         if (config.getDelayType() == DelayType.TTL) {
             ensureExchange(ttlExchange(config));
         } else {
+            // https://blog.rabbitmq.com/posts/2015/04/scheduling-messages-with-rabbitmq/
             connection.channel().exchangeDeclare(
                     exchange,
                     "x-delayed-message",
                     true,
                     false,
                     ImmutableMap.<String, Object>builder()
-                            .put("x-ha-policy", "all")
-                            .put("ha-mode", "all")
                             .put("x-delayed-type", "direct")
                             .build());
             log.info("Created delayed exchange: {}", exchange);

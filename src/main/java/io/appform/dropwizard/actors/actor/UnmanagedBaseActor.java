@@ -165,7 +165,7 @@ public class UnmanagedBaseActor<Message> {
             return defaultConnectionName;
         }
 
-        return isolationStrategy.accept(new ConnectionIsolationStrategyVisitor<String>() {
+        return isolationStrategy.accept(new ConnectionIsolationStrategyVisitor<>() {
 
             @Override
             public String visit(SharedConnectionStrategy strategy) {
