@@ -1,13 +1,13 @@
-package io.appform.dropwizard.actors.metrics;
+package io.appform.dropwizard.actors.observers;
 
 import io.appform.dropwizard.actors.common.RMQOperation;
 import lombok.Builder;
 import lombok.Value;
 
-@Builder
 @Value
-public class MetricKeyData {
-    String queueName;
+@Builder
+public class ConsumeObserverContext {
     RMQOperation operation;
+    String queueName;
     boolean redelivered;
 }

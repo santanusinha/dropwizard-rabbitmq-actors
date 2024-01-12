@@ -11,7 +11,7 @@ import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.common.RMQOperation;
 import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
-import io.appform.dropwizard.actors.observers.ObserverContext;
+import io.appform.dropwizard.actors.observers.PublishObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -57,8 +57,8 @@ public class UnmanagedPublisher<Message> {
 
         if (config.getDelayType() == DelayType.TTL) {
             val routingKey = getRoutingKey();
-            val context = ObserverContext.builder()
-                    .operation(RMQOperation.PUBLISH_WITH_EXPIRY)
+            val context = PublishObserverContext.builder()
+                    .operation(RMQOperation.PUBLISH)
                     .queueName(queueName)
                     .build();
             observer.executePublish(context, () -> {
@@ -80,7 +80,7 @@ public class UnmanagedPublisher<Message> {
             publish(message, new AMQP.BasicProperties.Builder()
                     .headers(Collections.singletonMap("x-delay", delayMilliseconds))
                     .deliveryMode(2)
-                    .build(), RMQOperation.PUBLISH_WITH_DELAY);
+                    .build());
         }
     }
 
@@ -94,17 +94,17 @@ public class UnmanagedPublisher<Message> {
                     .headers(ImmutableMap.of(MESSAGE_EXPIRY_TEXT, expiresAt))
                     .build();
         }
-        publish(message, properties, RMQOperation.PUBLISH_WITH_EXPIRY);
+        publish(message, properties);
     }
 
     public final void publish(final Message message) throws Exception {
-        publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC, RMQOperation.PUBLISH);
+        publish(message, MessageProperties.MINIMAL_PERSISTENT_BASIC);
     }
 
-    public final void publish(final Message message, final AMQP.BasicProperties properties, final RMQOperation operation) throws Exception {
+    public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
         val routingKey = getRoutingKey();
-        val context = ObserverContext.builder()
-                .operation(operation)
+        val context = PublishObserverContext.builder()
+                .operation(RMQOperation.PUBLISH)
                 .queueName(queueName)
                 .build();
         observer.executePublish(context, () -> {

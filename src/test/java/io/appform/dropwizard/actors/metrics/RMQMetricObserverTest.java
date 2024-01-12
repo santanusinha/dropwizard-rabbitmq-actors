@@ -4,7 +4,7 @@ import com.codahale.metrics.MetricRegistry;
 import io.appform.dropwizard.actors.common.RMQOperation;
 import io.appform.dropwizard.actors.config.MetricConfig;
 import io.appform.dropwizard.actors.config.RMQConfig;
-import io.appform.dropwizard.actors.observers.ObserverContext;
+import io.appform.dropwizard.actors.observers.PublishObserverContext;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,12 +40,12 @@ class RMQMetricObserverTest {
         config.setMetricConfig(MetricConfig.builder().enabledForAll(false).build());
         val publishMetricObserver = new RMQMetricObserver(config, metricRegistry);
         assertEquals(terminate(),
-                publishMetricObserver.executePublish(ObserverContext.builder().build(), this::terminate));
+                publishMetricObserver.executePublish(PublishObserverContext.builder().build(), this::terminate));
     }
 
     @Test
     void testExecuteWithNoException() {
-        val context = ObserverContext.builder()
+        val context = PublishObserverContext.builder()
                 .operation(RMQOperation.PUBLISH)
                 .queueName("default")
                 .build();
@@ -56,7 +56,7 @@ class RMQMetricObserverTest {
 
     @Test
     void testExecuteWithException() {
-        val context = ObserverContext.builder()
+        val context = PublishObserverContext.builder()
                 .operation(RMQOperation.PUBLISH)
                 .queueName("default")
                 .build();

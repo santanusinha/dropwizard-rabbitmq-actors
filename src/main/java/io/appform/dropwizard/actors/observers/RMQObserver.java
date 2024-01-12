@@ -16,16 +16,16 @@ public abstract class RMQObserver {
         this.next = next;
     }
 
-    public abstract <T> T executePublish(final ObserverContext context, final Supplier<T> supplier);
+    public abstract <T> T executePublish(final PublishObserverContext context, final Supplier<T> supplier);
 
-    public abstract <T> T executeConsume(final ObserverContext context, final Supplier<T> supplier);
+    public abstract <T> T executeConsume(final ConsumeObserverContext context, final Supplier<T> supplier);
 
     public final RMQObserver setNext(final RMQObserver next) {
         this.next = next;
         return this;
     }
 
-    protected final <T> T proceedPublish(final ObserverContext context,
+    protected final <T> T proceedPublish(final PublishObserverContext context,
                                          final Supplier<T> supplier) {
         if (null == next) {
             return supplier.get();
@@ -33,7 +33,7 @@ public abstract class RMQObserver {
         return next.executePublish(context, supplier);
     }
 
-    protected final <T> T proceedConsume(final ObserverContext context, final Supplier<T> supplier) {
+    protected final <T> T proceedConsume(final ConsumeObserverContext context, final Supplier<T> supplier) {
         if (null == next) {
             return supplier.get();
         }

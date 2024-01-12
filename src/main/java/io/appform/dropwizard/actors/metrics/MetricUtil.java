@@ -8,6 +8,7 @@ import lombok.val;
 public class MetricUtil {
 
     private static final String RMQ_PREFIX = "rmq.actor";
+    private static final String REDELIVERED = "redelivered";
     private static final String DELIMITER = ".";
     private static final String DELIMITER_REPLACEMENT = "_";
 
@@ -24,6 +25,10 @@ public class MetricUtil {
 
     public String getMetricPrefix(final MetricKeyData metricKeyData) {
         return getMetricPrefix(metricKeyData.getQueueName(), metricKeyData.getOperation().name());
+    }
+
+    public String getMetricPrefixForRedelivery(final MetricKeyData metricKeyData) {
+        return getMetricPrefix(metricKeyData.getQueueName(), metricKeyData.getOperation().name(), REDELIVERED);
     }
 
     private String getMetricPrefix(String... metricNames) {

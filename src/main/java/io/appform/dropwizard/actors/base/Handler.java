@@ -11,7 +11,7 @@ import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.common.RMQOperation;
 import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
-import io.appform.dropwizard.actors.observers.ObserverContext;
+import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import lombok.Getter;
@@ -73,9 +73,10 @@ public class Handler<Message> extends DefaultConsumer {
 
     private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) throws Exception {
         running = true;
-        val context = ObserverContext.builder()
+        val context = ConsumeObserverContext.builder()
                 .operation(RMQOperation.CONSUME)
                 .queueName(queueName)
+                .redelivered(messageMetadata.isRedelivered())
                 .build();
         return observer.executeConsume(context, () -> {
             try {

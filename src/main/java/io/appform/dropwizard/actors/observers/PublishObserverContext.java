@@ -6,7 +6,7 @@ import lombok.Value;
 
 @Value
 @Builder
-public class ObserverContext {
+public class PublishObserverContext {
     RMQOperation operation;
     String queueName;
 }

@@ -107,6 +107,6 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
             }
         }
         this.rootObserver = new RMQMetricObserver(this.rmqConfig, metricRegistry).setNext(rootObserver);
-        log.info("Root observer is {}", this.rootObserver);
+        log.info("Root observer is {}", this.rootObserver.getClass().getSimpleName());
     }
 }
