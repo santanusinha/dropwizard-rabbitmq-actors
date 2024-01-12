@@ -101,7 +101,6 @@
         <okhttp.version>4.9.3</okhttp.version>
         <amqp-client.version>5.20.0</amqp-client.version>
         <mockito.version>4.4.0</mockito.version>
-        <junit.version>4.13.2</junit.version>
     </properties>
 
     <dependencyManagement>

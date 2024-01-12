@@ -24,10 +24,10 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.RabbitMQContainer;
 
 @Slf4j
@@ -39,7 +39,7 @@ public class ExpiryMessagesTest {
     private static final String RABBITMQ_PASSWORD = "guest";
     private static RMQConnection connection;
 
-    @BeforeClass
+    @BeforeAll
     @SneakyThrows
     public static void beforeMethod() {
         System.setProperty("dw." + "server.applicationConnectors[0].port", "0");
@@ -55,7 +55,7 @@ public class ExpiryMessagesTest {
 
     }
 
-    @AfterClass
+    @AfterAll
     @SneakyThrows
     public static void afterMethod() {
         app.after();

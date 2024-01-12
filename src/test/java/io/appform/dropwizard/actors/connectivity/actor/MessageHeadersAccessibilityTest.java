@@ -24,11 +24,11 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.RabbitMQContainer;
 
 @Slf4j
@@ -41,7 +41,7 @@ public class MessageHeadersAccessibilityTest {
     private static RMQConnection connection;
     private AtomicReference<Map<String, Object>> testDataHolder;
 
-    @BeforeClass
+    @BeforeAll
     @SneakyThrows
     public static void beforeMethod() {
         System.setProperty("dw." + "server.applicationConnectors[0].port", "0");
@@ -57,7 +57,7 @@ public class MessageHeadersAccessibilityTest {
 
     }
 
-    @AfterClass
+    @AfterAll
     @SneakyThrows
     public static void afterMethod() {
         app.after();
@@ -77,7 +77,7 @@ public class MessageHeadersAccessibilityTest {
         return rmqConfig;
     }
 
-    @After
+    @AfterEach
     public void clear() {
         testDataHolder = null;
     }
