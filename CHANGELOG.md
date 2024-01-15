@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## 2.0.28-10
+## 2.1.10
 - Support custom replication factor in classic replicated queues
 - Support Lazy Queues
 - Support quorum queues with custom group size
