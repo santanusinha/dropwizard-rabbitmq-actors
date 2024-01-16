@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RMQMetricObserverTest {
@@ -67,10 +68,32 @@ class RMQMetricObserverTest {
     }
 
     @Test
-    void testExecuteWithNoExceptionForConsume() {
+    void testExecuteForConsumeWithoutRedelivery() {
         val context = ConsumeObserverContext.builder()
                 .operation(RMQOperation.CONSUME)
                 .queueName("default")
+                .build();
+        assertEquals(terminate(), rmqMetricObserver.executeConsume(context, this::terminate));
+
+        val key = MetricKeyData.builder()
+                .operation(context.getOperation())
+                .queueName(context.getQueueName()).build();
+        validateMetrics(rmqMetricObserver.getMetricCache().get(key), 1, 0);
+
+        val redeliveryKey = MetricKeyData.builder()
+                .operation(context.getOperation())
+                .queueName(context.getQueueName())
+                .redelivered(true)
+                .build();
+        assertNull(rmqMetricObserver.getMetricCache().get(redeliveryKey));
+    }
+
+    @Test
+    void testExecuteForConsumeWithRedelivery() {
+        val context = ConsumeObserverContext.builder()
+                .operation(RMQOperation.CONSUME)
+                .queueName("default")
+                .redelivered(true)
                 .build();
         assertEquals(terminate(), rmqMetricObserver.executeConsume(context, this::terminate));
 
