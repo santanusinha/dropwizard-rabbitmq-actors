@@ -63,27 +63,27 @@ public class RMQMetricObserver extends RMQObserver {
         val metricData = getMetricData(context);
         val metricDataForRedelivery = isRedelivered ? getMetricDataForRedelivery(context) : null;
         metricData.getTotal().mark();
-        if (isRedelivered) {
+        if (metricDataForRedelivery != null) {
             metricDataForRedelivery.getTotal().mark();
         }
         val timer = metricData.getTimer().time();
-        val redeliveryTimer =  isRedelivered ? metricDataForRedelivery.getTimer().time(): null;
+        val redeliveryTimer =  metricDataForRedelivery != null ? metricDataForRedelivery.getTimer().time(): null;
         try {
             val response = proceedConsume(context, supplier);
             metricData.getSuccess().mark();
-            if (isRedelivered) {
+            if (metricDataForRedelivery != null) {
                 metricDataForRedelivery.getSuccess().mark();
             }
             return response;
         } catch (Throwable t) {
             metricData.getFailed().mark();
-            if (isRedelivered) {
+            if (metricDataForRedelivery != null) {
                 metricDataForRedelivery.getFailed().mark();
             }
             throw t;
         } finally {
             timer.stop();
-            if (isRedelivered) {
+            if (redeliveryTimer != null) {
                 redeliveryTimer.stop();
             }
         }
