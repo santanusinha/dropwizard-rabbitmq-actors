@@ -1,7 +1,6 @@
 package io.appform.dropwizard.actors.metrics;
 
 import com.codahale.metrics.MetricRegistry;
-import io.appform.dropwizard.actors.common.RMQOperation;
 import io.appform.dropwizard.actors.config.MetricConfig;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
@@ -17,6 +16,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RMQMetricObserverTest {
+    private static final String PUBLISH = "publish";
+    private static final String CONSUME = "consume";
 
     private RMQMetricObserver rmqMetricObserver;
     private RMQConfig config;
@@ -48,40 +49,37 @@ class RMQMetricObserverTest {
     @Test
     void testExecuteWithNoExceptionForPublish() {
         val context = PublishObserverContext.builder()
-                .operation(RMQOperation.PUBLISH)
                 .queueName("default")
                 .build();
         assertEquals(terminate(), rmqMetricObserver.executePublish(context, this::terminate));
-        val key = MetricKeyData.builder().operation(context.getOperation()).queueName(context.getQueueName()).build();
+        val key = MetricKeyData.builder().operation(PUBLISH).queueName(context.getQueueName()).build();
         validateMetrics(rmqMetricObserver.getMetricCache().get(key), 1, 0);
     }
 
     @Test
     void testExecuteWithException() {
         val context = PublishObserverContext.builder()
-                .operation(RMQOperation.PUBLISH)
                 .queueName("default")
                 .build();
         assertThrows(RuntimeException.class, () -> rmqMetricObserver.executePublish(context, this::terminateWithException));
-        val key = MetricKeyData.builder().operation(context.getOperation()).queueName(context.getQueueName()).build();
+        val key = MetricKeyData.builder().operation(PUBLISH).queueName(context.getQueueName()).build();
         validateMetrics(rmqMetricObserver.getMetricCache().get(key), 0, 1);
     }
 
     @Test
     void testExecuteForConsumeWithoutRedelivery() {
         val context = ConsumeObserverContext.builder()
-                .operation(RMQOperation.CONSUME)
                 .queueName("default")
                 .build();
         assertEquals(terminate(), rmqMetricObserver.executeConsume(context, this::terminate));
 
         val key = MetricKeyData.builder()
-                .operation(context.getOperation())
+                .operation(CONSUME)
                 .queueName(context.getQueueName()).build();
         validateMetrics(rmqMetricObserver.getMetricCache().get(key), 1, 0);
 
         val redeliveryKey = MetricKeyData.builder()
-                .operation(context.getOperation())
+                .operation(CONSUME)
                 .queueName(context.getQueueName())
                 .redelivered(true)
                 .build();
@@ -91,19 +89,18 @@ class RMQMetricObserverTest {
     @Test
     void testExecuteForConsumeWithRedelivery() {
         val context = ConsumeObserverContext.builder()
-                .operation(RMQOperation.CONSUME)
                 .queueName("default")
                 .redelivered(true)
                 .build();
         assertEquals(terminate(), rmqMetricObserver.executeConsume(context, this::terminate));
 
         val key = MetricKeyData.builder()
-                .operation(context.getOperation())
+                .operation(CONSUME)
                 .queueName(context.getQueueName()).build();
         validateMetrics(rmqMetricObserver.getMetricCache().get(key), 1, 0);
 
         val redeliveryKey = MetricKeyData.builder()
-                .operation(context.getOperation())
+                .operation(CONSUME)
                 .queueName(context.getQueueName())
                 .redelivered(context.isRedelivered())
                 .build();

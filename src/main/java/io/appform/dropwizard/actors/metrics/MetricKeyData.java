@@ -1,6 +1,5 @@
 package io.appform.dropwizard.actors.metrics;
 
-import io.appform.dropwizard.actors.common.RMQOperation;
 import lombok.Builder;
 import lombok.Value;
 
@@ -8,6 +7,6 @@ import lombok.Value;
 @Value
 public class MetricKeyData {
     String queueName;
-    RMQOperation operation;
+    String operation;
     boolean redelivered;
 }

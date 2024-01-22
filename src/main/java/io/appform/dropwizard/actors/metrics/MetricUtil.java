@@ -24,11 +24,11 @@ public class MetricUtil {
     }
 
     public String getMetricPrefix(final MetricKeyData metricKeyData) {
-        return getMetricPrefix(metricKeyData.getQueueName(), metricKeyData.getOperation().name());
+        return getMetricPrefix(metricKeyData.getQueueName(), metricKeyData.getOperation());
     }
 
     public String getMetricPrefixForRedelivery(final MetricKeyData metricKeyData) {
-        return getMetricPrefix(metricKeyData.getQueueName(), metricKeyData.getOperation().name(), REDELIVERED);
+        return getMetricPrefix(metricKeyData.getQueueName(), metricKeyData.getOperation(), REDELIVERED);
     }
 
     private String getMetricPrefix(String... metricNames) {

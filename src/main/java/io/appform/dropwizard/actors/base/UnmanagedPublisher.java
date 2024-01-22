@@ -8,7 +8,6 @@ import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
-import io.appform.dropwizard.actors.common.RMQOperation;
 import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.observers.PublishObserverContext;
@@ -58,7 +57,6 @@ public class UnmanagedPublisher<Message> {
         if (config.getDelayType() == DelayType.TTL) {
             val routingKey = getRoutingKey();
             val context = PublishObserverContext.builder()
-                    .operation(RMQOperation.PUBLISH)
                     .queueName(queueName)
                     .build();
             observer.executePublish(context, () -> {
@@ -104,7 +102,6 @@ public class UnmanagedPublisher<Message> {
     public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
         val routingKey = getRoutingKey();
         val context = PublishObserverContext.builder()
-                .operation(RMQOperation.PUBLISH)
                 .queueName(queueName)
                 .build();
         observer.executePublish(context, () -> {

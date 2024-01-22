@@ -71,9 +71,9 @@ class RabbitmqActorBundleTest {
         Mockito.doNothing().when(lifecycle).manage(ArgumentMatchers.any(ConnectionRegistry.class));
         actorBundleImpl.registerObserver(threadLocalObserver);
         actorBundleImpl.run(new RabbitMQBundleTestAppConfiguration(), environment);
-        Assertions.assertEquals(actorBundleImpl.getRootObserver().getNext(), threadLocalObserver);
+        Assertions.assertEquals(actorBundleImpl.getConnectionRegistry().getRootObserver().getNext(), threadLocalObserver);
 
-        Mockito.doReturn(actorBundleImpl.getRootObserver()).when(connection).getRootObserver();
+        Mockito.doReturn(actorBundleImpl.getConnectionRegistry().getRootObserver()).when(connection).getRootObserver();
         Mockito.doReturn(publishChannel).when(connection).newChannel();
         Mockito.doNothing().when(publishChannel).basicPublish(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any());
 

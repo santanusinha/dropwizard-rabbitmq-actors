@@ -44,10 +44,7 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
 
     @Getter
     private ConnectionRegistry connectionRegistry;
-    @Getter
-    private RMQObserver rootObserver;
     private final List<RMQObserver> observers = new ArrayList<>();
-
     private RMQConfig rmqConfig;
 
     protected RabbitmqActorBundle() {
@@ -60,7 +57,7 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
         val executorServiceProvider = getExecutorServiceProvider(t);
         val ttlConfig = ttlConfig();
         Preconditions.checkNotNull(executorServiceProvider, "Null executor service provider provided");
-        setupObservers(environment.metrics());
+        val rootObserver = setupObservers(environment.metrics());
         Preconditions.checkNotNull(rootObserver, "Null root observer provided");
         this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, rmqConfig,
                 ttlConfig == null ? TtlConfig.builder().build(): ttlConfig, rootObserver);
@@ -98,15 +95,16 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
         log.info("Registered observer: " + observer.getClass().getSimpleName());
     }
 
-    private void setupObservers(final MetricRegistry metricRegistry) {
+    private RMQObserver setupObservers(final MetricRegistry metricRegistry) {
         //Terminal observer calls the actual method
-        rootObserver = new TerminalRMQObserver();
+        RMQObserver rootObserver = new TerminalRMQObserver();
         for (var observer : observers) {
             if (null != observer) {
                 rootObserver = observer.setNext(rootObserver);
             }
         }
-        this.rootObserver = new RMQMetricObserver(this.rmqConfig, metricRegistry).setNext(rootObserver);
-        log.info("Root observer is {}", this.rootObserver.getClass().getSimpleName());
+        rootObserver = new RMQMetricObserver(this.rmqConfig, metricRegistry).setNext(rootObserver);
+        log.info("Root observer is {}", rootObserver.getClass().getSimpleName());
+        return rootObserver;
     }
 }

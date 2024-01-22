@@ -21,6 +21,8 @@ import java.util.function.Supplier;
  */
 @Slf4j
 public class RMQMetricObserver extends RMQObserver {
+    private static final String PUBLISH = "publish";
+    private static final String CONSUME = "consume";
     private final RMQConfig rmqConfig;
     private final MetricRegistry metricRegistry;
 
@@ -92,7 +94,7 @@ public class RMQMetricObserver extends RMQObserver {
     private MetricData getMetricData(final PublishObserverContext context) {
         val metricKeyData = MetricKeyData.builder()
                 .queueName(context.getQueueName())
-                .operation(context.getOperation())
+                .operation(PUBLISH)
                 .build();
         return metricCache.computeIfAbsent(metricKeyData, key ->
                 getMetricData(MetricUtil.getMetricPrefix(metricKeyData)));
@@ -101,7 +103,7 @@ public class RMQMetricObserver extends RMQObserver {
     private MetricData getMetricData(final ConsumeObserverContext context) {
         val metricKeyData = MetricKeyData.builder()
                 .queueName(context.getQueueName())
-                .operation(context.getOperation())
+                .operation(CONSUME)
                 .build();
         return metricCache.computeIfAbsent(metricKeyData, key ->
                 getMetricData(MetricUtil.getMetricPrefix(metricKeyData)));
@@ -110,7 +112,7 @@ public class RMQMetricObserver extends RMQObserver {
     private MetricData getMetricDataForRedelivery(final ConsumeObserverContext context) {
         val metricKeyData = MetricKeyData.builder()
                 .queueName(context.getQueueName())
-                .operation(context.getOperation())
+                .operation(CONSUME)
                 .redelivered(context.isRedelivered())
                 .build();
         return metricCache.computeIfAbsent(metricKeyData, key ->

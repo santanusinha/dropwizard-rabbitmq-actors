@@ -8,7 +8,6 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
-import io.appform.dropwizard.actors.common.RMQOperation;
 import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
@@ -74,7 +73,6 @@ public class Handler<Message> extends DefaultConsumer {
     private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) throws Exception {
         running = true;
         val context = ConsumeObserverContext.builder()
-                .operation(RMQOperation.CONSUME)
                 .queueName(queueName)
                 .redelivered(messageMetadata.isRedelivered())
                 .build();
