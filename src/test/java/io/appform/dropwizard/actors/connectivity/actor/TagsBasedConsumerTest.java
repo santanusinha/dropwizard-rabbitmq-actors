@@ -1,7 +1,7 @@
 package io.appform.dropwizard.actors.connectivity.actor;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -23,8 +23,8 @@ import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import java.io.IOException;
 import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -66,7 +66,7 @@ public class TagsBasedConsumerTest {
     @Mock
     private Channel channel;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         MockitoAnnotations.initMocks(this);
     }
@@ -80,7 +80,7 @@ public class TagsBasedConsumerTest {
                 any(Consumer.class));
         String actualTag = consumerTagArgCaptor.getValue();
         assertNotNull(actualTag);
-        assertEquals("Expected consumer tag not generated", TEST_CONSUMER_TAG + "_1", actualTag);
+        assertEquals(TEST_CONSUMER_TAG + "_1", actualTag, "Expected consumer tag not generated");
     }
 
     @Test
@@ -92,7 +92,7 @@ public class TagsBasedConsumerTest {
                 any(Consumer.class));
         String actualTag = consumerTagArgCaptor.getValue();
         assertNotNull(actualTag);
-        assertEquals("Expected consumer tag not generated", StringUtils.EMPTY, actualTag);
+        assertEquals(StringUtils.EMPTY, actualTag, "Expected consumer tag not generated");
     }
 
     @Test
@@ -104,7 +104,7 @@ public class TagsBasedConsumerTest {
                 any(Consumer.class));
         String actualTag = consumerTagArgCaptor.getValue();
         assertNotNull(actualTag);
-        assertEquals("Expected consumer tag not generated", StringUtils.EMPTY, actualTag);
+        assertEquals(StringUtils.EMPTY, actualTag, "Expected consumer tag not generated");
     }
 
     private UnmanagedConsumer<String> createConsumer(String tagPrefix) throws IOException {

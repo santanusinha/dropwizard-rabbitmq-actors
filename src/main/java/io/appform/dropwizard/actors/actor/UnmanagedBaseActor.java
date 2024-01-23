@@ -147,25 +147,25 @@ public class UnmanagedBaseActor<Message> {
 
     private String producerConnectionName(ProducerConfig producerConfig) {
         if (producerConfig == null) {
-            return Constants.DEFAULT_CONNECTION_NAME;
+            return Constants.DEFAULT_PRODUCER_CONNECTION_NAME;
         }
-        return deriveConnectionName(producerConfig.getConnectionIsolationStrategy());
+        return deriveConnectionName(producerConfig.getConnectionIsolationStrategy(), Constants.DEFAULT_PRODUCER_CONNECTION_NAME);
     }
 
     private String consumerConnectionName(ConsumerConfig consumerConfig) {
         if (consumerConfig == null) {
-            return Constants.DEFAULT_CONNECTION_NAME;
+            return Constants.DEFAULT_CONSUMER_CONNECTION_NAME;
         }
 
-        return deriveConnectionName(consumerConfig.getConnectionIsolationStrategy());
+        return deriveConnectionName(consumerConfig.getConnectionIsolationStrategy(), Constants.DEFAULT_CONSUMER_CONNECTION_NAME);
     }
 
-    private String deriveConnectionName(ConnectionIsolationStrategy isolationStrategy) {
+    private String deriveConnectionName(ConnectionIsolationStrategy isolationStrategy, String defaultConnectionName) {
         if (isolationStrategy == null) {
-            return Constants.DEFAULT_CONNECTION_NAME;
+            return defaultConnectionName;
         }
 
-        return isolationStrategy.accept(new ConnectionIsolationStrategyVisitor<String>() {
+        return isolationStrategy.accept(new ConnectionIsolationStrategyVisitor<>() {
 
             @Override
             public String visit(SharedConnectionStrategy strategy) {
@@ -174,7 +174,7 @@ public class UnmanagedBaseActor<Message> {
 
             @Override
             public String visit(DefaultConnectionStrategy strategy) {
-                return Constants.DEFAULT_CONNECTION_NAME;
+                return defaultConnectionName;
             }
 
         });

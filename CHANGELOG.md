@@ -1,6 +1,17 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.0.28-10
+- Support custom replication factor in classic replicated queues
+- Support Lazy Queues
+- Support quorum queues with custom group size
+- Support Classic V2 Queues
+- Remove redundant properties passed during exchange creation
+- Optimize runtime of tests by introducing a singleton instance of RMQContainer
+
+## 2.0.28-9
+Added header forwarding
+
 ## 2.0.28-2
 - Fixed pending count for sharded queues
 
