@@ -1,5 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
+## 2.0.28-11
+- Observers and operation level metrics support
 
 ## 2.0.28-10
 - Support custom replication factor in classic replicated queues
