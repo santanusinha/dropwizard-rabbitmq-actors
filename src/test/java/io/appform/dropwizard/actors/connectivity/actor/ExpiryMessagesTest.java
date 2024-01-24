@@ -1,5 +1,6 @@
 package io.appform.dropwizard.actors.connectivity.actor;
 
+import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import io.appform.dropwizard.actors.TtlConfig;
@@ -12,6 +13,7 @@ import io.appform.dropwizard.actors.config.Broker;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.retry.config.CountLimitedFixedWaitRetryConfig;
 import io.appform.dropwizard.actors.utils.RMQContainer;
@@ -38,6 +40,7 @@ public class ExpiryMessagesTest {
     private static final String RABBITMQ_USERNAME = "guest";
     private static final String RABBITMQ_PASSWORD = "guest";
     private static RMQConnection connection;
+    private static final MetricRegistry metricRegistry = new MetricRegistry();
 
     @BeforeAll
     @SneakyThrows
@@ -50,7 +53,7 @@ public class ExpiryMessagesTest {
         val config = getRMQConfig(RMQContainer.startContainer());
 
         connection = new RMQConnection("test-conn", config,
-                Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build());
+                Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build(), new RMQMetricObserver(config, metricRegistry));
         connection.start();
 
     }

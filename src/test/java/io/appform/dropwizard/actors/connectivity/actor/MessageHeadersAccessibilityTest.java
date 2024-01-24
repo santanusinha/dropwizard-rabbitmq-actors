@@ -13,6 +13,7 @@ import io.appform.dropwizard.actors.config.Broker;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.utils.RMQContainer;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
@@ -52,7 +53,7 @@ public class MessageHeadersAccessibilityTest {
         val config = getRMQConfig(RMQContainer.startContainer());
 
         connection = new RMQConnection("test-conn", config,
-                Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build());
+                Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build(), new TerminalRMQObserver());
         connection.start();
 
     }

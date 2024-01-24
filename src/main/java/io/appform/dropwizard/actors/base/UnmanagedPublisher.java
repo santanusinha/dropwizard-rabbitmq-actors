@@ -11,7 +11,11 @@ import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
+import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.observers.PublishObserverContext;
+import io.appform.dropwizard.actors.observers.RMQObserver;
+
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
@@ -28,7 +32,7 @@ public class UnmanagedPublisher<Message> {
     private final RMQConnection connection;
     private final ObjectMapper mapper;
     private final String queueName;
-
+    private final RMQObserver observer;
     private Channel publishChannel;
 
     public UnmanagedPublisher(
@@ -41,6 +45,7 @@ public class UnmanagedPublisher<Message> {
         this.connection = connection;
         this.mapper = mapper;
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
+        this.observer = connection.getRootObserver();
     }
 
     public final void publishWithDelay(final Message message, final long delayMilliseconds) throws Exception {
@@ -50,13 +55,25 @@ public class UnmanagedPublisher<Message> {
         }
 
         if (config.getDelayType() == DelayType.TTL) {
-            publishChannel.basicPublish(ttlExchange(config),
-                    queueName,
-                    new AMQP.BasicProperties.Builder()
-                            .expiration(String.valueOf(delayMilliseconds))
-                            .deliveryMode(2)
-                            .build(),
-                    mapper().writeValueAsBytes(message));
+            val routingKey = getRoutingKey();
+            val context = PublishObserverContext.builder()
+                    .queueName(queueName)
+                    .build();
+            observer.executePublish(context, () -> {
+                try {
+                    publishChannel.basicPublish(ttlExchange(config),
+                            routingKey,
+                            new AMQP.BasicProperties.Builder()
+                                    .expiration(String.valueOf(delayMilliseconds))
+                                    .deliveryMode(2)
+                                    .build(),
+                            mapper().writeValueAsBytes(message));
+                } catch (IOException e) {
+                    log.error("Error while publishing: {}", e);
+                    throw RabbitmqActorException.propagate(e);
+                }
+                return null;
+            });
         } else {
             publish(message, new AMQP.BasicProperties.Builder()
                     .headers(Collections.singletonMap("x-delay", delayMilliseconds))
@@ -83,14 +100,20 @@ public class UnmanagedPublisher<Message> {
     }
 
     public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
-        String routingKey;
-        if (config.isSharded()) {
-            routingKey = NamingUtils.getShardedQueueName(queueName, getShardId());
-        } else {
-            routingKey = queueName;
-        }
-        val enrichedProperties = getEnrichedProperties(properties);
-        publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
+        val routingKey = getRoutingKey();
+        val context = PublishObserverContext.builder()
+                .queueName(queueName)
+                .build();
+        observer.executePublish(context, () -> {
+            val enrichedProperties = getEnrichedProperties(properties);
+            try {
+                publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
+            } catch (IOException e) {
+                log.error("Error while publishing: {}", e);
+                throw RabbitmqActorException.propagate(e);
+            }
+            return null;
+        });
     }
 
     private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties) {
@@ -220,5 +243,9 @@ public class UnmanagedPublisher<Message> {
 
     protected final ObjectMapper mapper() {
         return mapper;
+    }
+
+    private String getRoutingKey() {
+        return config.isSharded() ? NamingUtils.getShardedQueueName(queueName, getShardId()) : queueName;
     }
 }

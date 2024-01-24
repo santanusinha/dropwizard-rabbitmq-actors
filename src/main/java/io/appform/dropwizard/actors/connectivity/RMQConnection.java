@@ -33,6 +33,7 @@ import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.QueueTypeVisitorImpl;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
+import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Environment;
 import java.io.FileInputStream;
@@ -60,17 +61,22 @@ public class RMQConnection implements Managed {
     private Connection connection;
     private Channel channel;
 
+    @Getter
+    private final RMQObserver rootObserver;
+
 
     public RMQConnection(final String name,
                          final RMQConfig config,
                          final ExecutorService executorService,
                          final Environment environment,
-                         final TtlConfig ttlConfig) {
+                         final TtlConfig ttlConfig,
+                         final RMQObserver rootObserver) {
         this.name = name;
         this.config = config;
         this.executorService = executorService;
         this.environment = environment;
         this.ttlConfig = ttlConfig;
+        this.rootObserver = rootObserver;
     }
 
 

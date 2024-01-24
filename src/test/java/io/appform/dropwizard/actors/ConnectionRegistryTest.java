@@ -10,6 +10,8 @@ import io.appform.dropwizard.actors.common.ErrorCode;
 import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.ConnectionConfig;
+import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
+import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
 import io.dropwizard.Configuration;
 import io.dropwizard.setup.Environment;
 import java.util.concurrent.Executors;
@@ -43,7 +45,7 @@ public class ConnectionRegistryTest {
 
         registry = new ConnectionRegistry(environment,
                 (name, coreSize) -> Executors.newFixedThreadPool(1),
-                config, TtlConfig.builder().build());
+                config, TtlConfig.builder().build(), new TerminalRMQObserver());
 
         Constants.DEFAULT_CONNECTIONS.forEach(defaultConnectionName -> {
             try {

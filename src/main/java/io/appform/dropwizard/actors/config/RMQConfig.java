@@ -89,4 +89,6 @@ public class RMQConfig {
     @Valid
     private List<ConnectionConfig> connections;
 
+    @Valid
+    private MetricConfig metricConfig;
 }

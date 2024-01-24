@@ -10,13 +10,16 @@ import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
+import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
+
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.function.Function;
+
 import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
@@ -34,6 +37,7 @@ public class UnmanagedConsumer<Message> {
     private final String queueName;
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
+    private final RMQObserver observer;
 
     private final List<Handler<Message>> handlers = Lists.newArrayList();
 
@@ -59,6 +63,7 @@ public class UnmanagedConsumer<Message> {
         this.queueName = NamingUtils.queueName(config.getPrefix(), name);
         this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());
         this.exceptionHandler = exceptionHandlingFactory.create(config.getExceptionHandlerConfig());
+        this.observer = connection.getRootObserver();
     }
 
     public void start() throws Exception {
@@ -66,7 +71,7 @@ public class UnmanagedConsumer<Message> {
             Channel consumeChannel = connection.newChannel();
             final Handler<Message> handler =
                     new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction, retryStrategy,
-                                  exceptionHandler, handlerFunction, expiredMessageHandlingFunction);
+                                  exceptionHandler, handlerFunction, expiredMessageHandlingFunction, observer, queueName);
             String queueNameForConsumption;
             if (config.isSharded()) {
                 queueNameForConsumption = NamingUtils.getShardedQueueName(queueName, i % config.getShardCount());
