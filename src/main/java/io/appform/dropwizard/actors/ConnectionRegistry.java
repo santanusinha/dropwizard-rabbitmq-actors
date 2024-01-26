@@ -50,12 +50,6 @@ public class ConnectionRegistry implements Managed {
 
     public RMQConnection createOrGet(String connectionName, int threadPoolSize) {
 
-        if (Constants.DEFAULT_CONNECTIONS.contains(connectionName)) {
-            throw new RabbitmqActorException(ErrorCode.CONNECTION_NAME_RESERVED_FOR_INTERNAL_USE,
-                    String.format("These connection names are reserved for internal usage: [%s]",
-                            Joiner.on(',').join(Constants.DEFAULT_CONNECTIONS)), null);
-        }
-
         return connections.computeIfAbsent(connectionName, connection -> {
             log.info(String.format("Creating new RMQ connection with name [%s] having [%d] threads", connection,
                     threadPoolSize));
