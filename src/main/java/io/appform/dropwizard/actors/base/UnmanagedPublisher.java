@@ -50,10 +50,14 @@ public class UnmanagedPublisher<Message> {
 
     public final void publishWithDelay(final Message message, final long delayMilliseconds) throws Exception {
         log.info("Publishing message to exchange with delay: {}", delayMilliseconds);
+        val properties = getPropertiesWithDelay(delayMilliseconds);
+        publishWithDelay(message, properties);
+    }
+
+    private final void publishWithDelay(final Message message, final AMQP.BasicProperties properties) throws Exception {
         if (!config.isDelayed()) {
             log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
         }
-
         if (config.getDelayType() == DelayType.TTL) {
             val routingKey = getRoutingKey();
             val context = PublishObserverContext.builder()
@@ -62,11 +66,7 @@ public class UnmanagedPublisher<Message> {
             observer.executePublish(context, () -> {
                 try {
                     publishChannel.basicPublish(ttlExchange(config),
-                            routingKey,
-                            new AMQP.BasicProperties.Builder()
-                                    .expiration(String.valueOf(delayMilliseconds))
-                                    .deliveryMode(2)
-                                    .build(),
+                            routingKey, properties,
                             mapper().writeValueAsBytes(message));
                 } catch (IOException e) {
                     log.error("Error while publishing: {}", e);
@@ -75,24 +75,23 @@ public class UnmanagedPublisher<Message> {
                 return null;
             });
         } else {
-            publish(message, new AMQP.BasicProperties.Builder()
-                    .headers(Collections.singletonMap("x-delay", delayMilliseconds))
-                    .deliveryMode(2)
-                    .build());
+            publish(message, properties);
         }
     }
-
     public final void publishWithExpiry(final Message message, final long expiryInMs) throws Exception {
         AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
                 .deliveryMode(2)
                 .build();
-        if (expiryInMs > 0) {
-            val expiresAt = Instant.now().toEpochMilli() + expiryInMs;
-            properties = properties.builder()
-                    .headers(ImmutableMap.of(MESSAGE_EXPIRY_TEXT, expiresAt))
-                    .build();
-        }
-        publish(message, properties);
+        val finalProperties = getPropertiesWithExpiry(properties, expiryInMs);
+        publish(message, finalProperties);
+    }
+
+    public final void publishWithDelayAndExpiry(final Message message, final long expiryInMs, final long delayMilliseconds)
+            throws Exception {
+        AMQP.BasicProperties properties = getPropertiesWithDelay(delayMilliseconds);
+        val finalProperties = getPropertiesWithExpiry(properties, expiryInMs);
+        publishWithDelay(message, finalProperties);
+
     }
 
     public final void publish(final Message message) throws Exception {
@@ -129,6 +128,31 @@ public class UnmanagedPublisher<Message> {
 
     private int getShardId() {
         return RandomUtils.nextInt(0, config.getShardCount());
+    }
+
+    private AMQP.BasicProperties getPropertiesWithDelay(final long delayMilliseconds){
+        if(config.getDelayType() == DelayType.TTL){
+            return new AMQP.BasicProperties.Builder()
+                    .expiration(String.valueOf(delayMilliseconds))
+                    .deliveryMode(2)
+                    .build();
+        }
+        else {
+            return new AMQP.BasicProperties.Builder()
+                    .headers(Collections.singletonMap("x-delay", delayMilliseconds))
+                    .deliveryMode(2)
+                    .build();
+        }
+    }
+
+    private AMQP.BasicProperties getPropertiesWithExpiry(AMQP.BasicProperties properties, final long expiryInMs){
+        if (expiryInMs > 0) {
+            val expiresAt = Instant.now().toEpochMilli() + expiryInMs;
+            properties = properties.builder()
+                    .headers(ImmutableMap.of(MESSAGE_EXPIRY_TEXT, expiresAt))
+                    .build();
+        }
+        return properties;
     }
 
     public final long pendingMessagesCount() {
