@@ -17,11 +17,17 @@
 package io.appform.dropwizard.actors.actor;
 
 import io.appform.dropwizard.actors.TtlConfig;
+import io.appform.dropwizard.actors.common.Constants;
+import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
 import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConfig;
 import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
 import io.dropwizard.validation.ValidationMethod;
+
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
@@ -120,6 +126,38 @@ public class ActorConfig {
     @ValidationMethod(message = "Concurrency should be multiple of shard count for sharded queue.")
     public boolean isValidSharding() {
         return !isSharded() || getConcurrency() % getShardCount() == 0;
+    }
+
+    @ValidationMethod(message = "Custom connection names should be different from default connection names")
+    public boolean isCustomConnectionNamesValid() {
+
+        if (Objects.isNull(producer) && Objects.isNull(consumer)) {
+            return true;
+        }
+
+        AtomicBoolean validConnectionNames = new AtomicBoolean(true);
+
+        getConnectionNames().forEach(connectionName -> {
+            if (Constants.DEFAULT_CONNECTIONS.contains(connectionName)) {
+                validConnectionNames.set(false);
+            }
+        });
+
+        return validConnectionNames.get();
+    }
+
+    private Set<String> getConnectionNames() {
+        Set<String> proposedConnectionNames = new HashSet<>();
+        if (Objects.nonNull(producer) && Objects.nonNull(producer.getConnectionIsolationStrategy()) &&
+                producer.getConnectionIsolationStrategy() instanceof SharedConnectionStrategy) {
+            proposedConnectionNames.add(((SharedConnectionStrategy) producer.getConnectionIsolationStrategy()).getName());
+        }
+        if (Objects.nonNull(consumer) && Objects.nonNull(consumer.getConnectionIsolationStrategy()) &&
+                consumer.getConnectionIsolationStrategy() instanceof SharedConnectionStrategy) {
+            proposedConnectionNames.add(((SharedConnectionStrategy) consumer.getConnectionIsolationStrategy()).getName());
+        }
+
+        return proposedConnectionNames;
     }
 
 }
