@@ -9,6 +9,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ActorConfigTest {
 
@@ -21,6 +22,15 @@ public class ActorConfigTest {
         Method method = ActorConfig.class.getDeclaredMethod("isCustomConnectionNamesValid");
         boolean valid = (boolean) method.invoke(actorConfig);
         assertFalse(valid);
+    }
+
+    @Test
+    public void testActorConfigValidationSuccess()
+            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        ActorConfig actorConfig = AsyncOperationHelper.buildActorConfig();
+        Method method = ActorConfig.class.getDeclaredMethod("isCustomConnectionNamesValid");
+        boolean valid = (boolean) method.invoke(actorConfig);
+        assertTrue(valid);
     }
 
 }
