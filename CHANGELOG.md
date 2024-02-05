@@ -1,5 +1,8 @@
 # Changelog
 All notable changes to this project will be documented in this file.
+## 2.0.28-12
+- Bug fixes and support for delayed in observer
+
 ## 2.0.28-11
 - Observers and operation level metrics support
 
