@@ -121,6 +121,11 @@ public class UnmanagedBaseActor<Message> {
     public final void publishWithExpiry(final Message message, final long expiryInMs) throws Exception {
         publishActor().publishWithExpiry(message, expiryInMs);
     }
+    public final void publishWithDelayAndExpiry(final Message message,
+                                                final long expiryInMs,
+                                                final long delayMilliseconds) throws Exception {
+        publishActor().publishWithDelayAndExpiry(message, expiryInMs, delayMilliseconds);
+    }
 
     public final void publish(final Message message) throws Exception {
         publishActor().publish(message);
