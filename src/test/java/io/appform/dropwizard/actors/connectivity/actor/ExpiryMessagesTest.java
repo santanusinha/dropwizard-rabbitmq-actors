@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -342,11 +343,53 @@ public class ExpiryMessagesTest {
         };
     }
 
+    @Test
+    public void testPublishWithExpiryAndDelay() throws Exception {
+        val queueName = "queue-1";
+        val objectMapper = new ObjectMapper();
+        val actorConfig = new ActorConfig();
+        actorConfig.setExchange("test-exchange-delay");
+        val publisher = new UnmanagedPublisher<>(
+                queueName, actorConfig, connection, objectMapper);
+        publisher.start();
+
+        val message = ImmutableMap.of(
+                "key", "test"
+        );
+        publisher.publishWithDelayAndExpiry(message, 1500, 500);
+
+        Thread.sleep(1510);
+
+
+        val expiredDeliveryCount = new AtomicInteger();
+        val consumer = new UnmanagedConsumer<>(
+                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                Map.class, this::handleForNoExpectedMsg, handleExpiredMessageWithDelay(expiredDeliveryCount), (x) -> true);
+        consumer.start();
+
+        Thread.sleep(1000);
+
+        Assertions.assertEquals(1, expiredDeliveryCount.getAndIncrement());
+    }
+
     @NotNull
     private MessageHandlingFunction<Map, Boolean> handleExpiredMessage(AtomicInteger expiredDeliveryCount) {
         return (msg, meta) -> {
             log.info("Meta::{}", meta);
             Assertions.assertTrue(meta.getDelayInMs() > 1500);
+            expiredDeliveryCount.getAndIncrement();
+            return true;
+        };
+    }
+
+    @NotNull
+    private MessageHandlingFunction<Map, Boolean> handleExpiredMessageWithDelay(AtomicInteger expiredDeliveryCount) {
+        return (msg, meta) -> {
+            log.info("Meta::{}", meta);
+            Assertions.assertTrue(meta.getDelayInMs() > 1500);
+            Map<String, Object> msgHeaders = meta.getHeaders();
+            Assertions.assertNotNull(msgHeaders);
+            Assertions.assertTrue(StringUtils.equals("500", String.valueOf(msgHeaders.get("x-delay"))));
             expiredDeliveryCount.getAndIncrement();
             return true;
         };
