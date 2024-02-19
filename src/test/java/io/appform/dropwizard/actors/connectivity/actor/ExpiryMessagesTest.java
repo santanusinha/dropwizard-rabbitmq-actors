@@ -385,7 +385,6 @@ public class ExpiryMessagesTest {
     @NotNull
     private MessageHandlingFunction<Map, Boolean> handleExpiredMessageWithDelay(AtomicInteger expiredDeliveryCount) {
         return (msg, meta) -> {
-            log.info("Meta::{}", meta);
             Assertions.assertTrue(meta.getDelayInMs() > 1500);
             Map<String, Object> msgHeaders = meta.getHeaders();
             Assertions.assertNotNull(msgHeaders);
