@@ -138,6 +138,12 @@ public abstract class BaseActor<Message> implements Managed {
         actorImpl.publishWithExpiry(message, expiryInMs);
     }
 
+    public final void publishWithDelayAndExpiry(final Message message,
+                                                final long expiryInMs,
+                                                final long delayMilliseconds) throws Exception {
+        actorImpl.publishWithDelayAndExpiry(message, expiryInMs, delayMilliseconds);
+    }
+
     public final void publish(final Message message) throws Exception {
         val properties = new AMQP.BasicProperties.Builder()
                 .deliveryMode(2)
