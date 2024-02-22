@@ -148,9 +148,14 @@ public class UnmanagedPublisher<Message> {
         if (expiryInMs <= 0) {
             return properties;
         }
+        HashMap<String, Object> enrichedHeaders = new HashMap<>();
+        if (properties.getHeaders() != null) {
+            enrichedHeaders.putAll(properties.getHeaders());
+        }
         val expiresAt = Instant.now().toEpochMilli() + expiryInMs;
-        return new AMQP.BasicProperties.Builder()
-                .headers(ImmutableMap.of(MESSAGE_EXPIRY_TEXT, expiresAt))
+        enrichedHeaders.put(MESSAGE_EXPIRY_TEXT, expiresAt);
+        return properties.builder()
+                .headers(Collections.unmodifiableMap(enrichedHeaders))
                 .build();
     }
 
