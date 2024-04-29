@@ -62,6 +62,7 @@ public class UnmanagedPublisher<Message> {
             val routingKey = getRoutingKey();
             val context = PublishObserverContext.builder()
                     .queueName(queueName)
+                    .routingKey(routingKey)
                     .build();
             observer.executePublish(context, () -> {
                 try {
@@ -103,6 +104,7 @@ public class UnmanagedPublisher<Message> {
         val routingKey = getRoutingKey();
         val context = PublishObserverContext.builder()
                 .queueName(queueName)
+                .routingKey(routingKey)
                 .build();
         observer.executePublish(context, () -> {
             val enrichedProperties = getEnrichedProperties(properties);

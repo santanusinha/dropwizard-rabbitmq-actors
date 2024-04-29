@@ -50,46 +50,63 @@ class RMQMetricObserverTest {
     void testExecuteWithNoExceptionForPublish() {
         val context = PublishObserverContext.builder()
                 .queueName("default")
+                .routingKey("default_1")
                 .build();
         assertEquals(terminate(), rmqMetricObserver.executePublish(context, this::terminate));
         val key = MetricKeyData.builder().operation(PUBLISH).queueName(context.getQueueName()).build();
+        val routingKey = MetricKeyData.builder().operation(PUBLISH).queueName(context.getRoutingKey()).build();
         validateMetrics(rmqMetricObserver.getMetricCache().get(key), 1, 0);
+        validateMetrics(rmqMetricObserver.getMetricCache().get(routingKey), 1, 0);
     }
 
     @Test
     void testExecuteWithException() {
         val context = PublishObserverContext.builder()
                 .queueName("default")
+                .routingKey("default_1")
                 .build();
         assertThrows(RuntimeException.class, () -> rmqMetricObserver.executePublish(context, this::terminateWithException));
         val key = MetricKeyData.builder().operation(PUBLISH).queueName(context.getQueueName()).build();
+        val routingKey = MetricKeyData.builder().operation(PUBLISH).queueName(context.getRoutingKey()).build();
         validateMetrics(rmqMetricObserver.getMetricCache().get(key), 0, 1);
+        validateMetrics(rmqMetricObserver.getMetricCache().get(routingKey), 0, 1);
     }
 
     @Test
     void testExecuteForConsumeWithoutRedelivery() {
         val context = ConsumeObserverContext.builder()
                 .queueName("default")
+                .routingKey("default_1")
                 .build();
         assertEquals(terminate(), rmqMetricObserver.executeConsume(context, this::terminate));
 
         val key = MetricKeyData.builder()
                 .operation(CONSUME)
                 .queueName(context.getQueueName()).build();
+        val routingKey = MetricKeyData.builder().operation(CONSUME).queueName(context.getRoutingKey()).build();
+
         validateMetrics(rmqMetricObserver.getMetricCache().get(key), 1, 0);
+        validateMetrics(rmqMetricObserver.getMetricCache().get(routingKey), 1, 0);
 
         val redeliveryKey = MetricKeyData.builder()
                 .operation(CONSUME)
                 .queueName(context.getQueueName())
                 .redelivered(true)
                 .build();
+        val redeliveryRoutingKey = MetricKeyData.builder()
+                .operation(CONSUME)
+                .queueName(context.getQueueName())
+                .redelivered(true)
+                .build();
         assertNull(rmqMetricObserver.getMetricCache().get(redeliveryKey));
+        assertNull(rmqMetricObserver.getMetricCache().get(redeliveryRoutingKey));
     }
 
     @Test
     void testExecuteForConsumeWithRedelivery() {
         val context = ConsumeObserverContext.builder()
                 .queueName("default")
+                .routingKey("default_1")
                 .redelivered(true)
                 .build();
         assertEquals(terminate(), rmqMetricObserver.executeConsume(context, this::terminate));
@@ -97,14 +114,24 @@ class RMQMetricObserverTest {
         val key = MetricKeyData.builder()
                 .operation(CONSUME)
                 .queueName(context.getQueueName()).build();
+        val routingKey = MetricKeyData.builder()
+                .operation(CONSUME)
+                .queueName(context.getRoutingKey()).build();
         validateMetrics(rmqMetricObserver.getMetricCache().get(key), 1, 0);
+        validateMetrics(rmqMetricObserver.getMetricCache().get(routingKey), 1, 0);
 
         val redeliveryKey = MetricKeyData.builder()
                 .operation(CONSUME)
                 .queueName(context.getQueueName())
                 .redelivered(context.isRedelivered())
                 .build();
+        val redeliveryRoutingKey = MetricKeyData.builder()
+                .operation(CONSUME)
+                .queueName(context.getRoutingKey())
+                .redelivered(context.isRedelivered())
+                .build();
         validateMetrics(rmqMetricObserver.getMetricCache().get(redeliveryKey), 1, 0);
+        validateMetrics(rmqMetricObserver.getMetricCache().get(redeliveryRoutingKey), 1, 0);
     }
 
     private void validateMetrics(final MetricData metricData,
