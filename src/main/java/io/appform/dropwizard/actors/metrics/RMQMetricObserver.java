@@ -42,17 +42,23 @@ public class RMQMetricObserver extends RMQObserver {
             return proceedPublish(context, supplier);
         }
         val metricData = getMetricData(context);
+        val metricDataPerShard = getMetricDataPerShard(context);
         metricData.getTotal().mark();
+        metricDataPerShard.getTotal().mark();
         val timer = metricData.getTimer().time();
+        val timePerShard = metricDataPerShard.getTimer().time();
         try {
             val response = proceedPublish(context, supplier);
             metricData.getSuccess().mark();
+            metricDataPerShard.getSuccess().mark();
             return response;
         } catch (Throwable t) {
             metricData.getFailed().mark();
+            metricDataPerShard.getFailed().mark();
             throw t;
         } finally {
             timer.stop();
+            timePerShard.stop();
         }
     }
 
@@ -63,30 +69,51 @@ public class RMQMetricObserver extends RMQObserver {
         }
         val isRedelivered = context.isRedelivered();
         val metricData = getMetricData(context);
+        val metricDataPerShard = getMetricDataPerShard(context);
         val metricDataForRedelivery = isRedelivered ? getMetricDataForRedelivery(context) : null;
+        val metricDataPerShardForRedelivery = isRedelivered ? getMetricDataPerShardForRedelivery(context) : null;
         metricData.getTotal().mark();
+        metricDataPerShard.getTotal().mark();
+
         if (metricDataForRedelivery != null) {
             metricDataForRedelivery.getTotal().mark();
         }
+        if (metricDataPerShardForRedelivery != null) {
+            metricDataPerShardForRedelivery.getTotal().mark();
+        }
         val timer = metricData.getTimer().time();
+        val timerPerShard = metricDataPerShard.getTimer().time();
         val redeliveryTimer =  metricDataForRedelivery != null ? metricDataForRedelivery.getTimer().time(): null;
+        val redeliveryTimerPerShard =  metricDataPerShardForRedelivery != null ? metricDataPerShardForRedelivery.getTimer().time(): null;
         try {
             val response = proceedConsume(context, supplier);
             metricData.getSuccess().mark();
+            metricDataPerShard.getSuccess().mark();
             if (metricDataForRedelivery != null) {
                 metricDataForRedelivery.getSuccess().mark();
+            }
+            if (metricDataPerShardForRedelivery != null) {
+                metricDataPerShardForRedelivery.getSuccess().mark();
             }
             return response;
         } catch (Throwable t) {
             metricData.getFailed().mark();
+            metricDataPerShard.getFailed().mark();
             if (metricDataForRedelivery != null) {
                 metricDataForRedelivery.getFailed().mark();
+            }
+            if (metricDataPerShardForRedelivery != null) {
+                metricDataPerShardForRedelivery.getFailed().mark();
             }
             throw t;
         } finally {
             timer.stop();
+            timerPerShard.stop();
             if (redeliveryTimer != null) {
                 redeliveryTimer.stop();
+            }
+            if (redeliveryTimerPerShard != null) {
+                redeliveryTimerPerShard.stop();
             }
         }
     }
@@ -112,6 +139,34 @@ public class RMQMetricObserver extends RMQObserver {
     private MetricData getMetricDataForRedelivery(final ConsumeObserverContext context) {
         val metricKeyData = MetricKeyData.builder()
                 .queueName(context.getQueueName())
+                .operation(CONSUME)
+                .redelivered(context.isRedelivered())
+                .build();
+        return metricCache.computeIfAbsent(metricKeyData, key ->
+                getMetricData(MetricUtil.getMetricPrefixForRedelivery(metricKeyData)));
+    }
+
+    private MetricData getMetricDataPerShard(final PublishObserverContext context) {
+        val metricKeyData = MetricKeyData.builder()
+                .queueName(context.getRoutingKey())
+                .operation(PUBLISH)
+                .build();
+        return metricCache.computeIfAbsent(metricKeyData, key ->
+                getMetricData(MetricUtil.getMetricPrefix(metricKeyData)));
+    }
+
+    private MetricData getMetricDataPerShard(final ConsumeObserverContext context) {
+        val metricKeyData = MetricKeyData.builder()
+                .queueName(context.getRoutingKey())
+                .operation(CONSUME)
+                .build();
+        return metricCache.computeIfAbsent(metricKeyData, key ->
+                getMetricData(MetricUtil.getMetricPrefix(metricKeyData)));
+    }
+
+    private MetricData getMetricDataPerShardForRedelivery(final ConsumeObserverContext context) {
+        val metricKeyData = MetricKeyData.builder()
+                .queueName(context.getRoutingKey())
                 .operation(CONSUME)
                 .redelivered(context.isRedelivered())
                 .build();

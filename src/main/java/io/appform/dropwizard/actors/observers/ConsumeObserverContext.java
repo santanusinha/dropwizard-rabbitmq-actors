@@ -8,4 +8,5 @@ import lombok.Value;
 public class ConsumeObserverContext {
     String queueName;
     boolean redelivered;
+    String routingKey;
 }

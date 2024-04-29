@@ -69,15 +69,15 @@ public class UnmanagedConsumer<Message> {
     public void start() throws Exception {
         for (int i = 1; i <= config.getConcurrency(); i++) {
             Channel consumeChannel = connection.newChannel();
-            final Handler<Message> handler =
-                    new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction, retryStrategy,
-                                  exceptionHandler, handlerFunction, expiredMessageHandlingFunction, observer, queueName);
             String queueNameForConsumption;
             if (config.isSharded()) {
                 queueNameForConsumption = NamingUtils.getShardedQueueName(queueName, i % config.getShardCount());
             } else {
                 queueNameForConsumption = queueName;
             }
+            final Handler<Message> handler =
+                    new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction, retryStrategy,
+                            exceptionHandler, handlerFunction, expiredMessageHandlingFunction, observer, queueName, queueNameForConsumption);
 
             final String tag = consumeChannel.basicConsume(queueNameForConsumption, false, getConsumerTag(i), handler);
             handler.setTag(tag);

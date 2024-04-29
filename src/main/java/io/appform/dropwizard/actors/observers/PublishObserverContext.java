@@ -7,4 +7,5 @@ import lombok.Value;
 @Builder
 public class PublishObserverContext {
     String queueName;
+    String routingKey;
 }

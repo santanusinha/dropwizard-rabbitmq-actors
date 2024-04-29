@@ -38,6 +38,8 @@ public class Handler<Message> extends DefaultConsumer {
     private final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction;
     private final RMQObserver observer;
     private final String queueName;
+    @Getter
+    private final String routingKey;
 
     @Getter
     private volatile boolean running;
@@ -56,7 +58,8 @@ public class Handler<Message> extends DefaultConsumer {
                    final MessageHandlingFunction<Message, Boolean> messageHandlingFunction,
                    final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
                    final RMQObserver observer,
-                   final String queueName) throws Exception {
+                   final String queueName,
+                   final String routingKey) throws Exception {
         super(channel);
         this.mapper = mapper;
         this.clazz = clazz;
@@ -68,6 +71,7 @@ public class Handler<Message> extends DefaultConsumer {
         this.exceptionHandler = exceptionHandler;
         this.messageHandlingFunction = messageHandlingFunction;
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
+        this.routingKey = routingKey;
     }
 
     private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) throws Exception {
@@ -75,6 +79,7 @@ public class Handler<Message> extends DefaultConsumer {
         val context = ConsumeObserverContext.builder()
                 .queueName(queueName)
                 .redelivered(messageMetadata.isRedelivered())
+                .routingKey(routingKey)
                 .build();
         return observer.executeConsume(context, () -> {
             try {
