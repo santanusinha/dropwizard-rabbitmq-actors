@@ -1,5 +1,9 @@
 # Changelog
 All notable changes to this project will be documented in this file.
+## 3.0.7-1
+- Upgraded to dropwizard 3x line
+- Moved to bom based Junit usage
+
 ## 2.0.28-12
 - Bug fixes and support for delayed in observer
 

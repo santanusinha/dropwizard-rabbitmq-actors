@@ -22,11 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
-import com.rabbitmq.client.Address;
-import com.rabbitmq.client.BlockedListener;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.*;
 import com.rabbitmq.client.impl.StandardMetricsCollector;
 import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.actor.ActorConfig;
@@ -34,8 +30,14 @@ import io.appform.dropwizard.actors.actor.QueueTypeVisitorImpl;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.observers.RMQObserver;
+import io.dropwizard.core.setup.Environment;
 import io.dropwizard.lifecycle.Managed;
-import io.dropwizard.setup.Environment;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.ssl.SSLContexts;
+
+import javax.net.ssl.SSLContext;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyStore;
@@ -44,11 +46,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import javax.net.ssl.SSLContext;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
-import org.apache.http.ssl.SSLContexts;
 
 @Slf4j
 public class RMQConnection implements Managed {
