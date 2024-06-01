@@ -76,6 +76,7 @@ public class RMQConfig {
 
     @Min(0)
     @Max(1024)
+    @Default
     private int startupGracePeriodSeconds = 0;
 
     private String certStorePath;
