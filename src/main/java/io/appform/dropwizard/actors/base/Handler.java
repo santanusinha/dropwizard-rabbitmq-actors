@@ -10,6 +10,7 @@ import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
+import io.appform.dropwizard.actors.failurehandler.handlers.FailureHandler;
 import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
@@ -34,6 +35,7 @@ public class Handler<Message> extends DefaultConsumer {
     private final Function<Throwable, Boolean> errorCheckFunction;
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
+    private final FailureHandler failureHandler;
     private final MessageHandlingFunction<Message, Boolean> messageHandlingFunction;
     private final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction;
     private final RMQObserver observer;
@@ -53,6 +55,7 @@ public class Handler<Message> extends DefaultConsumer {
                    final Function<Throwable, Boolean> errorCheckFunction,
                    final RetryStrategy retryStrategy,
                    final ExceptionHandler exceptionHandler,
+                   final FailureHandler failureHandler,
                    final MessageHandlingFunction<Message, Boolean> messageHandlingFunction,
                    final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
                    final RMQObserver observer,
@@ -66,6 +69,7 @@ public class Handler<Message> extends DefaultConsumer {
         this.errorCheckFunction = errorCheckFunction;
         this.retryStrategy = retryStrategy;
         this.exceptionHandler = exceptionHandler;
+        this.failureHandler = failureHandler;
         this.messageHandlingFunction = messageHandlingFunction;
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
     }
@@ -99,6 +103,8 @@ public class Handler<Message> extends DefaultConsumer {
             val handleCallable = getHandleCallable(envelope, properties, body);
 
             if (retryStrategy.execute(handleCallable)) {
+                getChannel().basicAck(envelope.getDeliveryTag(), false);
+            } else if(failureHandler.handle()) {
                 getChannel().basicAck(envelope.getDeliveryTag(), false);
             } else {
                 getChannel().basicReject(envelope.getDeliveryTag(), false);

@@ -18,6 +18,7 @@ import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
+import io.appform.dropwizard.actors.failurehandler.handlers.FailureHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import java.io.IOException;
@@ -119,7 +120,7 @@ public class TagsBasedConsumerTest {
         when(exceptionHandlingFactory.create(any())).thenReturn(exceptionHandler);
 
         final UnmanagedConsumer<String> consumer = new UnmanagedConsumer<>("test-name", actorConfig, rmqConnection,
-                objectMapper, retryStrategyFactory, exceptionHandlingFactory, String.class, handlerFunction,
+                objectMapper, retryStrategyFactory, exceptionHandlingFactory, new FailureHandlingFactory(), String.class, handlerFunction,
                 expiredMessageHandlingFunction, errorCheckFunction);
 
         return consumer;
