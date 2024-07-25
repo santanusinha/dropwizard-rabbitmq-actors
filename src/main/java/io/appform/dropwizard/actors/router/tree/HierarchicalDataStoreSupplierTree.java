@@ -8,31 +8,37 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-public class HierarchicalDataStoreSupplierTree<INPUT, KEY, OUTPUT> extends HierarchicalDataStoreTree<KEY, OUTPUT> {
+@SuppressWarnings("java:S119")
+public class HierarchicalDataStoreSupplierTree<INPUT_NODE_TYPE, INPUT_ROOT_NODE_TYPE, NODE_KEY_TYPE, OUTPUT_NODE_TYPE> extends HierarchicalDataStoreTree<NODE_KEY_TYPE, OUTPUT_NODE_TYPE> {
 
     private static final Function<List<String>, RoutingKey> routingKeyGenerator = (list) -> RoutingKey.builder()
             .list(list)
             .build();
 
-    public HierarchicalDataStoreSupplierTree(final KEY key,
-                                             final HierarchicalTreeConfig<String, INPUT> treeConfig,
-                                             final TriConsumerSupplier<OUTPUT, RoutingKey, KEY, INPUT> supplier) {
-        super(supplier.get(routingKeyGenerator.apply(List.of()), key, treeConfig.getDefaultData()));
+    public HierarchicalDataStoreSupplierTree(final NODE_KEY_TYPE key,
+                                             final HierarchicalTreeConfig<INPUT_ROOT_NODE_TYPE, String, INPUT_NODE_TYPE> treeConfig,
+                                             final Function<INPUT_ROOT_NODE_TYPE, INPUT_NODE_TYPE> rootNodeConverterSupplier,
+                                             final TriConsumerSupplier<OUTPUT_NODE_TYPE, RoutingKey, NODE_KEY_TYPE, INPUT_NODE_TYPE> supplier) {
+        super(supplier.get(
+                routingKeyGenerator.apply(List.of()),
+                key,
+                rootNodeConverterSupplier.apply(treeConfig.getDefaultData())
+        ));
         buildTree(key, treeConfig, supplier);
     }
 
-    private void buildTree(final KEY key,
-                           final HierarchicalTreeConfig<String, INPUT> treeConfig,
-                           final TriConsumerSupplier<OUTPUT, RoutingKey, KEY, INPUT> supplier) {
+    private void buildTree(final NODE_KEY_TYPE key,
+                           final HierarchicalTreeConfig<INPUT_ROOT_NODE_TYPE, String, INPUT_NODE_TYPE> treeConfig,
+                           final TriConsumerSupplier<OUTPUT_NODE_TYPE, RoutingKey, NODE_KEY_TYPE, INPUT_NODE_TYPE> supplier) {
         val childrenList = treeConfig.getChildrenData();
         val tokenList = Lists.<String>newArrayList();
         buildTreeHelper(key, childrenList, tokenList, supplier);
     }
 
-    private void buildTreeHelper(final KEY key,
-                                 final HierarchicalDataStoreTreeNode<String, INPUT> rootChildrenData,
+    private void buildTreeHelper(final NODE_KEY_TYPE key,
+                                 final HierarchicalDataStoreTreeNode<String, INPUT_NODE_TYPE> rootChildrenData,
                                  final List<String> tokenList,
-                                 final TriConsumerSupplier<OUTPUT, RoutingKey, KEY, INPUT> supplier) {
+                                 final TriConsumerSupplier<OUTPUT_NODE_TYPE, RoutingKey, NODE_KEY_TYPE, INPUT_NODE_TYPE> supplier) {
         val childrenList = rootChildrenData.getChildren();
         if (childrenList.isEmpty()) {
             return;
@@ -53,6 +59,5 @@ public class HierarchicalDataStoreSupplierTree<INPUT, KEY, OUTPUT> extends Hiera
             tokenList.remove(childrenToken);
         }
     }
-
 
 }

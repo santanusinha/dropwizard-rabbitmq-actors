@@ -13,35 +13,36 @@ import java.util.function.Consumer;
 @Slf4j
 @ToString
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
-public class HierarchicalDataStoreTree<K, V> {
+@SuppressWarnings("java:S119")
+public class HierarchicalDataStoreTree<NODE_KEY_TYPE, NODE_TYPE> {
 
-    private final V defaultData;
+    private final NODE_TYPE defaultData;
     @JsonUnwrapped
-    private final Map<K, HierarchicalDataStoreTreeNode<String, V>> rootNodes = Maps.newConcurrentMap();
+    private final Map<NODE_KEY_TYPE, HierarchicalDataStoreTreeNode<String, NODE_TYPE>> rootNodes = Maps.newConcurrentMap();
 
     public HierarchicalDataStoreTree() {
         this.defaultData = null;
     }
 
-    public HierarchicalDataStoreTree(V defaultData) {
+    public HierarchicalDataStoreTree(NODE_TYPE defaultData) {
         this.defaultData = defaultData;
     }
 
-    public void add(final HierarchicalRoutingKey<String> routingKey, final K key, final V data) {
+    public void add(final HierarchicalRoutingKey<String> routingKey, final NODE_KEY_TYPE key, final NODE_TYPE data) {
         rootNodes.computeIfAbsent(key, t -> new HierarchicalDataStoreTreeNode<>(0, String.valueOf(key), defaultData));
         rootNodes.get(key)
                 .add(routingKey, data);
     }
 
-    public void traverse(final Consumer<V> consumer) {
-        rootNodes.forEach((k, vHierarchicalStoreNode) -> {
+    public void traverse(final Consumer<NODE_TYPE> consumer) {
+        rootNodes.forEach((NODEKEYTYPE, vHierarchicalStoreNode) -> {
             if (vHierarchicalStoreNode != null) {
                 vHierarchicalStoreNode.traverse(consumer);
             }
         });
     }
 
-    public V get(final K key, final HierarchicalRoutingKey<String> routingKey) {
+    public NODE_TYPE get(final NODE_KEY_TYPE key, final HierarchicalRoutingKey<String> routingKey) {
         if (!rootNodes.containsKey(key)) {
             log.warn("Key {} not found in {} keys {}. Using default {}", key, rootNodes.keySet(), defaultData);
             return defaultData;

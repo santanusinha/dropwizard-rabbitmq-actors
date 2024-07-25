@@ -1,33 +1,37 @@
 package io.appform.dropwizard.actors.router;
 
 import io.appform.dropwizard.actors.actor.ActorConfig;
+import io.appform.dropwizard.actors.common.ErrorCode;
+import io.appform.dropwizard.actors.common.RabbitmqActorException;
+import io.appform.dropwizard.actors.router.config.HierarchicalOperationWorkerConfig;
 import io.appform.dropwizard.actors.router.tree.HierarchicalDataStoreSupplierTree;
 import io.appform.dropwizard.actors.router.tree.HierarchicalTreeConfig;
 import io.appform.dropwizard.actors.router.tree.key.HierarchicalRoutingKey;
 import io.appform.dropwizard.actors.router.tree.key.RoutingKey;
-import io.appform.dropwizard.actors.common.ErrorCode;
-import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 @Slf4j
-public abstract class HierarchicalOperationRouter<MessageType extends Enum<MessageType>, Message>
-        implements HierarchicalMessageRouter<Message> {
+@SuppressWarnings({"java:S119"})
+public abstract class HierarchicalOperationRouter<MessageType extends Enum<MessageType>, Message> implements HierarchicalMessageRouter<Message> {
 
     private final MessageType messageType;
 
     @Getter
     private final HierarchicalDataStoreSupplierTree<
-                ActorConfig,
-                MessageType,
-                HierarchicalOperationWorker<MessageType, ? extends Message>> workers;
+            HierarchicalOperationWorkerConfig,
+            ActorConfig,
+            MessageType,
+            HierarchicalOperationWorker<MessageType, ? extends Message>> workers;
 
-    protected HierarchicalOperationRouter(final MessageType messageType,
-                                          final HierarchicalTreeConfig<String, ActorConfig> hierarchicalTreeConfig) {
+
+    public HierarchicalOperationRouter(final MessageType messageType,
+                                       final HierarchicalTreeConfig<ActorConfig, String, HierarchicalOperationWorkerConfig> hierarchicalTreeConfig) {
         this.messageType = messageType;
         this.workers = new HierarchicalDataStoreSupplierTree<>(messageType, hierarchicalTreeConfig,
-                (routingKey, messageTypeKey, actorConfig) -> getHierarchicalOperationWorker(routingKey, messageTypeKey, actorConfig));
+                HierarchicalRouterUtils.actorConfigToWorkerConfigFunc,
+                (routingKey, messageTypeKey, workerConfig) -> getHierarchicalOperationWorker(routingKey, messageTypeKey, workerConfig, hierarchicalTreeConfig.getDefaultData()));
     }
 
 
@@ -79,5 +83,6 @@ public abstract class HierarchicalOperationRouter<MessageType extends Enum<Messa
 
     public abstract HierarchicalOperationWorker<MessageType, ? extends Message> getHierarchicalOperationWorker(final RoutingKey routingKey,
                                                                                                                final MessageType messageTypeKey,
-                                                                                                               final ActorConfig actorConfig);
+                                                                                                               final HierarchicalOperationWorkerConfig workerConfig,
+                                                                                                               final ActorConfig defaultActorConfig);
 }

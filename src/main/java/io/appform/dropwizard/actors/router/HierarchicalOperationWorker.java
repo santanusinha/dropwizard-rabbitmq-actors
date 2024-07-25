@@ -1,15 +1,13 @@
 package io.appform.dropwizard.actors.router;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
 import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.actor.Actor;
 import io.appform.dropwizard.actors.actor.ActorConfig;
-import io.appform.dropwizard.actors.actor.MessageMetadata;
-import io.appform.dropwizard.actors.router.tree.key.RoutingKey;
-import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
+import io.appform.dropwizard.actors.router.config.HierarchicalOperationWorkerConfig;
+import io.appform.dropwizard.actors.router.tree.key.RoutingKey;
 import lombok.Getter;
 
 import java.util.Set;
@@ -22,7 +20,8 @@ public abstract class HierarchicalOperationWorker<MessageType extends Enum<Messa
     private final RoutingKey routingKey;
 
     protected HierarchicalOperationWorker(final MessageType messageType,
-                                          final ActorConfig workerConfig,
+                                          final HierarchicalOperationWorkerConfig workerConfig,
+                                          final ActorConfig actorConfig,
                                           final RoutingKey routingKey,
                                           final ConnectionRegistry connectionRegistry,
                                           final ObjectMapper mapper,
@@ -31,7 +30,7 @@ public abstract class HierarchicalOperationWorker<MessageType extends Enum<Messa
                                           final Class<? extends Message> clazz,
                                           final Set<Class<?>> droppedExceptionTypes) {
         super(messageType,
-                HierarchicalRouterUtils.toActorConfig(messageType, routingKey, workerConfig),
+                HierarchicalRouterUtils.toActorConfig(messageType, routingKey, workerConfig, actorConfig),
                 connectionRegistry,
                 mapper,
                 retryStrategyFactory,
@@ -39,26 +38,6 @@ public abstract class HierarchicalOperationWorker<MessageType extends Enum<Messa
                 clazz,
                 droppedExceptionTypes);
         this.routingKey = routingKey;
-    }
-
-    @Override
-    protected boolean handle(final Message m,
-                             final MessageMetadata messageMetadata) {
-        boolean result;
-        try {
-            result = process(m);
-        } catch (RabbitmqActorException se) {
-            return false;
-        }
-
-        return result;
-    }
-
-    protected abstract boolean process(final Message m);
-
-    @VisibleForTesting
-    public boolean processIT(final Message m) {
-        return process(m);
     }
 
 }

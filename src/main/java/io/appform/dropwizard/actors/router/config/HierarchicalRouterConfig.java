@@ -14,5 +14,5 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class HierarchicalRouterConfig<MessageType extends Enum<MessageType>> {
-    private Map<MessageType, HierarchicalTreeConfig<String, ActorConfig>> workers;
+    private Map<MessageType, HierarchicalTreeConfig<ActorConfig, String, HierarchicalOperationWorkerConfig>> workers;
 }

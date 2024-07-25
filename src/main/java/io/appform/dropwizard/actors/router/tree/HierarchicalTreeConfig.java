@@ -10,8 +10,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class HierarchicalTreeConfig<K, V> {
-    private V defaultData;
+@SuppressWarnings("java:S119")
+public class HierarchicalTreeConfig<ROOT_TYPE, NODE_KEY_TYPE, NODE_TYPE> {
+    private ROOT_TYPE defaultData;
     @JsonUnwrapped
-    private HierarchicalDataStoreTreeNode<K, V> childrenData;
+    private HierarchicalDataStoreTreeNode<NODE_KEY_TYPE, NODE_TYPE> childrenData;
 }

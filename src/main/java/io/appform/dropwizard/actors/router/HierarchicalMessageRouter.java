@@ -1,6 +1,5 @@
 package io.appform.dropwizard.actors.router;
 
-
 import io.appform.dropwizard.actors.router.tree.key.HierarchicalRoutingKey;
 
 public interface HierarchicalMessageRouter<Message> {
