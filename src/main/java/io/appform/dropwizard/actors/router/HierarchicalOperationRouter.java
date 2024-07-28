@@ -17,9 +17,10 @@ import lombok.val;
 public abstract class HierarchicalOperationRouter<MessageType extends Enum<MessageType>, Message> implements HierarchicalMessageRouter<Message> {
 
     private final MessageType messageType;
+    private final HierarchicalTreeConfig<ActorConfig, String, HierarchicalOperationWorkerConfig> hierarchicalTreeConfig;
 
     @Getter
-    private final HierarchicalDataStoreSupplierTree<
+    private HierarchicalDataStoreSupplierTree<
             HierarchicalOperationWorkerConfig,
             ActorConfig,
             MessageType,
@@ -29,6 +30,10 @@ public abstract class HierarchicalOperationRouter<MessageType extends Enum<Messa
     public HierarchicalOperationRouter(final MessageType messageType,
                                        final HierarchicalTreeConfig<ActorConfig, String, HierarchicalOperationWorkerConfig> hierarchicalTreeConfig) {
         this.messageType = messageType;
+        this.hierarchicalTreeConfig = hierarchicalTreeConfig;
+    }
+
+    private void initializeRouter() {
         this.workers = new HierarchicalDataStoreSupplierTree<>(messageType, hierarchicalTreeConfig,
                 HierarchicalRouterUtils.actorConfigToWorkerConfigFunc,
                 (routingKey, messageTypeKey, workerConfig) -> getHierarchicalOperationWorker(routingKey, messageTypeKey, workerConfig, hierarchicalTreeConfig.getDefaultData()));
@@ -37,6 +42,10 @@ public abstract class HierarchicalOperationRouter<MessageType extends Enum<Messa
 
     @Override
     public void start() {
+        log.info("Initializing Router : {}", messageType);
+        initializeRouter();
+        log.info("Initialized Router : {}", messageType);
+
         log.info("Staring all workers");
         workers.traverse(hierarchicalOperationWorker -> {
             try {
