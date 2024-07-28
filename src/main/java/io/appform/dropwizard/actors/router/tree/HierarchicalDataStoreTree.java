@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 import io.appform.dropwizard.actors.router.tree.key.HierarchicalRoutingKey;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 import java.util.Map;
 import java.util.Objects;
@@ -51,6 +52,13 @@ public class HierarchicalDataStoreTree<NODE_KEY_TYPE, NODE_TYPE> {
             log.warn("Key {} not found in {} keys {}. Using default {}", key, rootNodes.keySet(), defaultData);
             return defaultData;
         }
+
+        val routingKeyToken = routingKey.getRoutingKey();
+        if (routingKeyToken== null || routingKeyToken.isEmpty()) {
+            log.warn("keys are empty {}. Using default {}", key, rootNodes.keySet(), defaultData);
+            return defaultData;
+        }
+
         return rootNodes.get(key)
                 .find(routingKey);
     }

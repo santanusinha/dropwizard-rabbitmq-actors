@@ -51,7 +51,7 @@ public class HierarchicalRouterUtils {
         return ActorConfig.builder()
                 // Custom fields
                 .exchange(exchangeName(actorConfig.getExchange(), messageType, routingKeyData))
-                .prefix(prefix(messageType, actorConfig.getPrefix(), routingKeyData))
+                .prefix(prefix(actorConfig.getPrefix(), routingKeyData))
                 .concurrency(workerConfig.getConcurrency())
                 .shardCount(Objects.nonNull(workerConfig.getShardCount()) && workerConfig.getShardCount() >= 1 ? workerConfig.getShardCount() : null)
                 .consumer(consumerConfig(workerConfig.getConsumer(), actorConfig.getConsumer(), routingKeyData))
@@ -84,12 +84,9 @@ public class HierarchicalRouterUtils {
         return beautifierFunction.apply(Stream.of(EXCHANGES, String.join(".", routingKey), messageType.name()), ".");
     }
 
-    private static <MessageType extends Enum<MessageType>> String prefix(final MessageType messageType,
-                                                                         final String defaultPrefixName,
+    private static <MessageType extends Enum<MessageType>> String prefix(final String defaultPrefixName,
                                                                          final RoutingKey routingKeyData) {
         val routingKey = routingKeyData.getRoutingKey();
-        System.out.println(beautifierFunction.apply(Stream.of(defaultPrefixName, String.join(".", routingKey)), "."));
-
         if (!StringUtils.isEmpty(defaultPrefixName)) {
             return beautifierFunction.apply(Stream.of(defaultPrefixName, String.join(".", routingKey)), ".");
         }
