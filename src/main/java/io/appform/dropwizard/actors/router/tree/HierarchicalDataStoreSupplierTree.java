@@ -41,6 +41,7 @@ public class HierarchicalDataStoreSupplierTree<INPUT_NODE_TYPE, INPUT_ROOT_NODE_
                                  final TriConsumerSupplier<OUTPUT_NODE_TYPE, RoutingKey, NODE_KEY_TYPE, INPUT_NODE_TYPE> supplier) {
         val childrenList = rootChildrenData.getChildren();
         if (childrenList.isEmpty()) {
+            add(routingKeyGenerator.apply(tokenList), key, null);
             return;
         }
 

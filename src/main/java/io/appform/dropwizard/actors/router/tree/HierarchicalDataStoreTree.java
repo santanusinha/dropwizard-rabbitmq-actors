@@ -8,6 +8,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 @Slf4j
@@ -30,6 +31,9 @@ public class HierarchicalDataStoreTree<NODE_KEY_TYPE, NODE_TYPE> {
 
     public void add(final HierarchicalRoutingKey<String> routingKey, final NODE_KEY_TYPE key, final NODE_TYPE data) {
         rootNodes.computeIfAbsent(key, t -> new HierarchicalDataStoreTreeNode<>(0, String.valueOf(key), defaultData));
+        if (Objects.isNull(data)) {
+            return;
+        }
         rootNodes.get(key)
                 .add(routingKey, data);
     }
