@@ -78,7 +78,7 @@ public abstract class HierarchicalOperationRouter<MessageType extends Enum<Messa
     
 
     @Override
-    public void start() {
+    public void start() throws Exception {
         log.info("Initializing Router");
         initializeRouter();
         log.info("Staring all workers");
@@ -95,7 +95,7 @@ public abstract class HierarchicalOperationRouter<MessageType extends Enum<Messa
     }
 
     @Override
-    public void stop() {
+    public void stop() throws Exception {
         log.info("Stopping all workers");
         worker.traverse(hierarchicalOperationWorker -> {
             try {
