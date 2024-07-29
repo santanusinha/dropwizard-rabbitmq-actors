@@ -1,16 +1,21 @@
 package io.appform.dropwizard.actors.router;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.common.ErrorCode;
 import io.appform.dropwizard.actors.common.RabbitmqActorException;
+import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.router.config.HierarchicalOperationWorkerConfig;
 import io.appform.dropwizard.actors.router.tree.HierarchicalDataStoreSupplierTree;
 import io.appform.dropwizard.actors.router.tree.HierarchicalTreeConfig;
 import io.appform.dropwizard.actors.router.tree.key.HierarchicalRoutingKey;
-import io.appform.dropwizard.actors.router.tree.key.RoutingKey;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+
+import java.util.Set;
 
 @Slf4j
 @SuppressWarnings({"java:S119"})
@@ -18,36 +23,66 @@ public abstract class HierarchicalOperationRouter<MessageType extends Enum<Messa
 
     private final MessageType messageType;
     private final HierarchicalTreeConfig<ActorConfig, String, HierarchicalOperationWorkerConfig> hierarchicalTreeConfig;
+    private final ConnectionRegistry connectionRegistry;
+    private final ObjectMapper mapper;
+    private final RetryStrategyFactory retryStrategyFactory;
+    private final ExceptionHandlingFactory exceptionHandlingFactory;
+    private final Class<? extends Message> clazz;
+    private final Set<Class<?>> droppedExceptionTypes;
 
     @Getter
     private HierarchicalDataStoreSupplierTree<
             HierarchicalOperationWorkerConfig,
             ActorConfig,
             MessageType,
-            HierarchicalOperationWorker<MessageType, ? extends Message>> workers;
+            HierarchicalOperationWorker<MessageType, ? extends Message>> worker;
 
-
-    public HierarchicalOperationRouter(final MessageType messageType,
-                                       final HierarchicalTreeConfig<ActorConfig, String, HierarchicalOperationWorkerConfig> hierarchicalTreeConfig) {
+    protected HierarchicalOperationRouter(final MessageType messageType,
+                                          final HierarchicalTreeConfig<ActorConfig, String, HierarchicalOperationWorkerConfig> hierarchicalTreeConfig,
+                                          final ConnectionRegistry connectionRegistry,
+                                          final ObjectMapper mapper,
+                                          final RetryStrategyFactory retryStrategyFactory,
+                                          final ExceptionHandlingFactory exceptionHandlingFactory,
+                                          final Class<? extends Message> clazz,
+                                          final Set<Class<?>> droppedExceptionTypes) {
         this.messageType = messageType;
         this.hierarchicalTreeConfig = hierarchicalTreeConfig;
+        this.connectionRegistry = connectionRegistry;
+        this.mapper = mapper;
+        this.retryStrategyFactory = retryStrategyFactory;
+        this.exceptionHandlingFactory = exceptionHandlingFactory;
+        this.clazz = clazz;
+        this.droppedExceptionTypes = droppedExceptionTypes;
     }
 
-    private void initializeRouter() {
-        this.workers = new HierarchicalDataStoreSupplierTree<>(messageType, hierarchicalTreeConfig,
+    public void initializeRouter() {
+        this.worker = new HierarchicalDataStoreSupplierTree<>(
+                messageType,
+                hierarchicalTreeConfig,
                 HierarchicalRouterUtils.actorConfigToWorkerConfigFunc,
-                (routingKey, messageTypeKey, workerConfig) -> getHierarchicalOperationWorker(routingKey, messageTypeKey, workerConfig, hierarchicalTreeConfig.getDefaultData()));
+                (routingKey, messageTypeKey, workerConfig) ->
+                        new HierarchicalOperationWorker<MessageType, Message>(
+                                messageType,
+                                workerConfig,
+                                hierarchicalTreeConfig.getDefaultData(),
+                                routingKey,
+                                connectionRegistry,
+                                mapper,
+                                retryStrategyFactory,
+                                exceptionHandlingFactory,
+                                clazz,
+                                droppedExceptionTypes,
+                                this::process)
+        );
     }
-
+    
 
     @Override
     public void start() {
-        log.info("Initializing Router : {}", messageType);
+        log.info("Initializing Router");
         initializeRouter();
-        log.info("Initialized Router : {}", messageType);
-
         log.info("Staring all workers");
-        workers.traverse(hierarchicalOperationWorker -> {
+        worker.traverse(hierarchicalOperationWorker -> {
             try {
                 log.info("Starting worker: {} {}", hierarchicalOperationWorker.getType(), hierarchicalOperationWorker.getRoutingKey().getRoutingKey());
                 hierarchicalOperationWorker.start();
@@ -62,7 +97,7 @@ public abstract class HierarchicalOperationRouter<MessageType extends Enum<Messa
     @Override
     public void stop() {
         log.info("Stopping all workers");
-        workers.traverse(hierarchicalOperationWorker -> {
+        worker.traverse(hierarchicalOperationWorker -> {
             try {
                 log.info("Stopping worker: {} {}", hierarchicalOperationWorker.getType(), hierarchicalOperationWorker.getRoutingKey().getRoutingKey());
                 hierarchicalOperationWorker.stop();
@@ -78,7 +113,7 @@ public abstract class HierarchicalOperationRouter<MessageType extends Enum<Messa
     public void submit(final HierarchicalRoutingKey<String> routingKey,
                        final Message message) {
         try {
-            HierarchicalOperationWorker<MessageType, Message> worker = (HierarchicalOperationWorker<MessageType, Message>) workers.get(messageType, routingKey);
+            HierarchicalOperationWorker<MessageType, Message> worker = (HierarchicalOperationWorker<MessageType, Message>) this.worker.get(messageType, routingKey);
             log.info("Publishing message:{} to worker: {} ({})", message,
                     worker.getClass().getSimpleName(), worker.getRoutingKey().getRoutingKey());
             worker.publish(message);
@@ -89,9 +124,6 @@ public abstract class HierarchicalOperationRouter<MessageType extends Enum<Messa
         }
     }
 
+    public abstract boolean process(final Message message);
 
-    public abstract HierarchicalOperationWorker<MessageType, ? extends Message> getHierarchicalOperationWorker(final RoutingKey routingKey,
-                                                                                                               final MessageType messageTypeKey,
-                                                                                                               final HierarchicalOperationWorkerConfig workerConfig,
-                                                                                                               final ActorConfig defaultActorConfig);
 }
