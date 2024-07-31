@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.failurehandler.handlers.FailureHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -64,6 +65,21 @@ public abstract class Actor<MessageType extends Enum<MessageType>, Message> exte
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
         super(type.name(), config, connectionRegistry, mapper, retryStrategyFactory, exceptionHandlingFactory,
+                clazz, droppedExceptionTypes);
+        this.type = type;
+    }
+
+    protected Actor(
+            final MessageType type,
+            final ActorConfig config,
+            final ConnectionRegistry connectionRegistry,
+            final ObjectMapper mapper,
+            final RetryStrategyFactory retryStrategyFactory,
+            final ExceptionHandlingFactory exceptionHandlingFactory,
+            final FailureHandlingFactory failureHandlingFactory,
+            final Class<? extends Message> clazz,
+            final Set<Class<?>> droppedExceptionTypes) {
+        super(type.name(), config, connectionRegistry, mapper, retryStrategyFactory, exceptionHandlingFactory, failureHandlingFactory,
                 clazz, droppedExceptionTypes);
         this.type = type;
     }
