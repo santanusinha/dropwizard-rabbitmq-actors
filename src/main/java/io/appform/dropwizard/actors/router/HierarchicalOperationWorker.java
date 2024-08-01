@@ -1,7 +1,6 @@
 package io.appform.dropwizard.actors.router;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
 import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.actor.Actor;
 import io.appform.dropwizard.actors.actor.ActorConfig;
@@ -11,7 +10,6 @@ import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.router.config.HierarchicalOperationWorkerConfig;
 import io.appform.dropwizard.actors.router.tree.key.RoutingKey;
 import lombok.Getter;
-import lombok.SneakyThrows;
 
 import java.util.Set;
 import java.util.function.Consumer;

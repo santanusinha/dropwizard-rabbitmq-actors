@@ -1,0 +1,21 @@
+workers:
+  C2M_AUTH_FLOW:
+    defaultData: "C2M_ROOT_DATA"
+    children:
+      REGULAR:
+        defaultData: "REGULAR_CONFIG"
+        children:
+          HOTSTAR:
+            defaultData: "HOTSTAR_CONFIG"
+          JAR:
+            defaultData: "JAR_CONFIG"
+  C2C_AUTH_FLOW:
+    defaultData: "C2C_ROOT_DATA"
+    children:
+      REGULAR:
+        defaultData: "REGULAR_CONFIG"
+        children:
+          HOTSTAR:
+            defaultData: "HOTSTAR_CONFIG"
+          JAR:
+            defaultData: "JAR_CONFIG"
