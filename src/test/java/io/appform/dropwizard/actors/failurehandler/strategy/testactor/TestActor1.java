@@ -10,21 +10,14 @@ import io.appform.dropwizard.actors.failurehandler.handlers.FailureHandlingFacto
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.utils.ActorType;
 import io.appform.dropwizard.actors.utils.TestMessage;
+import lombok.Builder;
 
 import java.util.Set;
 
 public class TestActor1 extends Actor<ActorType, TestMessage> {
-    protected TestActor1(final ActorConfig config,
-                         final ConnectionRegistry connectionRegistry,
-                         final ObjectMapper mapper,
-                         final RetryStrategyFactory retryStrategyFactory,
-                         final ExceptionHandlingFactory exceptionHandlingFactory, Class<? extends TestMessage> clazz,
-                         final Set<Class<?>> droppedExceptionTypes) {
-        super(ActorType.Actor_Type_1, config, connectionRegistry, mapper, retryStrategyFactory, exceptionHandlingFactory,
-                clazz, droppedExceptionTypes);
-    }
 
-    protected TestActor1(final ActorConfig config,
+    @Builder
+    protected TestActor1(final ActorConfig actorConfig,
                          final ConnectionRegistry connectionRegistry,
                          final ObjectMapper mapper,
                          final RetryStrategyFactory retryStrategyFactory,
@@ -32,7 +25,7 @@ public class TestActor1 extends Actor<ActorType, TestMessage> {
                          final FailureHandlingFactory failureHandlingFactory,
                          final Class<? extends TestMessage> clazz,
                          final Set<Class<?>> droppedExceptionTypes) {
-        super(ActorType.Actor_Type_1, config, connectionRegistry, mapper, retryStrategyFactory,
+        super(ActorType.Actor_Type_1, actorConfig, connectionRegistry, mapper, retryStrategyFactory,
                 exceptionHandlingFactory, failureHandlingFactory, clazz, droppedExceptionTypes);
     }
 

@@ -15,17 +15,17 @@ import java.util.Set;
 
 public class TestActor2 extends Actor<ActorType, TestMessage> {
 
-    protected TestActor2(final ActorConfig config,
+    protected TestActor2(final ActorConfig actorConfig,
                          final ConnectionRegistry connectionRegistry,
                          final ObjectMapper mapper,
                          final RetryStrategyFactory retryStrategyFactory,
                          final ExceptionHandlingFactory exceptionHandlingFactory, Class<? extends TestMessage> clazz,
                          final Set<Class<?>> droppedExceptionTypes) {
-        super(ActorType.Actor_Type_2, config, connectionRegistry, mapper, retryStrategyFactory, exceptionHandlingFactory,
+        super(ActorType.Actor_Type_2, actorConfig, connectionRegistry, mapper, retryStrategyFactory, exceptionHandlingFactory,
                 clazz, droppedExceptionTypes);
     }
 
-    protected TestActor2(final ActorConfig config,
+    protected TestActor2(final ActorConfig actorConfig,
                          final ConnectionRegistry connectionRegistry,
                          final ObjectMapper mapper,
                          final RetryStrategyFactory retryStrategyFactory,
@@ -33,7 +33,7 @@ public class TestActor2 extends Actor<ActorType, TestMessage> {
                          final FailureHandlingFactory failureHandlingFactory,
                          final Class<? extends TestMessage> clazz,
                          final Set<Class<?>> droppedExceptionTypes) {
-        super(ActorType.Actor_Type_2, config, connectionRegistry, mapper, retryStrategyFactory,
+        super(ActorType.Actor_Type_2, actorConfig, connectionRegistry, mapper, retryStrategyFactory,
                 exceptionHandlingFactory, failureHandlingFactory, clazz, droppedExceptionTypes);
     }
 
