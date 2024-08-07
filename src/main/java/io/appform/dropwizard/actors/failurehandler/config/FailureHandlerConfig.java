@@ -2,8 +2,6 @@ package io.appform.dropwizard.actors.failurehandler.config;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.appform.dropwizard.actors.exceptionhandler.config.DropConfig;
-import io.appform.dropwizard.actors.exceptionhandler.config.SidelineConfig;
 import io.appform.dropwizard.actors.failurehandler.handlers.FailureHandlerType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

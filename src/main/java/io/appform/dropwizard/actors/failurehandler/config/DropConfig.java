@@ -1,8 +1,5 @@
 package io.appform.dropwizard.actors.failurehandler.config;
 
-import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlerType;
-import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConfig;
-import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConfigVisitor;
 import io.appform.dropwizard.actors.failurehandler.handlers.FailureHandlerType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
