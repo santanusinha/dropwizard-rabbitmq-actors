@@ -10,9 +10,7 @@ import io.appform.dropwizard.actors.router.router.FlowTypeHierarchicalRouterBuil
 import io.appform.dropwizard.actors.router.tree.key.RoutingKey;
 import lombok.SneakyThrows;
 import lombok.val;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
@@ -25,7 +23,6 @@ class HierarchicalRouterConfigTest {
     });
     private Map<FlowType, HierarchicalOperationRouter<FlowType, ActionMessage>> actorRouters;
 
-    @BeforeEach
     @SneakyThrows
     public void createActors() {
         actorRouters = RMQ_CONFIG.getWorkers()
@@ -41,7 +38,6 @@ class HierarchicalRouterConfigTest {
         }
     }
 
-    @AfterEach
     @SneakyThrows
     public void cleanUp() {
         for (val entry : actorRouters.entrySet()) {
@@ -80,9 +76,7 @@ class HierarchicalRouterConfigTest {
                         .build()
         );
 
-        messages.entrySet().forEach(entry -> {
-            val routingKey = entry.getKey();
-            val message = entry.getValue();
+        messages.forEach((routingKey, message) -> {
             val flowType = message.getType();
 
             if (actorRouters.containsKey(flowType)) {
@@ -95,10 +89,10 @@ class HierarchicalRouterConfigTest {
                 val publisherQueueName = worker.getActorImpl().getPublishActor().queueName();
                 Assertions.assertNotNull(publisherQueueName);
                 val publisherQueueNameTokens = new LinkedHashSet<>(Arrays.stream(worker
-                        .getActorImpl()
-                        .getPublishActor()
-                        .queueName()
-                        .split("\\."))
+                                .getActorImpl()
+                                .getPublishActor()
+                                .queueName()
+                                .split("\\."))
                         .filter(e -> !e.isBlank() && !flowLevelPrefix.contains(e))
                         .toList());
 
@@ -110,7 +104,7 @@ class HierarchicalRouterConfigTest {
             }
         });
 
-        cleanUp();
+        //cleanUp();
     }
 
 
