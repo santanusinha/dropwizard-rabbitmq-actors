@@ -28,6 +28,7 @@ import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStr
 import io.appform.dropwizard.actors.connectivity.strategy.DefaultConnectionStrategy;
 import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.failurehandler.handlers.FailureHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -67,13 +68,14 @@ public class UnmanagedBaseActor<Message> {
             ObjectMapper mapper,
             RetryStrategyFactory retryStrategyFactory,
             ExceptionHandlingFactory exceptionHandlingFactory,
+            FailureHandlingFactory failureHandlingFactory,
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
         this(new UnmanagedPublisher<>(name, config, connection, mapper),
                 new UnmanagedConsumer<>(
-                        name, config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
+                        name, config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory, failureHandlingFactory, clazz,
                         handlerFunction, expiredMessageHandlingFunction, errorCheckFunction));
     }
 
@@ -84,6 +86,7 @@ public class UnmanagedBaseActor<Message> {
             ObjectMapper mapper,
             RetryStrategyFactory retryStrategyFactory,
             ExceptionHandlingFactory exceptionHandlingFactory,
+            FailureHandlingFactory failureHandlingFactory,
             Class<? extends Message> clazz,
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
@@ -92,7 +95,7 @@ public class UnmanagedBaseActor<Message> {
         val producerConnection = connectionRegistry.createOrGet(producerConnectionName(config.getProducer()));
         this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper);
         this.consumeActor = new UnmanagedConsumer<>(
-                name, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
+                name, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, failureHandlingFactory, clazz,
                 handlerFunction, expiredMessageHandlingFunction, errorCheckFunction);
     }
 

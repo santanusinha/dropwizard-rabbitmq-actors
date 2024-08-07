@@ -23,6 +23,7 @@ import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.failurehandler.handlers.FailureHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Data;
@@ -77,7 +78,7 @@ public abstract class BaseActor<Message> implements Managed {
                 = null == droppedExceptionTypes
                 ? Collections.emptySet() : droppedExceptionTypes;
         actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory,
-                exceptionHandlingFactory, clazz,
+                exceptionHandlingFactory, new FailureHandlingFactory(), clazz,
                 this::handle,
                 this::handleExpiredMessages,
                 this::isExceptionIgnorable);
@@ -96,7 +97,27 @@ public abstract class BaseActor<Message> implements Managed {
                 = null == droppedExceptionTypes
                 ? Collections.emptySet() : droppedExceptionTypes;
         actorImpl = new UnmanagedBaseActor<>(name, config, connectionRegistry, mapper, retryStrategyFactory,
-                exceptionHandlingFactory, clazz,
+                exceptionHandlingFactory, new FailureHandlingFactory(), clazz,
+                this::handle,
+                this::handleExpiredMessages,
+                this::isExceptionIgnorable);
+    }
+
+    protected BaseActor(
+            String name,
+            ActorConfig config,
+            ConnectionRegistry connectionRegistry,
+            ObjectMapper mapper,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            FailureHandlingFactory failureHandlingFactory,
+            Class<? extends Message> clazz,
+            Set<Class<?>> droppedExceptionTypes) {
+        this.droppedExceptionTypes
+                = null == droppedExceptionTypes
+                ? Collections.emptySet() : droppedExceptionTypes;
+        actorImpl = new UnmanagedBaseActor<>(name, config, connectionRegistry, mapper, retryStrategyFactory,
+                exceptionHandlingFactory, failureHandlingFactory, clazz,
                 this::handle,
                 this::handleExpiredMessages,
                 this::isExceptionIgnorable);

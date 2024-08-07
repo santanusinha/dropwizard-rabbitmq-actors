@@ -12,6 +12,7 @@ import io.appform.dropwizard.actors.config.Broker;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.failurehandler.handlers.FailureHandlingFactory;
 import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.utils.RMQContainer;
@@ -146,7 +147,7 @@ public class QueueTypesTest {
         publisher.publish(message);
 
         UnmanagedConsumer<Map> consumer = new UnmanagedConsumer<>(queueName, actorConfig, connection, objectMapper,
-                new RetryStrategyFactory(), new ExceptionHandlingFactory(), Map.class, (msg, metadata) -> {
+                new RetryStrategyFactory(), new ExceptionHandlingFactory(), new FailureHandlingFactory(),  Map.class, (msg, metadata) -> {
             testDataHolder.set(Map.of("MESSAGE", msg));
             return true;
         }, (x, y) -> true, (x) -> true);

@@ -20,6 +20,7 @@ import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
 import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConfig;
+import io.appform.dropwizard.actors.failurehandler.config.FailureHandlerConfig;
 import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
 import io.dropwizard.validation.ValidationMethod;
@@ -105,6 +106,8 @@ public class ActorConfig {
     private RetryConfig retryConfig = new NoRetryConfig();
 
     private ExceptionHandlerConfig exceptionHandlerConfig;
+
+    private FailureHandlerConfig failureHandlerConfig;
 
     @Valid
     private ProducerConfig producer;

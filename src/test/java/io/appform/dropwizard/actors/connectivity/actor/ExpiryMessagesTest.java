@@ -13,6 +13,7 @@ import io.appform.dropwizard.actors.config.Broker;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.failurehandler.handlers.FailureHandlingFactory;
 import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.retry.config.CountLimitedFixedWaitRetryConfig;
@@ -103,7 +104,7 @@ public class ExpiryMessagesTest {
 
         val expiredDeliveryCount = new AtomicInteger();
         val consumer = new UnmanagedConsumer<>(
-                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(), new FailureHandlingFactory(),
                 Map.class, this::handleForNoExpectedMsg, handleExpiredMessage(expiredDeliveryCount), (x) -> true);
         consumer.start();
 
@@ -143,7 +144,7 @@ public class ExpiryMessagesTest {
 
         val expiredDeliveryCount = new AtomicInteger();
         val consumer = new UnmanagedConsumer<>(
-                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(), new FailureHandlingFactory(),
                 Map.class, this::handleForNoExpectedMsg, handleExpectedMessageForReDelivery(expiredDeliveryCount), (x) -> true);
         consumer.start();
 
@@ -177,7 +178,7 @@ public class ExpiryMessagesTest {
 
         val normalDeliveryCount = new AtomicInteger();
         val consumer = new UnmanagedConsumer<>(
-                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(), new FailureHandlingFactory(),
                 Map.class, handleDelayedMessageConsumption(normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
         consumer.start();
 
@@ -209,7 +210,7 @@ public class ExpiryMessagesTest {
 
         val normalDeliveryCount = new AtomicInteger();
         val consumer = new UnmanagedConsumer<>(
-                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(), new FailureHandlingFactory(),
                 Map.class, handleExpectedMessage(1500, normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
         consumer.start();
 
@@ -239,7 +240,7 @@ public class ExpiryMessagesTest {
 
         val normalDeliveryCount = new AtomicInteger();
         val consumer = new UnmanagedConsumer<>(
-                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(), new FailureHandlingFactory(),
                 Map.class, handleExpectedMessage(1000, normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
         consumer.start();
 
@@ -272,7 +273,7 @@ public class ExpiryMessagesTest {
         Thread.sleep(1000);
         val normalDeliveryCount = new AtomicInteger();
         val consumer = new UnmanagedConsumer<>(
-                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(), new FailureHandlingFactory(),
                 Map.class, handleExpectedMessageWithDelay(1000, normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
         consumer.start();
 
@@ -302,7 +303,7 @@ public class ExpiryMessagesTest {
         publisher.publish(message);
         val normalDeliveryCount = new AtomicInteger();
         val consumer = new UnmanagedConsumer<>(
-                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(), new FailureHandlingFactory(),
                 Map.class, handleExpectedMessageWithDelay(0, normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
         consumer.start();
         Thread.sleep(500);

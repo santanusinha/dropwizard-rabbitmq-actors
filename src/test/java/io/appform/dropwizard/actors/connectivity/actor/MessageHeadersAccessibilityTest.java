@@ -13,6 +13,7 @@ import io.appform.dropwizard.actors.config.Broker;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.failurehandler.handlers.FailureHandlingFactory;
 import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.utils.RMQContainer;
@@ -108,6 +109,7 @@ public class MessageHeadersAccessibilityTest {
         val consumer = new UnmanagedConsumer<>(
                 queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(),
                 new ExceptionHandlingFactory(),
+                new FailureHandlingFactory(),
                 Map.class,
                 (msg, metadata) -> {
                     testDataHolder.set(Map.of("MESSAGE", msg, "METADATA", metadata));
