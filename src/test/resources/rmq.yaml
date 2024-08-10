@@ -1,36 +1,13 @@
 workers:
   C2M_AUTH_FLOW:
-    defaultData:
-      exchange: prod.mandate.actors
-      delayed: false
-      prefix: prod.mandate.actors
-      concurrency: 1
-      shardCount: 1
-    children:
-      REGULAR:
-        defaultData:
-          concurrency: 1
-          shardCount: 2
-        children:
-          HOTSTAR:
-            defaultData:
-              concurrency: 1
-              shardCount: 1
-          JAR:
-            defaultData:
-              concurrency: 1
-              shardCount: 1
-      FULL_AUTH:
-        defaultData:
-          concurrency: 1
-          shardCount: 1
+    exchange: prod.mandate.actors.c2m
+    delayed: false
+    prefix: prod.mandate.actors.c2m
+    concurrency: 1
+    shardCount: 1
   C2C_AUTH_FLOW:
-    defaultData:
-      concurrency: 1
-      shardCount: 1
-    children:
-      REGULAR:
-        defaultData:
-          concurrency: 1
-          shardCount: 1
-
+    exchange: prod.mandate.actors.c2c
+    delayed: false
+    prefix: prod.mandate.actors.c2c
+    concurrency: 1
+    shardCount: 1
