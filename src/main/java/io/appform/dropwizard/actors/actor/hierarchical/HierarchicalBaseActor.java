@@ -29,7 +29,7 @@ public abstract class HierarchicalBaseActor<MessageType extends Enum<MessageType
 
     protected HierarchicalBaseActor(
             MessageType messageType,
-            HierarchicalActorConfig config,
+            HierarchicalActorConfig hierarchicalActorConfig,
             ConnectionRegistry connectionRegistry,
             ObjectMapper mapper,
             RetryStrategyFactory retryStrategyFactory,
@@ -38,7 +38,7 @@ public abstract class HierarchicalBaseActor<MessageType extends Enum<MessageType
             Set<Class<?>> droppedExceptionTypes) {
         Set<Class<?>> droppedExceptionTypeSet = null == droppedExceptionTypes
                 ? Collections.emptySet() : droppedExceptionTypes;
-        actorImpl = new HierarchicalUnmanagedBaseActor<>(messageType, config, connectionRegistry, mapper, retryStrategyFactory,
+        actorImpl = new HierarchicalUnmanagedBaseActor<>(messageType, hierarchicalActorConfig, connectionRegistry, mapper, retryStrategyFactory,
                 exceptionHandlingFactory, clazz, droppedExceptionTypeSet,
                 this::handle,
                 this::handleExpiredMessages);

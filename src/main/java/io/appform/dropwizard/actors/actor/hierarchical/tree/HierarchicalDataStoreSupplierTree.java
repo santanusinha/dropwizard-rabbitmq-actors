@@ -24,13 +24,12 @@ public class HierarchicalDataStoreSupplierTree<INPUT_NODE_TYPE, INPUT_ROOT_NODE_
                 key,
                 rootNodeConverterSupplier.apply(treeConfig.getDefaultData())
         ));
-        buildTree(key, treeConfig, supplier);
+        buildTree(key, treeConfig.getChildrenData(), supplier);
     }
 
     private void buildTree(final NODE_KEY_TYPE key,
-                           final HierarchicalTreeConfig<INPUT_ROOT_NODE_TYPE, String, INPUT_NODE_TYPE> treeConfig,
+                           final HierarchicalDataStoreTreeNode<String, INPUT_NODE_TYPE> childrenList,
                            final TriConsumerSupplier<OUTPUT_NODE_TYPE, RoutingKey, NODE_KEY_TYPE, INPUT_NODE_TYPE> supplier) {
-        val childrenList = treeConfig.getChildrenData();
         val tokenList = Lists.<String>newArrayList();
         buildTreeHelper(key, childrenList, tokenList, supplier);
     }

@@ -3,7 +3,6 @@ package io.appform.dropwizard.actors.actor.hierarchical;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.actor.Actor;
-import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.actor.hierarchical.tree.key.RoutingKey;
@@ -26,7 +25,7 @@ public class HierarchicalOperationWorker<MessageType extends Enum<MessageType>, 
 
     public HierarchicalOperationWorker(final MessageType messageType,
                                        final HierarchicalOperationWorkerConfig workerConfig,
-                                       final ActorConfig actorConfig,
+                                       final HierarchicalActorConfig hierarchicalActorConfig,
                                        final RoutingKey routingKey,
                                        final ConnectionRegistry connectionRegistry,
                                        final ObjectMapper mapper,
@@ -37,7 +36,7 @@ public class HierarchicalOperationWorker<MessageType extends Enum<MessageType>, 
                                        final MessageHandlingFunction<Message, Boolean> handlerFunction,
                                        final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction) {
         super(messageType,
-                HierarchicalRouterUtils.toActorConfig(messageType, routingKey, workerConfig, actorConfig),
+                HierarchicalRouterUtils.toActorConfig(messageType, routingKey, workerConfig, hierarchicalActorConfig),
                 connectionRegistry,
                 mapper,
                 retryStrategyFactory,

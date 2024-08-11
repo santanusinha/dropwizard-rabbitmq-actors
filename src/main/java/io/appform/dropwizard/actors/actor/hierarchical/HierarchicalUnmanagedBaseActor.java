@@ -3,7 +3,6 @@ package io.appform.dropwizard.actors.actor.hierarchical;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import io.appform.dropwizard.actors.ConnectionRegistry;
-import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.hierarchical.tree.HierarchicalDataStoreSupplierTree;
 import io.appform.dropwizard.actors.actor.hierarchical.tree.HierarchicalTreeConfig;
@@ -27,7 +26,7 @@ import java.util.Set;
 @Slf4j
 public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType>, Message> {
 
-    private final HierarchicalTreeConfig<ActorConfig, String, HierarchicalOperationWorkerConfig> hierarchicalTreeConfig;
+    private final HierarchicalTreeConfig<HierarchicalActorConfig, String, HierarchicalOperationWorkerConfig> hierarchicalTreeConfig;
     private final ConnectionRegistry connectionRegistry;
     private final ObjectMapper mapper;
     private final RetryStrategyFactory retryStrategyFactory;
@@ -40,13 +39,13 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
 
     private HierarchicalDataStoreSupplierTree<
                         HierarchicalOperationWorkerConfig,
-                        ActorConfig,
+                        HierarchicalActorConfig,
                         MessageType,
                         HierarchicalOperationWorker<MessageType, ? extends Message>> worker;
 
 
     public HierarchicalUnmanagedBaseActor(MessageType messageType,
-                                          HierarchicalActorConfig actorConfig,
+                                          HierarchicalActorConfig hierarchicalActorConfig,
                                           ConnectionRegistry connectionRegistry,
                                           ObjectMapper mapper,
                                           RetryStrategyFactory retryStrategyFactory,
@@ -56,7 +55,7 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
                                           MessageHandlingFunction<Message, Boolean> handlerFunction,
                                           MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction) {
         this.messageType = messageType;
-        this.hierarchicalTreeConfig = new HierarchicalTreeConfig<>(actorConfig, actorConfig.getChildren());
+        this.hierarchicalTreeConfig = new HierarchicalTreeConfig<>(hierarchicalActorConfig, hierarchicalActorConfig.getChildren());
         this.connectionRegistry = connectionRegistry;
         this.mapper = mapper;
         this.retryStrategyFactory = retryStrategyFactory;
