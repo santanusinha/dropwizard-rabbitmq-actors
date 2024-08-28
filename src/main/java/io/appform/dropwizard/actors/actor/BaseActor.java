@@ -19,6 +19,8 @@ package io.appform.dropwizard.actors.actor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import io.appform.dropwizard.actors.ConnectionRegistry;
+import io.appform.dropwizard.actors.base.RandomShardIdCalculator;
+import io.appform.dropwizard.actors.base.ShardIdCalculator;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
@@ -73,14 +75,42 @@ public abstract class BaseActor<Message> implements Managed {
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
+        this(name,
+             config,
+             connection,
+             mapper,
+             new RandomShardIdCalculator<>(config),
+             retryStrategyFactory,
+             exceptionHandlingFactory,
+             clazz,
+             droppedExceptionTypes);
+    }
+
+    @Deprecated
+    protected BaseActor(
+            String name,
+            ActorConfig config,
+            RMQConnection connection,
+            ObjectMapper mapper,
+            ShardIdCalculator<Message> shardIdCalculator,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            Set<Class<?>> droppedExceptionTypes) {
         this.droppedExceptionTypes
                 = null == droppedExceptionTypes
                 ? Collections.emptySet() : droppedExceptionTypes;
-        actorImpl = new UnmanagedBaseActor<>(name, config, connection, mapper, retryStrategyFactory,
-                exceptionHandlingFactory, clazz,
-                this::handle,
-                this::handleExpiredMessages,
-                this::isExceptionIgnorable);
+        actorImpl = new UnmanagedBaseActor<>(name,
+                                             config,
+                                             connection,
+                                             mapper,
+                                             shardIdCalculator,
+                                             retryStrategyFactory,
+                                             exceptionHandlingFactory,
+                                             clazz,
+                                             this::handle,
+                                             this::handleExpiredMessages,
+                                             this::isExceptionIgnorable);
     }
 
     protected BaseActor(
@@ -92,14 +122,41 @@ public abstract class BaseActor<Message> implements Managed {
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
+        this(name,
+             config,
+             connectionRegistry,
+             mapper,
+             new RandomShardIdCalculator<>(config),
+             retryStrategyFactory,
+             exceptionHandlingFactory,
+             clazz,
+             droppedExceptionTypes);
+    }
+
+    protected BaseActor(
+            String name,
+            ActorConfig config,
+            ConnectionRegistry connectionRegistry,
+            ObjectMapper mapper,
+            ShardIdCalculator<Message> shardIdCalculator,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            Set<Class<?>> droppedExceptionTypes) {
         this.droppedExceptionTypes
                 = null == droppedExceptionTypes
                 ? Collections.emptySet() : droppedExceptionTypes;
-        actorImpl = new UnmanagedBaseActor<>(name, config, connectionRegistry, mapper, retryStrategyFactory,
-                exceptionHandlingFactory, clazz,
-                this::handle,
-                this::handleExpiredMessages,
-                this::isExceptionIgnorable);
+        actorImpl = new UnmanagedBaseActor<>(name,
+                                             config,
+                                             connectionRegistry,
+                                             mapper,
+                                             shardIdCalculator,
+                                             retryStrategyFactory,
+                                             exceptionHandlingFactory,
+                                             clazz,
+                                             this::handle,
+                                             this::handleExpiredMessages,
+                                             this::isExceptionIgnorable);
     }
 
     /*
