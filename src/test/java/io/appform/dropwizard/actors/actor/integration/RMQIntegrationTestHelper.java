@@ -63,42 +63,42 @@ public class RMQIntegrationTestHelper {
     }
 
     public ConnectionRegistry getConnectionRegistry() {
-//        val rmqConnection = getRmqConnections();
-//        val connectionRegistry = Mockito.mock(ConnectionRegistry.class);
-//        when(connectionRegistry.createOrGet(any())).thenReturn(rmqConnection);
-//        return connectionRegistry;
-
-        RMQConfig config = RMQConfig.builder()
-                .brokers(List.of(new Broker("localhost", 5672)))
-                .userName("guest")
-                .threadPoolSize(1)
-                .password("guest")
-                .secure(false)
-                .startupGracePeriodSeconds(1)
-                .metricConfig(MetricConfig.builder().enabledForAll(true).build())
-                .build();
-        val actorBundleImpl = new RabbitmqActorBundle<RabbitMQBundleTestAppConfiguration>() {
-            @Override
-            protected TtlConfig ttlConfig() {
-                return TtlConfig.builder()
-                        .ttl(Duration.ofMinutes(30))
-                        .ttlEnabled(true)
-                        .build();
-            }
-            @Override
-            protected RMQConfig getConfig(RabbitMQBundleTestAppConfiguration rabbitMQBundleTestAppConfiguration) {
-                return config;
-            }
-        };
-
-        Environment environment = Mockito.mock(Environment.class);
-        LifecycleEnvironment lifecycle = Mockito.mock(LifecycleEnvironment.class);
-        Mockito.doReturn(new MetricRegistry()).when(environment).metrics();
-        Mockito.doReturn(lifecycle).when(environment).lifecycle();
-        Mockito.doNothing().when(lifecycle).manage(ArgumentMatchers.any(ConnectionRegistry.class));
-
-        actorBundleImpl.run(new RabbitMQBundleTestAppConfiguration(), new Environment("TESTAPP"));
-        return actorBundleImpl.getConnectionRegistry();
+        val rmqConnection = getRmqConnections();
+        val connectionRegistry = Mockito.mock(ConnectionRegistry.class);
+        when(connectionRegistry.createOrGet(any())).thenReturn(rmqConnection);
+        return connectionRegistry;
+//
+//        RMQConfig config = RMQConfig.builder()
+//                .brokers(List.of(new Broker("localhost", 5672)))
+//                .userName("guest")
+//                .threadPoolSize(1)
+//                .password("guest")
+//                .secure(false)
+//                .startupGracePeriodSeconds(1)
+//                .metricConfig(MetricConfig.builder().enabledForAll(true).build())
+//                .build();
+//        val actorBundleImpl = new RabbitmqActorBundle<RabbitMQBundleTestAppConfiguration>() {
+//            @Override
+//            protected TtlConfig ttlConfig() {
+//                return TtlConfig.builder()
+//                        .ttl(Duration.ofMinutes(30))
+//                        .ttlEnabled(true)
+//                        .build();
+//            }
+//            @Override
+//            protected RMQConfig getConfig(RabbitMQBundleTestAppConfiguration rabbitMQBundleTestAppConfiguration) {
+//                return config;
+//            }
+//        };
+//
+//        Environment environment = Mockito.mock(Environment.class);
+//        LifecycleEnvironment lifecycle = Mockito.mock(LifecycleEnvironment.class);
+//        Mockito.doReturn(new MetricRegistry()).when(environment).metrics();
+//        Mockito.doReturn(lifecycle).when(environment).lifecycle();
+//        Mockito.doNothing().when(lifecycle).manage(ArgumentMatchers.any(ConnectionRegistry.class));
+//
+//        actorBundleImpl.run(new RabbitMQBundleTestAppConfiguration(), new Environment("TESTAPP"));
+//        return actorBundleImpl.getConnectionRegistry();
     }
 
 
