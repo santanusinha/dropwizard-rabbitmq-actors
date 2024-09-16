@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
+import io.appform.dropwizard.actors.actor.UnmanagedBaseActor;
 import io.appform.dropwizard.actors.actor.hierarchical.tree.key.HierarchicalRoutingKey;
 import io.appform.dropwizard.actors.actor.hierarchical.tree.key.RoutingKey;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
@@ -18,6 +19,12 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Set;
 
+/**
+ * This is a managed wrapper for {@link HierarchicalUnmanagedBaseActor} this is managed and therefore started by D/W.
+ * *
+ * @param <MessageType>
+ * @param <Message>
+ */
 @Data
 @EqualsAndHashCode
 @ToString
