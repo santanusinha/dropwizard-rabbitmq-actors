@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
-import io.appform.dropwizard.actors.actor.UnmanagedBaseActor;
 import io.appform.dropwizard.actors.actor.hierarchical.tree.key.HierarchicalRoutingKey;
 import io.appform.dropwizard.actors.actor.hierarchical.tree.key.RoutingKey;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
@@ -22,6 +21,7 @@ import java.util.Set;
 /**
  * This is a managed wrapper for {@link HierarchicalUnmanagedBaseActor} this is managed and therefore started by D/W.
  * *
+ *
  * @param <MessageType>
  * @param <Message>
  */
@@ -121,22 +121,13 @@ public abstract class HierarchicalBaseActor<MessageType extends Enum<MessageType
 
     @Override
     public final long pendingMessagesCount() {
-        return pendingMessagesCount(EMPTY_ROUTING_KEY);
+        return actorImpl.pendingMessagesCount();
     }
 
-    @Override
-    public final long pendingMessagesCount(final HierarchicalRoutingKey<String> routingKey) {
-        return actorImpl.pendingMessagesCount(routingKey);
-    }
 
     @Override
     public final long pendingSidelineMessagesCount() {
-        return pendingSidelineMessagesCount(EMPTY_ROUTING_KEY);
-    }
-
-    @Override
-    public final long pendingSidelineMessagesCount(final HierarchicalRoutingKey<String> routingKey) {
-        return actorImpl.pendingSidelineMessagesCount(routingKey);
+        return actorImpl.pendingSidelineMessagesCount();
     }
 
     @Override

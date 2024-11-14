@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
@@ -100,6 +101,22 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
         });
     }
 
+    public final long pendingMessagesCount() {
+        val atomicLong = new AtomicLong(0l);
+        worker.traverse(hierarchicalOperationWorker -> {
+            atomicLong.getAndAdd(hierarchicalOperationWorker.pendingMessagesCount());
+        });
+        return atomicLong.get();
+    }
+
+    public final long pendingSidelineMessagesCount() {
+        val atomicLong = new AtomicLong(0l);
+        worker.traverse(hierarchicalOperationWorker -> {
+            atomicLong.getAndAdd(hierarchicalOperationWorker.pendingSidelineMessagesCount());
+        });
+        return atomicLong.get();
+    }
+
     public final void publishWithDelay(final HierarchicalRoutingKey<String> routingKey,
                                        final Message message,
                                        final long delayMilliseconds) throws Exception {
@@ -122,15 +139,6 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
                               final AMQP.BasicProperties properties) throws Exception {
         publishActor(routingKey).publish(message, properties);
     }
-
-    public final long pendingMessagesCount(final HierarchicalRoutingKey<String> routingKey) {
-        return publishActor(routingKey).pendingMessagesCount();
-    }
-
-    public final long pendingSidelineMessagesCount(final HierarchicalRoutingKey<String> routingKey) {
-        return publishActor(routingKey).pendingSidelineMessagesCount();
-    }
-
 
     private HierarchicalOperationWorker<MessageType, Message> publishActor(final HierarchicalRoutingKey<String> routingKey) {
         return (HierarchicalOperationWorker<MessageType, Message>) this.worker.get(messageType, routingKey);

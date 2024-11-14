@@ -59,19 +59,4 @@ public interface IHierarchicalBaseActor<Message> extends IBaseActor<Message> {
                  final Message message,
                  final AMQP.BasicProperties properties) throws Exception;
 
-    /**
-     * <p>This method provides count of pending messages in queue matching to provided routingKey</p>
-     *
-     * @param routingKey param used to select queue from hierarchy
-     * @return count of message pending in main queue
-     */
-    long pendingMessagesCount(final HierarchicalRoutingKey<String> routingKey);
-
-    /**
-     * <p>This method provides count of pending messages in sidelined queue matching to provided routingKey</p>
-     *
-     * @param routingKey param used to select queue from hierarchy
-     * @return count of message pending in sidelined queue
-     */
-    long pendingSidelineMessagesCount(final HierarchicalRoutingKey<String> routingKey);
 }
