@@ -4,6 +4,7 @@ import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
 import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -270,5 +271,10 @@ public class UnmanagedPublisher<Message> {
 
     private String getRoutingKey() {
         return config.isSharded() ? NamingUtils.getShardedQueueName(queueName, getShardId()) : queueName;
+    }
+
+    @VisibleForTesting
+    public String queueName() {
+        return queueName;
     }
 }

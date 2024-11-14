@@ -1,6 +1,7 @@
 package io.appform.dropwizard.actors.base;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.rabbitmq.client.Channel;
 import io.appform.dropwizard.actors.actor.ActorConfig;
@@ -112,5 +113,10 @@ public class UnmanagedConsumer<Message> {
                 .filter(StringUtils::isNotBlank)
                 .map(tagPrefix -> tagPrefix + "_" + consumerIndex)
                 .orElse(StringUtils.EMPTY);
+    }
+
+    @VisibleForTesting
+    public String queueName() {
+        return queueName;
     }
 }
