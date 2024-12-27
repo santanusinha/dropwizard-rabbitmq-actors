@@ -60,7 +60,7 @@ public class Handler<Message> extends DefaultConsumer {
                    final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
                    final RMQObserver observer,
                    final String queueName,
-                   ConsumingSyncSignal<String> signal) throws Exception {
+                   ConsumingSyncSignal<String> channelClosedSignal) throws Exception {
         super(channel);
         this.mapper = mapper;
         this.clazz = clazz;
@@ -72,7 +72,7 @@ public class Handler<Message> extends DefaultConsumer {
         this.exceptionHandler = exceptionHandler;
         this.messageHandlingFunction = messageHandlingFunction;
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
-        this.signal = signal;
+        this.signal = channelClosedSignal;
     }
 
     private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) throws Exception {
@@ -109,9 +109,13 @@ public class Handler<Message> extends DefaultConsumer {
                 getChannel().basicReject(envelope.getDeliveryTag(), false);
             }
         } catch (AlreadyClosedException e) {
-            log.error("Channel is already closed for {}", queueName, e);
-            signal.dispatch(queueName);
-            throw RabbitmqActorException.propagate(e);
+            if (e.isHardError()) {
+                log.error("Connection is already closed for {}", queueName, e);
+            } else {
+                log.error("Channel is already closed for {}", queueName, e);
+                signal.dispatch(queueName);
+                throw RabbitmqActorException.propagate(e);
+            }
         } catch (Throwable t) {
             log.error("Error processing message...", t);
             if (errorCheckFunction.apply(t)) {

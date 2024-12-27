@@ -38,7 +38,7 @@ public class UnmanagedConsumer<Message> implements SignalConsumer<String> {
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
     private final RMQObserver observer;
-    private final ConsumingSyncSignal<String> signal;
+    private final ConsumingSyncSignal<String> channelClosedSignal;
     private final List<Handler<Message>> handlers = Lists.newArrayList();
     private int consumerIndex = 1;
 
@@ -65,8 +65,8 @@ public class UnmanagedConsumer<Message> implements SignalConsumer<String> {
         this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());
         this.exceptionHandler = exceptionHandlingFactory.create(config.getExceptionHandlerConfig());
         this.observer = connection.getRootObserver();
-        this.signal = new ConsumingSyncSignal<>();
-        this.signal.connect(this);
+        this.channelClosedSignal = new ConsumingSyncSignal<>();
+        this.channelClosedSignal.connect(this);
     }
 
     public void start() throws Exception {
@@ -85,7 +85,7 @@ public class UnmanagedConsumer<Message> implements SignalConsumer<String> {
         Channel consumeChannel = connection.newChannel();
         final Handler<Message> handler = new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction,
                 retryStrategy, exceptionHandler, handlerFunction, expiredMessageHandlingFunction, observer, queueName,
-                signal);
+                channelClosedSignal);
         final String tag = consumeChannel.basicConsume(queueName, false, getConsumerTag(consumerIndex++), handler);
         handler.setTag(tag);
         handlers.add(handler);
@@ -128,7 +128,7 @@ public class UnmanagedConsumer<Message> implements SignalConsumer<String> {
             log.info("Creating channel for queue {} because a channel got closed", queueName);
             createChannel(queueName);
         } catch (Exception e) {
-            log.error("Unable to create channel for queue{}", queueName, e);
+            log.error("Unable to create channel for queue {}", queueName, e);
             throw RabbitmqActorException.propagate(e);
         }
     }

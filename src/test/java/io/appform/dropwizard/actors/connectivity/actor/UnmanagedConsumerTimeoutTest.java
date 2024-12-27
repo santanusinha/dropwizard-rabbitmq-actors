@@ -84,7 +84,7 @@ public class UnmanagedConsumerTimeoutTest {
                 .exchange(TEST_EXCHANGE)
                 .concurrency(1)
                 .build();
-        String queueName = "test-queue-1";
+        String queueName = "test-queue-timeout";
         UnmanagedPublisher<Object> publisher = new UnmanagedPublisher<>(queueName, actorConfig, connection,
                 objectMapper);
         publisher.start();
