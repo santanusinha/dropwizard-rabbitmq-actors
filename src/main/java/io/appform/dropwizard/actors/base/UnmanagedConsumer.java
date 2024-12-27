@@ -14,8 +14,6 @@ import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.appform.signals.signalhandlers.SignalConsumer;
-import io.appform.signals.signals.ConsumingSyncSignal;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -23,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
-public class UnmanagedConsumer<Message> implements SignalConsumer<String> {
+public class UnmanagedConsumer<Message> {
 
     private final String name;
     private final ActorConfig config;
@@ -38,7 +36,6 @@ public class UnmanagedConsumer<Message> implements SignalConsumer<String> {
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
     private final RMQObserver observer;
-    private final ConsumingSyncSignal<String> channelClosedSignal;
     private final List<Handler<Message>> handlers = Lists.newArrayList();
     private int consumerIndex = 1;
 
@@ -65,8 +62,6 @@ public class UnmanagedConsumer<Message> implements SignalConsumer<String> {
         this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());
         this.exceptionHandler = exceptionHandlingFactory.create(config.getExceptionHandlerConfig());
         this.observer = connection.getRootObserver();
-        this.channelClosedSignal = new ConsumingSyncSignal<>();
-        this.channelClosedSignal.connect(this);
     }
 
     public void start() throws Exception {
@@ -85,7 +80,7 @@ public class UnmanagedConsumer<Message> implements SignalConsumer<String> {
         Channel consumeChannel = connection.newChannel();
         final Handler<Message> handler = new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction,
                 retryStrategy, exceptionHandler, handlerFunction, expiredMessageHandlingFunction, observer, queueName,
-                channelClosedSignal);
+                this::channelClosedHandler);
         final String tag = consumeChannel.basicConsume(queueName, false, getConsumerTag(consumerIndex++), handler);
         handler.setTag(tag);
         handlers.add(handler);
@@ -122,8 +117,7 @@ public class UnmanagedConsumer<Message> implements SignalConsumer<String> {
                 .orElse(StringUtils.EMPTY);
     }
 
-    @Override
-    public void consume(String queueName) {
+    private void channelClosedHandler(String queueName) {
         try {
             log.info("Creating channel for queue {} because a channel got closed", queueName);
             createChannel(queueName);

@@ -14,7 +14,7 @@ import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
-import io.appform.signals.signals.ConsumingSyncSignal;
+import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +40,7 @@ public class Handler<Message> extends DefaultConsumer {
     private final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction;
     private final RMQObserver observer;
     private final String queueName;
-    private final ConsumingSyncSignal<String> signal;
+    private final Consumer<String> channelClosedHandler;
 
     @Getter
     private volatile boolean running;
@@ -60,7 +60,7 @@ public class Handler<Message> extends DefaultConsumer {
                    final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
                    final RMQObserver observer,
                    final String queueName,
-                   ConsumingSyncSignal<String> channelClosedSignal) throws Exception {
+                   Consumer<String> channelClosedHandler) throws Exception {
         super(channel);
         this.mapper = mapper;
         this.clazz = clazz;
@@ -72,10 +72,10 @@ public class Handler<Message> extends DefaultConsumer {
         this.exceptionHandler = exceptionHandler;
         this.messageHandlingFunction = messageHandlingFunction;
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
-        this.signal = channelClosedSignal;
+        this.channelClosedHandler = channelClosedHandler;
     }
 
-    private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) throws Exception {
+    private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) {
         running = true;
         val context = ConsumeObserverContext.builder()
                 .queueName(queueName)
@@ -113,7 +113,7 @@ public class Handler<Message> extends DefaultConsumer {
                 log.error("Connection is already closed for {}", queueName, e);
             } else {
                 log.error("Channel is already closed for {}", queueName, e);
-                signal.dispatch(queueName);
+                channelClosedHandler.accept(queueName);
                 throw RabbitmqActorException.propagate(e);
             }
         } catch (Throwable t) {
