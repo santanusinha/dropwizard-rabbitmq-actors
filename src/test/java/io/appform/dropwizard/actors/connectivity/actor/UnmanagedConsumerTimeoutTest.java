@@ -95,20 +95,21 @@ public class UnmanagedConsumerTimeoutTest {
         AtomicInteger seen = new AtomicInteger();
         CountDownLatch latch = new CountDownLatch(2);
         Thread t = new Thread(() -> {
-            UnmanagedConsumer<Map> consumer = new UnmanagedConsumer<>(queueName, actorConfig, connection, objectMapper,
-                    new RetryStrategyFactory(), new ExceptionHandlingFactory(), Map.class, (msg, metadata) -> {
-                testDataHolder.get()
-                        .put(seen.incrementAndGet(), metadata);
-                if (seen.get() == 1) { // only sleep for the first time to induce consumer timeout
-                    // Thread.sleep() is set to a value more than 2 times the consumer_timeout to avoid test flakiness
-                    // as the RMQ periodically checks for consumer timeout
-                    Thread.sleep((long) (RMQContainer.CONSUMER_TIMEOUT * 2.2));
-                }
-                latch.countDown();
-                log.info("Processed message {}", msg);
-                return true;
-            }, (x, y) -> true, (x) -> true);
             try {
+                UnmanagedConsumer<Map> consumer = new UnmanagedConsumer<>(queueName, actorConfig, connection,
+                        objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(), Map.class,
+                        (msg, metadata) -> {
+                            testDataHolder.get()
+                                    .put(seen.incrementAndGet(), metadata);
+                            if (seen.get() == 1) { // only sleep for the first time to induce consumer timeout
+                                // Thread.sleep() is set to a value more than 2 times the consumer_timeout to avoid test flakiness
+                                // as the RMQ periodically checks for consumer timeout
+                                Thread.sleep((long) (RMQContainer.CONSUMER_TIMEOUT * 2.2));
+                            }
+                            latch.countDown();
+                            log.info("Processed message {}", msg);
+                            return true;
+                        }, (x, y) -> true, (x) -> true);
                 consumer.start();
             } catch (Exception e) {
                 throw new RuntimeException(e);
