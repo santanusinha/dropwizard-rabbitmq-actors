@@ -3,6 +3,7 @@ package io.appform.dropwizard.actors.base;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
@@ -13,6 +14,7 @@ import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
+import io.appform.signals.signals.ConsumingSyncSignal;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +40,7 @@ public class Handler<Message> extends DefaultConsumer {
     private final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction;
     private final RMQObserver observer;
     private final String queueName;
+    private final ConsumingSyncSignal<String> signal;
 
     @Getter
     private volatile boolean running;
@@ -56,7 +59,8 @@ public class Handler<Message> extends DefaultConsumer {
                    final MessageHandlingFunction<Message, Boolean> messageHandlingFunction,
                    final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
                    final RMQObserver observer,
-                   final String queueName) throws Exception {
+                   final String queueName,
+                   ConsumingSyncSignal<String> signal) throws Exception {
         super(channel);
         this.mapper = mapper;
         this.clazz = clazz;
@@ -68,6 +72,7 @@ public class Handler<Message> extends DefaultConsumer {
         this.exceptionHandler = exceptionHandler;
         this.messageHandlingFunction = messageHandlingFunction;
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
+        this.signal = signal;
     }
 
     private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) throws Exception {
@@ -82,7 +87,7 @@ public class Handler<Message> extends DefaultConsumer {
                         ? expiredMessageHandlingFunction.apply(message, messageMetadata)
                         : messageHandlingFunction.apply(message, messageMetadata);
             } catch (Exception e) {
-                log.error("Error while handling message: {}", e);
+                log.error("Error while handling message: ", e);
                 throw RabbitmqActorException.propagate(e);
             } finally {
                 running = false;
@@ -103,6 +108,10 @@ public class Handler<Message> extends DefaultConsumer {
             } else {
                 getChannel().basicReject(envelope.getDeliveryTag(), false);
             }
+        } catch (AlreadyClosedException e) {
+            log.error("Channel is already closed for {}", queueName, e);
+            signal.dispatch(queueName);
+            throw RabbitmqActorException.propagate(e);
         } catch (Throwable t) {
             log.error("Error processing message...", t);
             if (errorCheckFunction.apply(t)) {

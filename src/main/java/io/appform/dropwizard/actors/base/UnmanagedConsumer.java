@@ -7,23 +7,23 @@ import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.ConsumerConfig;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
+import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-
-import java.util.Optional;
-import lombok.extern.slf4j.Slf4j;
-
+import io.appform.signals.signalhandlers.SignalConsumer;
+import io.appform.signals.signals.ConsumingSyncSignal;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
-
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
-public class UnmanagedConsumer<Message> {
+public class UnmanagedConsumer<Message> implements SignalConsumer<String> {
 
     private final String name;
     private final ActorConfig config;
@@ -38,8 +38,9 @@ public class UnmanagedConsumer<Message> {
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
     private final RMQObserver observer;
-
+    private final ConsumingSyncSignal<String> signal;
     private final List<Handler<Message>> handlers = Lists.newArrayList();
+    private int consumerIndex = 1;
 
     public UnmanagedConsumer(final String name,
                              final ActorConfig config,
@@ -64,26 +65,31 @@ public class UnmanagedConsumer<Message> {
         this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());
         this.exceptionHandler = exceptionHandlingFactory.create(config.getExceptionHandlerConfig());
         this.observer = connection.getRootObserver();
+        this.signal = new ConsumingSyncSignal<>();
+        this.signal.connect(this);
     }
 
     public void start() throws Exception {
         for (int i = 1; i <= config.getConcurrency(); i++) {
-            Channel consumeChannel = connection.newChannel();
-            final Handler<Message> handler =
-                    new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction, retryStrategy,
-                                  exceptionHandler, handlerFunction, expiredMessageHandlingFunction, observer, queueName);
             String queueNameForConsumption;
             if (config.isSharded()) {
                 queueNameForConsumption = NamingUtils.getShardedQueueName(queueName, i % config.getShardCount());
             } else {
                 queueNameForConsumption = queueName;
             }
-
-            final String tag = consumeChannel.basicConsume(queueNameForConsumption, false, getConsumerTag(i), handler);
-            handler.setTag(tag);
-            handlers.add(handler);
-            log.info("Started consumer {} of type {} with tag {}", i, name, tag);
+            createChannel(queueNameForConsumption);
         }
+    }
+
+    private void createChannel(String queueName) throws Exception {
+        Channel consumeChannel = connection.newChannel();
+        final Handler<Message> handler = new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction,
+                retryStrategy, exceptionHandler, handlerFunction, expiredMessageHandlingFunction, observer, queueName,
+                signal);
+        final String tag = consumeChannel.basicConsume(queueName, false, getConsumerTag(consumerIndex++), handler);
+        handler.setTag(tag);
+        handlers.add(handler);
+        log.info("Started consumer for queue {} with tag {}", name, tag);
     }
 
     public void stop() {
@@ -94,7 +100,9 @@ public class UnmanagedConsumer<Message> {
                     channel.basicCancel(handler.getTag());
                     //Wait till the handler completes consuming and ack'ing the current message.
                     log.info("Waiting for handler to complete processing the current message..");
-                    while(handler.isRunning());
+                    while (handler.isRunning()) {
+
+                    }
                     channel.close();
                     log.info("Consumer channel closed for [{}] with prefix [{}]", name, config.getPrefix());
                 } else {
@@ -112,5 +120,16 @@ public class UnmanagedConsumer<Message> {
                 .filter(StringUtils::isNotBlank)
                 .map(tagPrefix -> tagPrefix + "_" + consumerIndex)
                 .orElse(StringUtils.EMPTY);
+    }
+
+    @Override
+    public void consume(String queueName) {
+        try {
+            log.info("Creating channel for queue {} because a channel got closed", queueName);
+            createChannel(queueName);
+        } catch (Exception e) {
+            log.error("Unable to create channel for queue{}", queueName, e);
+            throw RabbitmqActorException.propagate(e);
+        }
     }
 }

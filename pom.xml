@@ -6,7 +6,7 @@
 
     <groupId>io.appform.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors</artifactId>
-    <version>2.0.28-12</version>
+    <version>2.0.28-13</version>
     <name>Dropwizard RabbitMQ Bundle</name>
     <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors</url>
     <description>Provides actor abstraction on RabbitMQ for dropwizard based projects.</description>
@@ -101,6 +101,7 @@
         <okhttp.version>4.9.3</okhttp.version>
         <amqp-client.version>5.20.0</amqp-client.version>
         <mockito.version>4.4.0</mockito.version>
+        <signals.version>1.4</signals.version>
     </properties>
 
     <dependencyManagement>
@@ -119,6 +120,11 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>io.appform.signals</groupId>
+            <artifactId>signals</artifactId>
+            <version>${signals.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
