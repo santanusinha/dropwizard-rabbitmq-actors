@@ -76,17 +76,6 @@ public class UnmanagedConsumer<Message> {
         }
     }
 
-    private void createChannel(String queueName) throws Exception {
-        Channel consumeChannel = connection.newChannel();
-        final Handler<Message> handler = new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction,
-                retryStrategy, exceptionHandler, handlerFunction, expiredMessageHandlingFunction, observer, queueName,
-                this::channelClosedHandler);
-        final String tag = consumeChannel.basicConsume(queueName, false, getConsumerTag(consumerIndex++), handler);
-        handler.setTag(tag);
-        handlers.add(handler);
-        log.info("Started consumer for queue {} with tag {}", name, tag);
-    }
-
     public void stop() {
         handlers.forEach(handler -> {
             try {
@@ -96,7 +85,7 @@ public class UnmanagedConsumer<Message> {
                     //Wait till the handler completes consuming and ack'ing the current message.
                     log.info("Waiting for handler to complete processing the current message..");
                     while (handler.isRunning()) {
-
+                        // wait for the handler to complete processing the current message
                     }
                     channel.close();
                     log.info("Consumer channel closed for [{}] with prefix [{}]", name, config.getPrefix());
@@ -119,11 +108,23 @@ public class UnmanagedConsumer<Message> {
 
     private void channelClosedHandler(String queueName) {
         try {
-            log.info("Creating channel for queue {} because a channel got closed", queueName);
+            log.info("Re-creating channel for queue {} because a channel got closed", queueName);
             createChannel(queueName);
         } catch (Exception e) {
             log.error("Unable to create channel for queue {}", queueName, e);
             throw RabbitmqActorException.propagate(e);
         }
     }
+
+    private void createChannel(String queueName) throws Exception {
+        Channel consumeChannel = connection.newChannel();
+        final Handler<Message> handler = new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction,
+                retryStrategy, exceptionHandler, handlerFunction, expiredMessageHandlingFunction, observer, queueName,
+                this::channelClosedHandler);
+        final String tag = consumeChannel.basicConsume(queueName, false, getConsumerTag(consumerIndex++), handler);
+        handler.setTag(tag);
+        handlers.add(handler);
+        log.info("Started consumer for queue {} with tag {}", name, tag);
+    }
+    
 }
