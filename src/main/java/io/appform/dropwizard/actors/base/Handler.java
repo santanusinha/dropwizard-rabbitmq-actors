@@ -1,9 +1,11 @@
 package io.appform.dropwizard.actors.base;
 
 
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.AlreadyClosedException;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
@@ -14,19 +16,14 @@ import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
-import java.util.function.Consumer;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-
 import java.io.IOException;
 import java.time.Instant;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
-
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 @Slf4j
 public class Handler<Message> extends DefaultConsumer {
@@ -40,7 +37,6 @@ public class Handler<Message> extends DefaultConsumer {
     private final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction;
     private final RMQObserver observer;
     private final String queueName;
-    private final Consumer<String> channelClosedHandler;
 
     @Getter
     private volatile boolean running;
@@ -59,8 +55,7 @@ public class Handler<Message> extends DefaultConsumer {
                    final MessageHandlingFunction<Message, Boolean> messageHandlingFunction,
                    final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
                    final RMQObserver observer,
-                   final String queueName,
-                   Consumer<String> channelClosedHandler) throws Exception {
+                   final String queueName) throws Exception {
         super(channel);
         this.mapper = mapper;
         this.clazz = clazz;
@@ -72,7 +67,6 @@ public class Handler<Message> extends DefaultConsumer {
         this.exceptionHandler = exceptionHandler;
         this.messageHandlingFunction = messageHandlingFunction;
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
-        this.channelClosedHandler = channelClosedHandler;
     }
 
     private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) {
@@ -107,14 +101,6 @@ public class Handler<Message> extends DefaultConsumer {
                 getChannel().basicAck(envelope.getDeliveryTag(), false);
             } else {
                 getChannel().basicReject(envelope.getDeliveryTag(), false);
-            }
-        } catch (AlreadyClosedException e) {
-            if (e.isHardError()) {
-                log.error("Connection is already closed for {}", queueName, e);
-            } else {
-                log.error("Channel is already closed for {}", queueName, e);
-                channelClosedHandler.accept(queueName);
-                throw RabbitmqActorException.propagate(e);
             }
         } catch (Throwable t) {
             log.error("Error processing message...", t);

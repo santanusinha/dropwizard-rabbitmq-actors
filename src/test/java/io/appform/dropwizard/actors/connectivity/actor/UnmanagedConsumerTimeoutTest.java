@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.SneakyThrows;
@@ -116,7 +117,8 @@ public class UnmanagedConsumerTimeoutTest {
             }
         });
         t.start();
-        latch.await();
+        // set timeout to ensure the tests do not hang
+        latch.await(RMQContainer.CONSUMER_TIMEOUT * 3, TimeUnit.MILLISECONDS);
         Assertions.assertNotNull(testDataHolder.get());
         log.info("Contents {}", testDataHolder.get());
         Assertions.assertEquals(2, testDataHolder.get()

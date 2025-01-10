@@ -16,6 +16,7 @@ import io.appform.dropwizard.actors.retry.RetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -118,13 +119,19 @@ public class UnmanagedConsumer<Message> {
 
     private void createChannel(String queueName) throws Exception {
         Channel consumeChannel = connection.newChannel();
+        consumeChannel.addShutdownListener(shutdownSignalException -> {
+            // This needs to be run in a separate thread to avoid deadlock
+            CompletableFuture.runAsync(() -> {
+                log.error("Channel shutdown signal exception received for queue {}", queueName, shutdownSignalException);
+                channelClosedHandler(queueName);
+            });
+        });
         final Handler<Message> handler = new Handler<>(consumeChannel, mapper, clazz, prefetchCount, errorCheckFunction,
-                retryStrategy, exceptionHandler, handlerFunction, expiredMessageHandlingFunction, observer, queueName,
-                this::channelClosedHandler);
+                retryStrategy, exceptionHandler, handlerFunction, expiredMessageHandlingFunction, observer, queueName);
         final String tag = consumeChannel.basicConsume(queueName, false, getConsumerTag(consumerIndex++), handler);
         handler.setTag(tag);
         handlers.add(handler);
         log.info("Started consumer for queue {} with tag {}", name, tag);
     }
-    
+
 }
