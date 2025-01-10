@@ -105,7 +105,7 @@ public class UnmanagedConsumerTimeoutTest {
                             if (seen.get() == 1) { // only sleep for the first time to induce consumer timeout
                                 // Thread.sleep() is set to a value more than 2 times the consumer_timeout to avoid test flakiness
                                 // as the RMQ periodically checks for consumer timeout
-                                Thread.sleep((long) (RMQContainer.CONSUMER_TIMEOUT * 2.2));
+                                Thread.sleep((long) (RMQContainer.CONSUMER_TIMEOUT_MS * 2.2));
                             }
                             latch.countDown();
                             log.info("Processed message {}", msg);
@@ -118,7 +118,7 @@ public class UnmanagedConsumerTimeoutTest {
         });
         t.start();
         // set timeout to ensure the tests do not hang
-        latch.await(RMQContainer.CONSUMER_TIMEOUT * 3, TimeUnit.MILLISECONDS);
+        latch.await(RMQContainer.CONSUMER_TIMEOUT_MS * 3, TimeUnit.MILLISECONDS);
         Assertions.assertNotNull(testDataHolder.get());
         log.info("Contents {}", testDataHolder.get());
         Assertions.assertEquals(2, testDataHolder.get()
