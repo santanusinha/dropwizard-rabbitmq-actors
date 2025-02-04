@@ -112,7 +112,6 @@ public class UnmanagedConsumer<Message> {
             log.info("Re-creating channel for queue {} because a channel got closed", queueName);
             createChannel(queueName);
         } catch (Exception e) {
-            log.error("Unable to create channel for queue {}", queueName, e);
             throw RabbitmqActorException.propagate(e);
         }
     }
