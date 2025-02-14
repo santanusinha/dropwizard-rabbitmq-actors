@@ -9,19 +9,14 @@ import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
-import io.appform.dropwizard.actors.config.Broker;
-import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.retry.config.CountLimitedFixedWaitRetryConfig;
+import io.appform.dropwizard.actors.utils.CommonTestUtils;
 import io.appform.dropwizard.actors.utils.RMQContainer;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -30,15 +25,16 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.RabbitMQContainer;
+
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public class ExpiryMessagesTest {
 
     public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app =
             new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class);
-    private static final String RABBITMQ_USERNAME = "guest";
-    private static final String RABBITMQ_PASSWORD = "guest";
     private static RMQConnection connection;
     private static final MetricRegistry metricRegistry = new MetricRegistry();
 
@@ -50,7 +46,7 @@ public class ExpiryMessagesTest {
 
         app.before();
 
-        val config = getRMQConfig(RMQContainer.startContainer());
+        val config = CommonTestUtils.getRMQConfig(RMQContainer.startContainer());
 
         connection = new RMQConnection("test-conn", config,
                 Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build(), new RMQMetricObserver(config, metricRegistry));
@@ -64,20 +60,6 @@ public class ExpiryMessagesTest {
         app.after();
     }
 
-    private static RMQConfig getRMQConfig(RabbitMQContainer rabbitmqContainer) {
-        val rmqConfig = new RMQConfig();
-        val mappedPort = rabbitmqContainer.getMappedPort(5672);
-        val host = rabbitmqContainer.getContainerIpAddress();
-        val brokers = new ArrayList<Broker>();
-        brokers.add(new Broker(host, mappedPort));
-        rmqConfig.setBrokers(brokers);
-        rmqConfig.setUserName(RABBITMQ_USERNAME);
-        rmqConfig.setPassword(RABBITMQ_PASSWORD);
-        rmqConfig.setVirtualHost("/");
-        log.info("RabbitMQ connection details: {}", rmqConfig);
-        return rmqConfig;
-    }
-
     /**
      * This test does the following:
      * - Publisher publishes the message with an expiry of 1500ms with 0 consumers
@@ -85,7 +67,7 @@ public class ExpiryMessagesTest {
      * - Consumer would consume the message in expired handler and delay in consumption should be more than 1500ms
      */
     @Test
-    public void testWhenMessagesAreExpired() throws Exception {
+    void testWhenMessagesAreExpired() throws Exception {
         val queueName = "queue-1";
         val objectMapper = new ObjectMapper();
         val actorConfig = new ActorConfig();
@@ -121,7 +103,7 @@ public class ExpiryMessagesTest {
      * - Here the count should be 2 and delay should be more than 1500ms
      */
     @Test
-    public void testReDeliveryOfExpiredMessages() throws Exception {
+    void testReDeliveryOfExpiredMessages() throws Exception {
         val queueName = "queue-5";
         val objectMapper = new ObjectMapper();
         val actorConfig = new ActorConfig();

@@ -18,6 +18,8 @@ package io.appform.dropwizard.actors.actor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.appform.dropwizard.actors.ConnectionRegistry;
+import io.appform.dropwizard.actors.base.RandomShardIdCalculator;
+import io.appform.dropwizard.actors.base.ShardIdCalculator;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
@@ -50,7 +52,7 @@ public abstract class Actor<MessageType extends Enum<MessageType>, Message> exte
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
         super(type.name(), config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory,
-                clazz, droppedExceptionTypes);
+              clazz, droppedExceptionTypes);
         this.type = type;
     }
 
@@ -63,8 +65,36 @@ public abstract class Actor<MessageType extends Enum<MessageType>, Message> exte
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
-        super(type.name(), config, connectionRegistry, mapper, retryStrategyFactory, exceptionHandlingFactory,
-                clazz, droppedExceptionTypes);
+        this(type,
+             config,
+             connectionRegistry,
+             mapper,
+             new RandomShardIdCalculator<>(config),
+             retryStrategyFactory,
+             exceptionHandlingFactory,
+             clazz,
+             droppedExceptionTypes);
+    }
+
+    protected Actor(
+            MessageType type,
+            ActorConfig config,
+            ConnectionRegistry connectionRegistry,
+            ObjectMapper mapper,
+            ShardIdCalculator<Message> shardIdCalculator,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            Set<Class<?>> droppedExceptionTypes) {
+        super(type.name(),
+              config,
+              connectionRegistry,
+              mapper,
+              shardIdCalculator,
+              retryStrategyFactory,
+              exceptionHandlingFactory,
+              clazz,
+              droppedExceptionTypes);
         this.type = type;
     }
 }
