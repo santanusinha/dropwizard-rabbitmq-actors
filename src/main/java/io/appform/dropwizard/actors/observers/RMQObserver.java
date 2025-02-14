@@ -1,12 +1,9 @@
 package io.appform.dropwizard.actors.observers;
 
+import io.appform.dropwizard.actors.actor.MessageConsumeFunction;
+import io.appform.dropwizard.actors.actor.MessagePublishFunction;
 import lombok.Getter;
 
-import java.util.function.Supplier;
-
-/**
- *
- */
 public abstract class RMQObserver {
 
     @Getter
@@ -16,9 +13,9 @@ public abstract class RMQObserver {
         this.next = next;
     }
 
-    public abstract <T> T executePublish(final PublishObserverContext context, final Supplier<T> supplier);
+    public abstract <T> T executePublish(final PublishObserverContext context, final MessagePublishFunction<T> publishFunction);
 
-    public abstract <T> T executeConsume(final ConsumeObserverContext context, final Supplier<T> supplier);
+    public abstract <T> T executeConsume(final ConsumeObserverContext context, final MessageConsumeFunction<T> consumeFunction);
 
     public final RMQObserver setNext(final RMQObserver next) {
         this.next = next;
@@ -26,17 +23,17 @@ public abstract class RMQObserver {
     }
 
     protected final <T> T proceedPublish(final PublishObserverContext context,
-                                         final Supplier<T> supplier) {
+                                         final MessagePublishFunction<T> publishFunction) {
         if (null == next) {
-            return supplier.get();
+            return publishFunction.apply(context.getMessageProperties());
         }
-        return next.executePublish(context, supplier);
+        return next.executePublish(context, publishFunction);
     }
 
-    protected final <T> T proceedConsume(final ConsumeObserverContext context, final Supplier<T> supplier) {
+    protected final <T> T proceedConsume(final ConsumeObserverContext context, final MessageConsumeFunction<T> consumeFunction) {
         if (null == next) {
-            return supplier.get();
+            return consumeFunction.apply(context.getMessageMetadata());
         }
-        return next.executeConsume(context, supplier);
+        return next.executeConsume(context, consumeFunction);
     }
 }

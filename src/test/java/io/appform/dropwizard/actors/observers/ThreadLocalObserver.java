@@ -1,8 +1,8 @@
 package io.appform.dropwizard.actors.observers;
 
+import io.appform.dropwizard.actors.actor.MessageConsumeFunction;
+import io.appform.dropwizard.actors.actor.MessagePublishFunction;
 import org.slf4j.MDC;
-
-import java.util.function.Supplier;
 
 public class ThreadLocalObserver extends RMQObserver {
 
@@ -11,7 +11,7 @@ public class ThreadLocalObserver extends RMQObserver {
     }
 
     @Override
-    public <T> T executePublish(PublishObserverContext context, Supplier<T> supplier) {
+    public <T> T executePublish(PublishObserverContext context, MessagePublishFunction<T> supplier) {
         MDC.put(ObserverTestUtil.PUBLISH_START, context.getQueueName());
         try {
             return proceedPublish(context, supplier);
@@ -21,7 +21,7 @@ public class ThreadLocalObserver extends RMQObserver {
     }
 
     @Override
-    public <T> T executeConsume(ConsumeObserverContext context, Supplier<T> supplier) {
+    public <T> T executeConsume(ConsumeObserverContext context, MessageConsumeFunction<T> supplier) {
             return null;
     }
 }

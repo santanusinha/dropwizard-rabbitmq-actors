@@ -1,6 +1,8 @@
 package io.appform.dropwizard.actors.metrics;
 
 import com.codahale.metrics.MetricRegistry;
+import com.rabbitmq.client.AMQP;
+import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.config.MetricConfig;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
@@ -42,7 +44,7 @@ class RMQMetricObserverTest {
         val config = this.config;
         config.setMetricConfig(MetricConfig.builder().enabledForAll(false).build());
         val publishMetricObserver = new RMQMetricObserver(config, metricRegistry);
-        assertEquals(terminate(),
+        assertEquals(terminate(new AMQP.BasicProperties()),
                 publishMetricObserver.executePublish(PublishObserverContext.builder().build(), this::terminate));
     }
 
@@ -51,7 +53,7 @@ class RMQMetricObserverTest {
         val context = PublishObserverContext.builder()
                 .queueName("default")
                 .build();
-        assertEquals(terminate(), rmqMetricObserver.executePublish(context, this::terminate));
+        assertEquals(terminate(context.getMessageProperties()), rmqMetricObserver.executePublish(context, this::terminate));
         val key = MetricKeyData.builder().operation(PUBLISH).queueName(context.getQueueName()).build();
         validateMetrics(rmqMetricObserver.getMetricCache().get(key), 1, 0);
     }
@@ -71,7 +73,7 @@ class RMQMetricObserverTest {
         val context = ConsumeObserverContext.builder()
                 .queueName("default")
                 .build();
-        assertEquals(terminate(), rmqMetricObserver.executeConsume(context, this::terminate));
+        assertEquals(terminate(context.getMessageMetadata()), rmqMetricObserver.executeConsume(context, this::terminate));
 
         val key = MetricKeyData.builder()
                 .operation(CONSUME)
@@ -92,7 +94,7 @@ class RMQMetricObserverTest {
                 .queueName("default")
                 .redelivered(true)
                 .build();
-        assertEquals(terminate(), rmqMetricObserver.executeConsume(context, this::terminate));
+        assertEquals(terminate(context.getMessageMetadata()), rmqMetricObserver.executeConsume(context, this::terminate));
 
         val key = MetricKeyData.builder()
                 .operation(CONSUME)
@@ -116,11 +118,14 @@ class RMQMetricObserverTest {
         assertEquals(failedCount, metricData.getFailed().getCount());
     }
 
-    private Integer terminate() {
+    private Integer terminate(AMQP.BasicProperties properties) {
+        return 1;
+    }
+    private Integer terminate(MessageMetadata metadata) {
         return 1;
     }
 
-    private Integer terminateWithException() {
+    private Integer terminateWithException(AMQP.BasicProperties properties) {
         throw new RuntimeException();
     }
 }
