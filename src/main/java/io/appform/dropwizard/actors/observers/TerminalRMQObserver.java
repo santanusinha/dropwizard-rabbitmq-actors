@@ -1,7 +1,7 @@
 package io.appform.dropwizard.actors.observers;
 
-import java.util.function.Supplier;
-
+import io.appform.dropwizard.actors.actor.MessageConsumeFunction;
+import io.appform.dropwizard.actors.actor.MessagePublishFunction;
 /**
  *
  */
@@ -11,12 +11,12 @@ public final class TerminalRMQObserver extends RMQObserver {
     }
 
     @Override
-    public <T> T executePublish(PublishObserverContext context, Supplier<T> supplier) {
+    public <T> T executePublish(PublishObserverContext context, MessagePublishFunction<T> supplier) {
         return proceedPublish(context, supplier);
     }
 
     @Override
-    public <T> T executeConsume(ConsumeObserverContext context, Supplier<T> supplier) {
+    public <T> T executeConsume(ConsumeObserverContext context, MessageConsumeFunction<T> supplier) {
         return proceedConsume(context, supplier);
     }
 }
