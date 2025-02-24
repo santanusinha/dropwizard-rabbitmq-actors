@@ -19,6 +19,8 @@ package io.appform.dropwizard.actors.actor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import io.appform.dropwizard.actors.ConnectionRegistry;
+import io.appform.dropwizard.actors.base.RandomShardIdCalculator;
+import io.appform.dropwizard.actors.base.ShardIdCalculator;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.common.Constants;
@@ -49,13 +51,15 @@ import static java.util.Objects.nonNull;
 @EqualsAndHashCode
 @ToString
 @Slf4j
+@SuppressWarnings("java:S107")
 public class UnmanagedBaseActor<Message> {
 
     private final UnmanagedPublisher<Message> publishActor;
     private final UnmanagedConsumer<Message> consumeActor;
 
-    public UnmanagedBaseActor(UnmanagedPublisher<Message> publishActor,
-                              UnmanagedConsumer<Message> consumeActor) {
+    public UnmanagedBaseActor(
+            UnmanagedPublisher<Message> publishActor,
+            UnmanagedConsumer<Message> consumeActor) {
         this.publishActor = publishActor;
         this.consumeActor = consumeActor;
     }
@@ -71,10 +75,35 @@ public class UnmanagedBaseActor<Message> {
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
-        this(new UnmanagedPublisher<>(name, config, connection, mapper),
-                new UnmanagedConsumer<>(
-                        name, config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
-                        handlerFunction, expiredMessageHandlingFunction, errorCheckFunction));
+        this(name,
+             config,
+             connection,
+             mapper,
+             new RandomShardIdCalculator<>(config),
+             retryStrategyFactory,
+             exceptionHandlingFactory,
+             clazz,
+             handlerFunction,
+             expiredMessageHandlingFunction,
+             errorCheckFunction);
+    }
+
+    public UnmanagedBaseActor(
+            String name,
+            ActorConfig config,
+            RMQConnection connection,
+            ObjectMapper mapper,
+            ShardIdCalculator<Message> shardIdCalculator,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            MessageHandlingFunction<Message, Boolean> handlerFunction,
+            MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
+            Function<Throwable, Boolean> errorCheckFunction) {
+        this(new UnmanagedPublisher<>(name, config, shardIdCalculator, connection, mapper),
+             new UnmanagedConsumer<>(
+                     name, config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
+                     handlerFunction, expiredMessageHandlingFunction, errorCheckFunction));
     }
 
     public UnmanagedBaseActor(
@@ -88,9 +117,34 @@ public class UnmanagedBaseActor<Message> {
             MessageHandlingFunction<Message, Boolean> handlerFunction,
             MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
             Function<Throwable, Boolean> errorCheckFunction) {
+        this(name,
+             config,
+             connectionRegistry,
+             mapper,
+             new RandomShardIdCalculator<>(config),
+             retryStrategyFactory,
+             exceptionHandlingFactory,
+             clazz,
+             handlerFunction,
+             expiredMessageHandlingFunction,
+             errorCheckFunction);
+    }
+
+    public UnmanagedBaseActor(
+            String name,
+            ActorConfig config,
+            ConnectionRegistry connectionRegistry,
+            ObjectMapper mapper,
+            ShardIdCalculator<Message> shardIdCalculator,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            MessageHandlingFunction<Message, Boolean> handlerFunction,
+            MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
+            Function<Throwable, Boolean> errorCheckFunction) {
         val consumerConnection = connectionRegistry.createOrGet(consumerConnectionName(config.getConsumer()));
         val producerConnection = connectionRegistry.createOrGet(producerConnectionName(config.getProducer()));
-        this.publishActor = new UnmanagedPublisher<>(name, config, producerConnection, mapper);
+        this.publishActor = new UnmanagedPublisher<>(name, config, shardIdCalculator, producerConnection, mapper);
         this.consumeActor = new UnmanagedConsumer<>(
                 name, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
                 handlerFunction, expiredMessageHandlingFunction, errorCheckFunction);
@@ -149,7 +203,8 @@ public class UnmanagedBaseActor<Message> {
         if (producerConfig == null) {
             return Constants.DEFAULT_PRODUCER_CONNECTION_NAME;
         }
-        return deriveConnectionName(producerConfig.getConnectionIsolationStrategy(), Constants.DEFAULT_PRODUCER_CONNECTION_NAME);
+        return deriveConnectionName(producerConfig.getConnectionIsolationStrategy(),
+                                    Constants.DEFAULT_PRODUCER_CONNECTION_NAME);
     }
 
     private String consumerConnectionName(ConsumerConfig consumerConfig) {
@@ -157,7 +212,8 @@ public class UnmanagedBaseActor<Message> {
             return Constants.DEFAULT_CONSUMER_CONNECTION_NAME;
         }
 
-        return deriveConnectionName(consumerConfig.getConnectionIsolationStrategy(), Constants.DEFAULT_CONSUMER_CONNECTION_NAME);
+        return deriveConnectionName(consumerConfig.getConnectionIsolationStrategy(),
+                                    Constants.DEFAULT_CONSUMER_CONNECTION_NAME);
     }
 
     private String deriveConnectionName(ConnectionIsolationStrategy isolationStrategy, String defaultConnectionName) {
