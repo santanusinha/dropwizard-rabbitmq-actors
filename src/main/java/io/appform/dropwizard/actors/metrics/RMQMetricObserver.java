@@ -3,6 +3,8 @@ package io.appform.dropwizard.actors.metrics;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Timer;
+import com.rabbitmq.client.AMQP;
+import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
 import io.appform.dropwizard.actors.observers.PublishObserverContext;
@@ -14,7 +16,7 @@ import lombok.val;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 /**
  * An Observer that ingests queue metrics.
@@ -37,7 +39,7 @@ public class RMQMetricObserver extends RMQObserver {
     }
 
     @Override
-    public <T> T executePublish(final PublishObserverContext context, final Supplier<T> supplier) {
+    public <T> T executePublish(final PublishObserverContext context, final Function<AMQP.BasicProperties, T> supplier) {
         if (!MetricUtil.isMetricApplicable(rmqConfig.getMetricConfig(), context.getQueueName())) {
             return proceedPublish(context, supplier);
         }
@@ -57,7 +59,7 @@ public class RMQMetricObserver extends RMQObserver {
     }
 
     @Override
-    public <T> T executeConsume(final ConsumeObserverContext context, final Supplier<T> supplier) {
+    public <T> T executeConsume(final ConsumeObserverContext context, final Function<MessageMetadata, T> supplier) {
         if (!MetricUtil.isMetricApplicable(rmqConfig.getMetricConfig(), context.getQueueName())) {
             return proceedConsume(context, supplier);
         }
