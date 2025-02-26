@@ -17,9 +17,13 @@ import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
+
+import io.appform.dropwizard.actors.utils.CommonUtils;
+import io.appform.opentracing.FunctionData;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -77,6 +81,7 @@ public class Handler<Message> extends DefaultConsumer {
                 .build();
         return observer.executeConsume(context, () -> {
             try {
+                CommonUtils.startTracing(messageMetadata, getFunctionalData());
                 return expired
                         ? expiredMessageHandlingFunction.apply(message, messageMetadata)
                         : messageHandlingFunction.apply(message, messageMetadata);
@@ -88,6 +93,8 @@ public class Handler<Message> extends DefaultConsumer {
             }
         });
     }
+
+
 
     @Override
     public void handleDelivery(final String consumerTag,
@@ -145,5 +152,8 @@ public class Handler<Message> extends DefaultConsumer {
     private MessageMetadata populateMessageMeta(final Envelope envelope, final AMQP.BasicProperties properties) {
         val delayInMs = getDelayInMs(properties);
         return new MessageMetadata(envelope.isRedeliver(), delayInMs, properties.getHeaders());
+    }
+    private FunctionData getFunctionalData() {
+        return new FunctionData(this.getClass().getSimpleName(),"handle");
     }
 }
