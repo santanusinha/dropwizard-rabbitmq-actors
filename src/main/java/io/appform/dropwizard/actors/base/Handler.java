@@ -24,6 +24,7 @@ import java.util.function.Function;
 
 import io.appform.dropwizard.actors.utils.CommonUtils;
 import io.appform.opentracing.FunctionData;
+import io.appform.opentracing.util.TracerUtil;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -81,7 +82,7 @@ public class Handler<Message> extends DefaultConsumer {
                 .build();
         return observer.executeConsume(context, () -> {
             try {
-                CommonUtils.startTracing(messageMetadata, getFunctionalData());
+                executeTracing(messageMetadata);
                 return expired
                         ? expiredMessageHandlingFunction.apply(message, messageMetadata)
                         : messageHandlingFunction.apply(message, messageMetadata);
@@ -94,6 +95,11 @@ public class Handler<Message> extends DefaultConsumer {
         });
     }
 
+    private void executeTracing(MessageMetadata messageMetadata) {
+        if(TracerUtil.isTracePresent()) {
+            CommonUtils.startTracing(messageMetadata, getFunctionalData());
+        }
+    }
 
 
     @Override
