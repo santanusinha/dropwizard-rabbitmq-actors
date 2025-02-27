@@ -17,14 +17,12 @@ import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 
 import io.appform.dropwizard.actors.utils.CommonUtils;
 import io.appform.opentracing.FunctionData;
-import io.appform.opentracing.util.TracerUtil;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -82,7 +80,7 @@ public class Handler<Message> extends DefaultConsumer {
                 .build();
         return observer.executeConsume(context, () -> {
             try {
-                executeTracing(messageMetadata);
+                executeTracingIfTraceIsAvailable(messageMetadata);
                 return expired
                         ? expiredMessageHandlingFunction.apply(message, messageMetadata)
                         : messageHandlingFunction.apply(message, messageMetadata);
@@ -95,10 +93,8 @@ public class Handler<Message> extends DefaultConsumer {
         });
     }
 
-    private void executeTracing(MessageMetadata messageMetadata) {
-        if(TracerUtil.isTracePresent()) {
-            CommonUtils.startTracing(messageMetadata, getFunctionalData());
-        }
+    private void executeTracingIfTraceIsAvailable(MessageMetadata messageMetadata) {
+        CommonUtils.startTracing(messageMetadata, getFunctionalData());
     }
 
 
