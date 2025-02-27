@@ -57,7 +57,7 @@ public class CommonUtils {
                 .headers(messageMetadata.getHeaders())
                 .build();
         TracerUtil.populateTracingFromQueue(properties);
-        TracingHandler.startSpan(functionData, "");
+        TracerUtil.populateMDCTracing(TracingHandler.startSpan(functionData, ""));
     }
 
 
