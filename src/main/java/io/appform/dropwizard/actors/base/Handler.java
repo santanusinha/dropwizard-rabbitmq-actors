@@ -23,6 +23,7 @@ import java.util.function.Function;
 
 import io.appform.dropwizard.actors.utils.CommonUtils;
 import io.appform.opentracing.FunctionData;
+import io.appform.opentracing.util.TracerUtil;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -89,6 +90,7 @@ public class Handler<Message> extends DefaultConsumer {
                 throw RabbitmqActorException.propagate(e);
             } finally {
                 running = false;
+                TracerUtil.destroyTracingForRequest();
             }
         });
     }

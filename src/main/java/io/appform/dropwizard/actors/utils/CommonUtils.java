@@ -17,17 +17,14 @@
 package io.appform.dropwizard.actors.utils;
 
 import com.google.common.base.Strings;
-import com.rabbitmq.client.AMQP;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.opentracing.FunctionData;
 import io.appform.opentracing.TracingHandler;
 import io.appform.opentracing.util.TracerUtil;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import lombok.val;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -53,10 +50,7 @@ public class CommonUtils {
     }
 
     public static void startTracing(MessageMetadata messageMetadata, final FunctionData functionData) {
-        val properties = new AMQP.BasicProperties.Builder()
-                .headers(messageMetadata.getHeaders())
-                .build();
-        TracerUtil.populateTracingFromQueue(properties);
+        TracerUtil.populateTracingFromQueue(messageMetadata.getHeaders());
         if(TracerUtil.isTracePresent()) {
             TracerUtil.populateMDCTracing(TracingHandler.startSpan(functionData, ""));
         }
