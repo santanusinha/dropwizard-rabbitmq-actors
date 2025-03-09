@@ -90,7 +90,7 @@ public class Handler<Message> extends DefaultConsumer {
                 throw RabbitmqActorException.propagate(e);
             } finally {
                 running = false;
-                TracerUtil.destroyTracingForRequest();
+                TracerUtil.destroyTracingForCurrentThread();
             }
         });
     }

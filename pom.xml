@@ -171,7 +171,7 @@
         <dependency>
             <groupId>io.appform.opentracing.annotations</groupId>
             <artifactId>opentracing-annotations</artifactId>
-            <version>1.0.4-ankush</version>
+            <version>1.0.4</version>
         </dependency>
 
         <dependency>
