@@ -21,6 +21,7 @@ import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.opentracing.FunctionData;
 import io.appform.opentracing.TracingHandler;
 import io.appform.opentracing.util.TracerUtil;
+import io.opentracing.util.GlobalTracer;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -50,9 +51,9 @@ public class CommonUtils {
     }
 
     public static void startTracing(MessageMetadata messageMetadata, final FunctionData functionData) {
-        TracerUtil.populateTracingFromQueue(messageMetadata.getHeaders());
+        TracerUtil.populateTracingFrom(messageMetadata.getHeaders());
         if(TracerUtil.isTracePresent()) {
-            TracerUtil.populateMDCTracing(TracingHandler.startSpan(functionData, ""));
+            TracerUtil.populateMDCTracing(TracingHandler.startSpan(GlobalTracer.get(),functionData, ""));
         }
     }
 
