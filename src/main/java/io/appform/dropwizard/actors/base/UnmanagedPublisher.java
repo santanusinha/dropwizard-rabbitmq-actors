@@ -54,7 +54,7 @@ public class UnmanagedPublisher<Message> {
         publishWithDelay(message, properties);
     }
 
-    private final void publishWithDelay(final Message message, final AMQP.BasicProperties properties) throws Exception {
+    private void publishWithDelay(final Message message, final AMQP.BasicProperties properties) throws Exception {
         if (!config.isDelayed()) {
             log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
         }
@@ -106,8 +106,8 @@ public class UnmanagedPublisher<Message> {
                 .queueName(queueName)
                 .messageProperties(properties)
                 .build();
-        observer.executePublish(context, (basicProperties) -> {
-            val enrichedProperties = getEnrichedProperties(basicProperties);
+        observer.executePublish(context, updatedProperties -> {
+            val enrichedProperties = getEnrichedProperties(updatedProperties);
             try {
                 publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
             } catch (IOException e) {
