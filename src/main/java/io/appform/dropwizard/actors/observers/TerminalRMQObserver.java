@@ -14,12 +14,12 @@ public final class TerminalRMQObserver extends RMQObserver {
     }
 
     @Override
-    public <T> T executePublish(PublishObserverContext context, Function<AMQP.BasicProperties, T> supplier) {
-        return proceedPublish(context, supplier);
+    public <T> T executePublish(PublishObserverContext context, Function<PublishMessageDetails, T> publishFunction) {
+        return proceedPublish(context, publishFunction);
     }
 
     @Override
-    public <T> T executeConsume(ConsumeObserverContext context, Function<MessageMetadata, T> supplier) {
-        return proceedConsume(context, supplier);
+    public <T> T executeConsume(ConsumeObserverContext context, Function<ConsumeMessageDetails, T> consumeFunction) {
+        return proceedConsume(context, consumeFunction);
     }
 }

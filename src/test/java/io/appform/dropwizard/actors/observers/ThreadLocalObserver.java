@@ -13,17 +13,17 @@ public class ThreadLocalObserver extends RMQObserver {
     }
 
     @Override
-    public <T> T executePublish(PublishObserverContext context, Function<AMQP.BasicProperties, T> supplier) {
+    public <T> T executePublish(PublishObserverContext context, Function<PublishMessageDetails, T> publishFunction) {
         MDC.put(ObserverTestUtil.PUBLISH_START, context.getQueueName());
         try {
-            return proceedPublish(context, supplier);
+            return proceedPublish(context, publishFunction);
         } finally {
             MDC.put(ObserverTestUtil.PUBLISH_END, context.getQueueName());
         }
     }
 
     @Override
-    public <T> T executeConsume(ConsumeObserverContext context, Function<MessageMetadata, T> supplier) {
-            return null;
+    public <T> T executeConsume(ConsumeObserverContext context, Function<ConsumeMessageDetails, T> consumeFunction) {
+        return null;
     }
 }

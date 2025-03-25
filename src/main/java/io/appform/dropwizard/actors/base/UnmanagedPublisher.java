@@ -64,10 +64,10 @@ public class UnmanagedPublisher<Message> {
                     .queueName(queueName)
                     .messageProperties(properties)
                     .build();
-            observer.executePublish(context, (basicProperties) -> {
+            observer.executePublish(context, messageDetails -> {
                 try {
                     publishChannel.basicPublish(ttlExchange(config),
-                            routingKey, basicProperties,
+                            routingKey, messageDetails.getMessageProperties(),
                             mapper().writeValueAsBytes(message));
                 } catch (IOException e) {
                     log.error("Error while publishing: {}", e);
@@ -106,8 +106,8 @@ public class UnmanagedPublisher<Message> {
                 .queueName(queueName)
                 .messageProperties(properties)
                 .build();
-        observer.executePublish(context, updatedProperties -> {
-            val enrichedProperties = getEnrichedProperties(updatedProperties);
+        observer.executePublish(context, messageDetails -> {
+            val enrichedProperties = getEnrichedProperties(messageDetails.getMessageProperties());
             try {
                 publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
             } catch (IOException e) {

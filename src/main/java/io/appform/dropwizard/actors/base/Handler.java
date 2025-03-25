@@ -76,11 +76,11 @@ public class Handler<Message> extends DefaultConsumer {
                 .redelivered(messageMetadata.isRedelivered())
                 .messageMetadata(messageMetadata)
                 .build();
-        return observer.executeConsume(context, (metadata) -> {
+        return observer.executeConsume(context, (messageDetails) -> {
             try {
                 return expired
-                        ? expiredMessageHandlingFunction.apply(message, metadata)
-                        : messageHandlingFunction.apply(message, metadata);
+                        ? expiredMessageHandlingFunction.apply(message, messageDetails.getMessageMetadata())
+                        : messageHandlingFunction.apply(message, messageDetails.getMessageMetadata());
             } catch (Exception e) {
                 log.error("Error while handling message: ", e);
                 throw RabbitmqActorException.propagate(e);

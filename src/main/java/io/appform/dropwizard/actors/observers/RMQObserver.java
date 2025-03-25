@@ -15,9 +15,9 @@ public abstract class RMQObserver {
         this.next = next;
     }
 
-    public abstract <T> T executePublish(final PublishObserverContext context, final Function<AMQP.BasicProperties, T> publishFunction);
+    public abstract <T> T executePublish(final PublishObserverContext context, final Function<PublishMessageDetails, T> publishFunction);
 
-    public abstract <T> T executeConsume(final ConsumeObserverContext context, final Function<MessageMetadata, T> consumeFunction);
+    public abstract <T> T executeConsume(final ConsumeObserverContext context, final Function<ConsumeMessageDetails, T> consumeFunction);
 
     public final RMQObserver setNext(final RMQObserver next) {
         this.next = next;
@@ -25,16 +25,16 @@ public abstract class RMQObserver {
     }
 
     protected final <T> T proceedPublish(final PublishObserverContext context,
-                                         final Function<AMQP.BasicProperties, T> publishFunction) {
+                                         final Function<PublishMessageDetails, T> publishFunction) {
         if (null == next) {
-            return publishFunction.apply(context.getMessageProperties());
+            return publishFunction.apply(PublishMessageDetails.builder().messageProperties(context.getMessageProperties()).build());
         }
         return next.executePublish(context, publishFunction);
     }
 
-    protected final <T> T proceedConsume(final ConsumeObserverContext context, final Function<MessageMetadata, T> consumeFunction) {
+    protected final <T> T proceedConsume(final ConsumeObserverContext context, final Function<ConsumeMessageDetails, T> consumeFunction) {
         if (null == next) {
-            return consumeFunction.apply(context.getMessageMetadata());
+            return consumeFunction.apply(ConsumeMessageDetails.builder().messageMetadata(context.getMessageMetadata()).build());
         }
         return next.executeConsume(context, consumeFunction);
     }
