@@ -76,7 +76,7 @@ public class Handler<Message> extends DefaultConsumer {
                 .redelivered(messageMetadata.isRedelivered())
                 .messageMetadata(messageMetadata)
                 .build();
-        return observer.executeConsume(context, (messageDetails) -> {
+        return observer.executeConsume(context, messageDetails -> {
             try {
                 return expired
                         ? expiredMessageHandlingFunction.apply(message, messageDetails.getMessageMetadata())
