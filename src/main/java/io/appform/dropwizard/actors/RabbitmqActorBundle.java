@@ -24,6 +24,7 @@ import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
+import io.appform.dropwizard.actors.tracing.MDCTracingRMQObserver;
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.setup.Bootstrap;
@@ -107,7 +108,8 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
                 rootObserver = observer.setNext(rootObserver);
             }
         }
-        rootObserver = new RMQMetricObserver(this.rmqConfig, metricRegistry).setNext(rootObserver);
+        RMQObserver metricObserver = new RMQMetricObserver(this.rmqConfig, metricRegistry).setNext(rootObserver);
+        rootObserver = new MDCTracingRMQObserver().setNext(metricObserver);
         log.info("Root observer is {}", rootObserver.getClass().getSimpleName());
         return rootObserver;
     }

@@ -22,4 +22,7 @@ public class Constants {
     public static final String MESSAGE_EXPIRY_TEXT = "x-expire-at";
     public static final String MESSAGE_PUBLISHED_TEXT = "x-published-at";
 
+    public static final String TRACE_ID = "TRACE-ID";
+
+
 }

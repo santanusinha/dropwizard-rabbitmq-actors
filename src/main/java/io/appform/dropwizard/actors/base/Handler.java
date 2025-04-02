@@ -74,6 +74,7 @@ public class Handler<Message> extends DefaultConsumer {
         val context = ConsumeObserverContext.builder()
                 .queueName(queueName)
                 .redelivered(messageMetadata.isRedelivered())
+                .headers(messageMetadata.getHeaders())
                 .build();
         return observer.executeConsume(context, () -> {
             try {

@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
+
+import io.appform.dropwizard.actors.utils.CommonUtils;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.RandomUtils;
@@ -62,6 +64,7 @@ public class UnmanagedPublisher<Message> {
             val routingKey = getRoutingKey();
             val context = PublishObserverContext.builder()
                     .queueName(queueName)
+                    .headers(properties.getHeaders())
                     .build();
             observer.executePublish(context, () -> {
                 try {
@@ -103,9 +106,10 @@ public class UnmanagedPublisher<Message> {
         val routingKey = getRoutingKey();
         val context = PublishObserverContext.builder()
                 .queueName(queueName)
+                .headers(CommonUtils.getTracingMap(properties.getHeaders()))
                 .build();
         observer.executePublish(context, () -> {
-            val enrichedProperties = getEnrichedProperties(properties);
+            val enrichedProperties = getEnrichedProperties(context,properties);
             try {
                 publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
             } catch (IOException e) {
@@ -116,12 +120,15 @@ public class UnmanagedPublisher<Message> {
         });
     }
 
-    private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties) {
+    private AMQP.BasicProperties getEnrichedProperties(PublishObserverContext publishObserverContext,AMQP.BasicProperties properties) {
         HashMap<String, Object> enrichedHeaders = new HashMap<>();
         if (properties.getHeaders() != null) {
             enrichedHeaders.putAll(properties.getHeaders());
         }
         enrichedHeaders.put(MESSAGE_PUBLISHED_TEXT, Instant.now().toEpochMilli());
+        if(publishObserverContext.getHeaders()!=null){
+            enrichedHeaders.putAll(publishObserverContext.getHeaders());
+        }
         return properties.builder()
                 .headers(Collections.unmodifiableMap(enrichedHeaders))
                 .build();
