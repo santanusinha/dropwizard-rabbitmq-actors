@@ -22,6 +22,6 @@ public class HierarchicalActorConfig extends ActorConfig {
     private boolean useParentConfigInWorker = true;
 
     @JsonUnwrapped
-    private HierarchicalDataStoreTreeNode<String, HierarchicalOperationWorkerConfig> children;
+    private HierarchicalDataStoreTreeNode<String, HierarchicalWorkerActorConfig> children;
 
 }

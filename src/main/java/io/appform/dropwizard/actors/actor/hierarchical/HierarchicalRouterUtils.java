@@ -33,8 +33,8 @@ public class HierarchicalRouterUtils {
             .filter(e -> !StringUtils.isEmpty(e))
             .collect(Collectors.joining(delimiter));
 
-    public static final Function<HierarchicalActorConfig, HierarchicalOperationWorkerConfig> actorConfigToWorkerConfigFunc =
-            actorConfig -> HierarchicalOperationWorkerConfig.builder()
+    public static final Function<HierarchicalActorConfig, HierarchicalWorkerActorConfig> actorConfigToWorkerConfigFunc =
+            actorConfig -> HierarchicalWorkerActorConfig.builder()
                     .concurrency(actorConfig.getConcurrency())
                     .prefetchCount(actorConfig.getPrefetchCount())
                     .shardCount(actorConfig.getShardCount())
@@ -58,7 +58,7 @@ public class HierarchicalRouterUtils {
     @SneakyThrows
     public static <MessageType extends Enum<MessageType>> ActorConfig toActorConfig(final MessageType messageType,
                                                                                     final RoutingKey routingKeyData,
-                                                                                    final HierarchicalOperationWorkerConfig workerConfig,
+                                                                                    final HierarchicalWorkerActorConfig workerConfig,
                                                                                     final HierarchicalActorConfig mainActorConfig) {
         val useParentConfigInWorker = mainActorConfig.isUseParentConfigInWorker();
         return ActorConfig.builder()
