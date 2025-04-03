@@ -22,8 +22,8 @@ import java.util.Set;
  * This is a managed wrapper for {@link HierarchicalUnmanagedBaseActor} this is managed and therefore started by D/W.
  * *
  *
- * @param <MessageType>
- * @param <Message>
+ * @param <MessageType> Enum which will be used to creating actors
+ * @param <Message>  message param is data to be processed by consumer
  */
 @Data
 @EqualsAndHashCode

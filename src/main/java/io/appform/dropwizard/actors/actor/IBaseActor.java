@@ -4,9 +4,9 @@ import com.rabbitmq.client.AMQP;
 import io.dropwizard.lifecycle.Managed;
 
 /**
- * This interface is used to implement any actor to produce & consume messages.
+ * This interface is used to implement any actor to produce and consume messages.
  *
- * @param <Message>
+ * @param <Message> message param is data to be processed by consumer
  */
 @SuppressWarnings({"java:S112", "java:S119"})
 public interface IBaseActor<Message> extends Managed {
@@ -16,7 +16,7 @@ public interface IBaseActor<Message> extends Managed {
      *
      * @param message data to be published in queue
      * @param delayMilliseconds param to provide delay value
-     * @throws Exception
+     * @throws Exception exception raised while procesing message
      */
     void publishWithDelay(final Message message,
                           final long delayMilliseconds) throws Exception;
@@ -26,7 +26,7 @@ public interface IBaseActor<Message> extends Managed {
      *
      * @param message data to be published in queue
      * @param expiryInMs param to provide expiration time of message
-     * @throws Exception
+     * @throws Exception exception raised while procesing message
      */
     void publishWithExpiry(final Message message,
                            final long expiryInMs) throws Exception;
@@ -35,7 +35,7 @@ public interface IBaseActor<Message> extends Managed {
      * <p>This method is used to publish message in queue</p>
      *
      * @param message data to be published in queue
-     * @throws Exception
+     * @throws Exception exception raised while procesing message
      */
     void publish(final Message message) throws Exception;
 
@@ -44,7 +44,7 @@ public interface IBaseActor<Message> extends Managed {
      *
      * @param message data to be published in queue
      * @param properties map of amqp properties
-     * @throws Exception
+     * @throws Exception exception raised while procesing message
      */
     void publish(final Message message,
                  final AMQP.BasicProperties properties) throws Exception;

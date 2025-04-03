@@ -1,5 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
+
+## 2.0.28-13
+
+- Detect whether a channel is closed and automatically reopen a channel to avoid no consumers
+  running for a queue.
+
 ## 2.0.28-12
 - Bug fixes and support for delayed in observer
 

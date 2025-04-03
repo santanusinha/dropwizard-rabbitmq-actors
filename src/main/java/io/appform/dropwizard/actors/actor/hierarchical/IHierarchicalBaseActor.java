@@ -7,7 +7,7 @@ import io.appform.dropwizard.actors.actor.hierarchical.tree.key.HierarchicalRout
 /**
  * This interface is used to implement any actor which have support of hierarchical message processing. RoutingKey param will drive queue selection from hierarchy
  *
- * @param <Message>
+ * @param <Message> message param is data to be processed by consumer
  */
 @SuppressWarnings({"java:S112", "java:S119"})
 public interface IHierarchicalBaseActor<Message> extends IBaseActor<Message> {

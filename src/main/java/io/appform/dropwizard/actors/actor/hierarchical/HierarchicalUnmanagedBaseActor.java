@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * <p>This actor maintain all actors hierarchy as per provided hierarchical actor config.
- * This is not Managed and will not be automatically started by dropwizard.<p/>
+ * This is not Managed and will not be automatically started by dropwizard.</p>
  */
 @Data
 @EqualsAndHashCode
