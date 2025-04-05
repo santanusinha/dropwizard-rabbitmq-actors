@@ -1,0 +1,13 @@
+workers:
+  C2M_AUTH_FLOW:
+    exchange: prod.mandate.actors.c2m
+    delayed: false
+    prefix: prod.mandate.actors.c2m
+    concurrency: 1
+    shardCount: 1
+  C2C_AUTH_FLOW:
+    exchange: prod.mandate.actors.c2c
+    delayed: false
+    prefix: prod.mandate.actors.c2c
+    concurrency: 1
+    shardCount: 1
