@@ -20,14 +20,9 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
-
-import io.appform.dropwizard.actors.utils.CommonUtils;
-import io.appform.opentracing.util.TracerUtil;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.RandomUtils;
-
 @Slf4j
 public class UnmanagedPublisher<Message> {
 
@@ -66,18 +61,9 @@ public class UnmanagedPublisher<Message> {
             val routingKey = getRoutingKey();
             val context = PublishObserverContext.builder()
                     .queueName(queueName)
+                    .properties(properties)
                     .build();
-            observer.executePublish(context, () -> {
-                try {
-                    publishChannel.basicPublish(ttlExchange(config),
-                            routingKey, properties,
-                            mapper().writeValueAsBytes(message));
-                } catch (IOException e) {
-                    log.error("Error while publishing: {}", e);
-                    throw RabbitmqActorException.propagate(e);
-                }
-                return null;
-            });
+            observer.executePublish(context, publishObserverContext -> publishMessageWithContext(ttlExchange(config),message, routingKey, publishObserverContext));
         } else {
             publish(message, properties);
         }
@@ -85,7 +71,6 @@ public class UnmanagedPublisher<Message> {
     public final void publishWithExpiry(final Message message, final long expiryInMs) throws Exception {
         AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
                 .deliveryMode(2)
-                .headers(CommonUtils.getTracingMap())
                 .build();
         val finalProperties = getPropertiesWithExpiry(properties, expiryInMs);
         publish(message, finalProperties);
@@ -108,17 +93,20 @@ public class UnmanagedPublisher<Message> {
         val routingKey = getRoutingKey();
         val context = PublishObserverContext.builder()
                 .queueName(queueName)
+                .properties(properties)
                 .build();
-        observer.executePublish(context, () -> {
-            val enrichedProperties = getEnrichedProperties(properties);
-            try {
-                publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
-            } catch (IOException e) {
-                log.error("Error while publishing: {}", e);
-                throw RabbitmqActorException.propagate(e);
-            }
-            return null;
-        });
+        observer.executePublish(context, publishObserverContext -> publishMessageWithContext(config.getExchange(),message, routingKey, publishObserverContext));
+    }
+
+    private Object publishMessageWithContext(String exchange,Message message, String routingKey, PublishObserverContext publishObserverContext) {
+        val enrichedProperties = getEnrichedProperties(publishObserverContext.getProperties());
+        try {
+            publishChannel.basicPublish(exchange, routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
+        } catch (IOException e) {
+            log.error("Error while publishing: {}", e);
+            throw RabbitmqActorException.propagate(e);
+        }
+        return null;
     }
 
     private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties) {
@@ -141,12 +129,10 @@ public class UnmanagedPublisher<Message> {
             return new AMQP.BasicProperties.Builder()
                     .expiration(String.valueOf(delayMilliseconds))
                     .deliveryMode(2)
-                    .headers(CommonUtils.getTracingMap())
                     .build();
         }
             return new AMQP.BasicProperties.Builder()
                     .headers(Collections.singletonMap("x-delay", delayMilliseconds))
-                    .headers(CommonUtils.getTracingMap())
                     .deliveryMode(2)
                     .build();
     }
@@ -156,9 +142,8 @@ public class UnmanagedPublisher<Message> {
             return properties;
         }
         val expiresAt = Instant.now().toEpochMilli() + expiryInMs;
-        Map<String, Object> headers = ImmutableMap.<String, Object>builder().putAll(CommonUtils.getTracingMap()).put(MESSAGE_EXPIRY_TEXT, expiresAt).build();
         return new AMQP.BasicProperties.Builder()
-                .headers(headers)
+                .headers(ImmutableMap.of(MESSAGE_EXPIRY_TEXT, expiresAt))
                 .build();
     }
 

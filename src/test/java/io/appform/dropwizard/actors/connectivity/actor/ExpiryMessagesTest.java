@@ -18,6 +18,10 @@ import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.retry.config.CountLimitedFixedWaitRetryConfig;
 import io.appform.dropwizard.actors.utils.RMQContainer;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -27,11 +31,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.RabbitMQContainer;
-
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public class ExpiryMessagesTest {

@@ -17,11 +17,6 @@
 package io.appform.dropwizard.actors.utils;
 
 import com.google.common.base.Strings;
-import io.appform.dropwizard.actors.actor.MessageMetadata;
-import io.appform.opentracing.FunctionData;
-import io.appform.opentracing.TracingHandler;
-import io.appform.opentracing.util.TracerUtil;
-import io.opentracing.util.GlobalTracer;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -49,21 +44,4 @@ public class CommonUtils {
                 || (null != exception
                 && retriableExceptions.contains(exception.getClass().getSimpleName()));
     }
-
-    public static void startTracing(MessageMetadata messageMetadata, final FunctionData functionData) {
-        TracerUtil.populateTracingFrom(messageMetadata.getHeaders());
-        if(TracerUtil.isTracePresent()) {
-            TracerUtil.populateMDCTracing(TracingHandler.startSpan(GlobalTracer.get(),functionData, ""));
-        }
-    }
-
-
-    public static Map<String, Object> getTracingMap() {
-        if(TracerUtil.isTracePresent()) {
-            return Map.of(TracerUtil.TRACE_ID, TracerUtil.getMDCTraceId(), TracerUtil.SPAN_ID, TracerUtil.getMDCSpanId());
-        }
-        return Map.of();
-    }
-
-
 }

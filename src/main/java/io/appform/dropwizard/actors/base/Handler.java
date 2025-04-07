@@ -20,10 +20,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
-
-import io.appform.dropwizard.actors.utils.CommonUtils;
-import io.appform.opentracing.FunctionData;
-import io.appform.opentracing.util.TracerUtil;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -79,9 +75,8 @@ public class Handler<Message> extends DefaultConsumer {
                 .queueName(queueName)
                 .redelivered(messageMetadata.isRedelivered())
                 .build();
-        return observer.executeConsume(context, () -> {
+        return observer.executeConsume(context, consumerObserverContext -> {
             try {
-                executeTracingIfTraceIsAvailable(messageMetadata);
                 return expired
                         ? expiredMessageHandlingFunction.apply(message, messageMetadata)
                         : messageHandlingFunction.apply(message, messageMetadata);
@@ -90,15 +85,9 @@ public class Handler<Message> extends DefaultConsumer {
                 throw RabbitmqActorException.propagate(e);
             } finally {
                 running = false;
-                TracerUtil.destroyTracingForCurrentThread();
             }
         });
     }
-
-    private void executeTracingIfTraceIsAvailable(MessageMetadata messageMetadata) {
-        CommonUtils.startTracing(messageMetadata, getFunctionalData());
-    }
-
 
     @Override
     public void handleDelivery(final String consumerTag,
@@ -156,8 +145,5 @@ public class Handler<Message> extends DefaultConsumer {
     private MessageMetadata populateMessageMeta(final Envelope envelope, final AMQP.BasicProperties properties) {
         val delayInMs = getDelayInMs(properties);
         return new MessageMetadata(envelope.isRedeliver(), delayInMs, properties.getHeaders());
-    }
-    private FunctionData getFunctionalData() {
-        return new FunctionData(this.getClass().getSimpleName(),"handle");
     }
 }
