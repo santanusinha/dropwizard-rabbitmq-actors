@@ -139,10 +139,10 @@ public class UnmanagedPublisher<Message> {
                     .deliveryMode(2)
                     .build();
         }
-        return new AMQP.BasicProperties.Builder()
-                .headers(Collections.singletonMap("x-delay", delayMilliseconds))
-                .deliveryMode(2)
-                .build();
+            return new AMQP.BasicProperties.Builder()
+                    .headers(Collections.singletonMap("x-delay", delayMilliseconds))
+                    .deliveryMode(2)
+                    .build();
     }
 
     private AMQP.BasicProperties getPropertiesWithExpiry(final AMQP.BasicProperties properties, final long expiryInMs){
