@@ -17,24 +17,24 @@ public abstract class RMQObserver {
         this.next = next;
     }
 
-    public abstract <T, R> R executePublish(final PublishObserverContext context, final Function<PublishObserverContext, R> function);
+    public abstract <T> T executePublish(final PublishObserverContext context, final Function<PublishObserverContext,T> function);
 
-    public abstract <T, R> R executeConsume(final ConsumeObserverContext context, final Function<ConsumeObserverContext, R> function);
+    public abstract <T> T executeConsume(final ConsumeObserverContext context, final Function<ConsumeObserverContext,T> function);
 
     public final RMQObserver setNext(final RMQObserver next) {
         this.next = next;
         return this;
     }
 
-    protected final <T, R> R proceedPublish(final PublishObserverContext context,
-                                         final Function<PublishObserverContext, R> function) {
+    protected final <T> T proceedPublish(final PublishObserverContext context,
+                                         final Function<PublishObserverContext,T> function) {
         if (null == next) {
             return function.apply(context);
         }
         return next.executePublish(context, function);
     }
 
-    protected final <T, R> R proceedConsume(final ConsumeObserverContext context, final Function<ConsumeObserverContext, R> function) {
+    protected final <T> T proceedConsume(final ConsumeObserverContext context, final Function<ConsumeObserverContext,T> function) {
         if (null == next) {
             return function.apply(context);
         }

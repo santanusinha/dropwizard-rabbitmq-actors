@@ -11,7 +11,7 @@ public class ThreadLocalObserver extends RMQObserver {
     }
 
     @Override
-    public <T, R> R executePublish(PublishObserverContext context, Function<PublishObserverContext, R> function) {
+    public <T> T executePublish(PublishObserverContext context, Function<PublishObserverContext, T> function) {
         MDC.put(ObserverTestUtil.PUBLISH_START, context.getQueueName());
         try {
             return proceedPublish(context, function);
@@ -21,7 +21,7 @@ public class ThreadLocalObserver extends RMQObserver {
     }
 
     @Override
-    public <T, R> R executeConsume(ConsumeObserverContext context, Function<ConsumeObserverContext, R> function) {
+    public <T> T executeConsume(ConsumeObserverContext context, Function<ConsumeObserverContext, T> function) {
             return null;
     }
 }

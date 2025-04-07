@@ -37,7 +37,7 @@ public class RMQMetricObserver extends RMQObserver {
     }
 
     @Override
-    public <T, R> R executePublish(PublishObserverContext context, Function<PublishObserverContext, R> function) {
+    public <T> T executePublish(PublishObserverContext context, Function<PublishObserverContext, T> function) {
         if (!MetricUtil.isMetricApplicable(rmqConfig.getMetricConfig(), context.getQueueName())) {
             return proceedPublish(context, function);
         }
@@ -56,8 +56,9 @@ public class RMQMetricObserver extends RMQObserver {
         }
     }
 
+
     @Override
-    public <T, R> R executeConsume(ConsumeObserverContext context, Function<ConsumeObserverContext, R> function) {
+    public <T> T executeConsume(ConsumeObserverContext context, Function<ConsumeObserverContext, T> function) {
         if (!MetricUtil.isMetricApplicable(rmqConfig.getMetricConfig(), context.getQueueName())) {
             return proceedConsume(context, function);
         }
@@ -128,4 +129,5 @@ public class RMQMetricObserver extends RMQObserver {
                 .total(metricRegistry.meter(MetricRegistry.name(metricPrefix, "total")))
                 .build();
     }
+
 }
