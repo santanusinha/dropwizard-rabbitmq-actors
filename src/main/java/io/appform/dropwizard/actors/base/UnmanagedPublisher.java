@@ -63,17 +63,7 @@ public class UnmanagedPublisher<Message> {
                     .queueName(queueName)
                     .properties(properties)
                     .build();
-            observer.executePublish(context, publishObserverContext -> {
-                try {
-                    publishChannel.basicPublish(ttlExchange(config),
-                            routingKey, publishObserverContext.getProperties(),
-                            mapper().writeValueAsBytes(message));
-                } catch (IOException e) {
-                    log.error("Error while publishing: {}", e);
-                    throw RabbitmqActorException.propagate(e);
-                }
-                return context;
-            });
+            observer.executePublish(context, publishObserverContext -> publishMessageWithContext(ttlExchange(config),message, routingKey, publishObserverContext));
         } else {
             publish(message, properties);
         }
@@ -105,16 +95,18 @@ public class UnmanagedPublisher<Message> {
                 .queueName(queueName)
                 .properties(properties)
                 .build();
-        observer.executePublish(context, publishObserverContext -> {
-            val enrichedProperties = getEnrichedProperties(publishObserverContext.getProperties());
-            try {
-                publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
-            } catch (IOException e) {
-                log.error("Error while publishing: {}", e);
-                throw RabbitmqActorException.propagate(e);
-            }
-            return context;
-        });
+        observer.executePublish(context, publishObserverContext -> publishMessageWithContext(config.getExchange(),message, routingKey, publishObserverContext));
+    }
+
+    private Object publishMessageWithContext(String exchange,Message message, String routingKey, PublishObserverContext publishObserverContext) {
+        val enrichedProperties = getEnrichedProperties(publishObserverContext.getProperties());
+        try {
+            publishChannel.basicPublish(exchange, routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
+        } catch (IOException e) {
+            log.error("Error while publishing: {}", e);
+            throw RabbitmqActorException.propagate(e);
+        }
+        return null;
     }
 
     private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties) {
