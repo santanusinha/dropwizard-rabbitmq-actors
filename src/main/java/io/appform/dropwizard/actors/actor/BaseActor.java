@@ -24,7 +24,6 @@ import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.appform.dropwizard.actors.utils.CommonUtils;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -110,8 +109,6 @@ public abstract class BaseActor<Message> implements Managed {
         return handle(message);
     }
 
-
-
     /*
         Override this method in your code in case you want to handle the expired messages separately
      */
@@ -145,18 +142,13 @@ public abstract class BaseActor<Message> implements Managed {
         val properties = new AMQP.BasicProperties.Builder()
                 .deliveryMode(2)
                 .timestamp(new Date())
-                .headers(CommonUtils.getTracingMap())
                 .build();
         publish(message, properties);
     }
 
-
-
     public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
         actorImpl.publish(message, properties);
     }
-
-
 
     public final long pendingMessagesCount() {
         return actorImpl.pendingMessagesCount();
@@ -175,6 +167,4 @@ public abstract class BaseActor<Message> implements Managed {
     public void stop() throws Exception {
         actorImpl.stop();
     }
-
-
 }
