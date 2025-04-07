@@ -67,7 +67,7 @@ public class UnmanagedPublisher<Message> {
             observer.executePublish(context, publishObserverContext -> {
                 try {
                     publishChannel.basicPublish(ttlExchange(config),
-                            routingKey, properties,
+                            routingKey, publishObserverContext.getProperties(),
                             mapper().writeValueAsBytes(message));
                 } catch (IOException e) {
                     log.error("Error while publishing: {}", e);
@@ -107,7 +107,7 @@ public class UnmanagedPublisher<Message> {
                 .properties(properties)
                 .build();
         observer.executePublish(context, publishObserverContext -> {
-            val enrichedProperties = getEnrichedProperties(properties);
+            val enrichedProperties = getEnrichedProperties(publishObserverContext.getProperties());
             try {
                 publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
             } catch (IOException e) {
