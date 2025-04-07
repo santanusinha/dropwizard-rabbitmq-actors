@@ -74,7 +74,7 @@
                 <role>developer</role>
             </roles>
         </developer>
-    </developers>
+     </developers>
 
     <ciManagement>
         <system>Travis CI</system>
@@ -393,3 +393,4 @@
         </plugins>
     </reporting>
 </project>
+
