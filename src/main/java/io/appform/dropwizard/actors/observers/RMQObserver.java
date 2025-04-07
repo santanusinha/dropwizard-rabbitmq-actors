@@ -2,6 +2,7 @@ package io.appform.dropwizard.actors.observers;
 
 import lombok.Getter;
 
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -16,7 +17,7 @@ public abstract class RMQObserver {
         this.next = next;
     }
 
-    public abstract <T> T executePublish(final PublishObserverContext context, final Supplier<T> supplier);
+    public abstract <T, R> R executePublish(final PublishObserverContext context, final Function<PublishObserverContext, R> function);
 
     public abstract <T> T executeConsume(final ConsumeObserverContext context, final Supplier<T> supplier);
 
@@ -25,12 +26,12 @@ public abstract class RMQObserver {
         return this;
     }
 
-    protected final <T> T proceedPublish(final PublishObserverContext context,
-                                         final Supplier<T> supplier) {
+    protected final <T, R> R proceedPublish(final PublishObserverContext context,
+                                         final Function<PublishObserverContext, R> function) {
         if (null == next) {
-            return supplier.get();
+            return function.apply(context);
         }
-        return next.executePublish(context, supplier);
+        return next.executePublish(context, function);
     }
 
     protected final <T> T proceedConsume(final ConsumeObserverContext context, final Supplier<T> supplier) {

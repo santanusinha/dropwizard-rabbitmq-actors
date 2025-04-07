@@ -14,6 +14,7 @@ import lombok.val;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -37,15 +38,15 @@ public class RMQMetricObserver extends RMQObserver {
     }
 
     @Override
-    public <T> T executePublish(final PublishObserverContext context, final Supplier<T> supplier) {
+    public <T, R> R executePublish(PublishObserverContext context, Function<PublishObserverContext, R> function) {
         if (!MetricUtil.isMetricApplicable(rmqConfig.getMetricConfig(), context.getQueueName())) {
-            return proceedPublish(context, supplier);
+            return proceedPublish(context, function);
         }
         val metricData = getMetricData(context);
         metricData.getTotal().mark();
         val timer = metricData.getTimer().time();
         try {
-            val response = proceedPublish(context, supplier);
+            val response = proceedPublish(context, function);
             metricData.getSuccess().mark();
             return response;
         } catch (Throwable t) {

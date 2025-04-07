@@ -43,7 +43,7 @@ class RMQMetricObserverTest {
         config.setMetricConfig(MetricConfig.builder().enabledForAll(false).build());
         val publishMetricObserver = new RMQMetricObserver(config, metricRegistry);
         assertEquals(terminate(),
-                publishMetricObserver.executePublish(PublishObserverContext.builder().build(), this::terminate));
+                publishMetricObserver.executePublish(PublishObserverContext.builder().build(), this::terminatePublishFunction));
     }
 
     @Test
@@ -51,7 +51,7 @@ class RMQMetricObserverTest {
         val context = PublishObserverContext.builder()
                 .queueName("default")
                 .build();
-        assertEquals(terminate(), rmqMetricObserver.executePublish(context, this::terminate));
+        assertEquals(terminate(), rmqMetricObserver.executePublish(context, this::terminatePublishFunction));
         val key = MetricKeyData.builder().operation(PUBLISH).queueName(context.getQueueName()).build();
         validateMetrics(rmqMetricObserver.getMetricCache().get(key), 1, 0);
     }
@@ -61,7 +61,7 @@ class RMQMetricObserverTest {
         val context = PublishObserverContext.builder()
                 .queueName("default")
                 .build();
-        assertThrows(RuntimeException.class, () -> rmqMetricObserver.executePublish(context, this::terminateWithException));
+        assertThrows(RuntimeException.class, () -> rmqMetricObserver.executePublish(context, this::terminatePublishFunctionWithException));
         val key = MetricKeyData.builder().operation(PUBLISH).queueName(context.getQueueName()).build();
         validateMetrics(rmqMetricObserver.getMetricCache().get(key), 0, 1);
     }
@@ -118,6 +118,14 @@ class RMQMetricObserverTest {
 
     private Integer terminate() {
         return 1;
+    }
+
+    private <R> Integer terminatePublishFunction(PublishObserverContext publishObserverContext) {
+        return 1;
+    }
+
+    private <R> Integer terminatePublishFunctionWithException(PublishObserverContext publishObserverContext) {
+        throw new RuntimeException();
     }
 
     private Integer terminateWithException() {
