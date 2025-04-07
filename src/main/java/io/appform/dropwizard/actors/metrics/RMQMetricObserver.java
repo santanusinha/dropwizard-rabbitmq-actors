@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * An Observer that ingests queue metrics.
@@ -58,9 +57,9 @@ public class RMQMetricObserver extends RMQObserver {
     }
 
     @Override
-    public <T> T executeConsume(final ConsumeObserverContext context, final Supplier<T> supplier) {
+    public <T, R> R executeConsume(ConsumeObserverContext context, Function<ConsumeObserverContext, R> function) {
         if (!MetricUtil.isMetricApplicable(rmqConfig.getMetricConfig(), context.getQueueName())) {
-            return proceedConsume(context, supplier);
+            return proceedConsume(context, function);
         }
         val isRedelivered = context.isRedelivered();
         val metricData = getMetricData(context);
@@ -72,7 +71,7 @@ public class RMQMetricObserver extends RMQObserver {
         val timer = metricData.getTimer().time();
         val redeliveryTimer =  metricDataForRedelivery != null ? metricDataForRedelivery.getTimer().time(): null;
         try {
-            val response = proceedConsume(context, supplier);
+            val response = proceedConsume(context, function);
             metricData.getSuccess().mark();
             if (metricDataForRedelivery != null) {
                 metricDataForRedelivery.getSuccess().mark();

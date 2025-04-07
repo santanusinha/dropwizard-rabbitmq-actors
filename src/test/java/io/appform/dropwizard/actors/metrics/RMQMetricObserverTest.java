@@ -71,7 +71,7 @@ class RMQMetricObserverTest {
         val context = ConsumeObserverContext.builder()
                 .queueName("default")
                 .build();
-        assertEquals(terminate(), rmqMetricObserver.executeConsume(context, this::terminate));
+        assertEquals(terminate(), rmqMetricObserver.executeConsume(context, this::terminateConsumeFunction));
 
         val key = MetricKeyData.builder()
                 .operation(CONSUME)
@@ -92,7 +92,7 @@ class RMQMetricObserverTest {
                 .queueName("default")
                 .redelivered(true)
                 .build();
-        assertEquals(terminate(), rmqMetricObserver.executeConsume(context, this::terminate));
+        assertEquals(terminate(), rmqMetricObserver.executeConsume(context, this::terminateConsumeFunction));
 
         val key = MetricKeyData.builder()
                 .operation(CONSUME)
@@ -119,6 +119,9 @@ class RMQMetricObserverTest {
     private Integer terminate() {
         return 1;
     }
+    private Integer terminateWithException() {
+        throw new RuntimeException();
+    }
 
     private <R> Integer terminatePublishFunction(PublishObserverContext publishObserverContext) {
         return 1;
@@ -128,7 +131,11 @@ class RMQMetricObserverTest {
         throw new RuntimeException();
     }
 
-    private Integer terminateWithException() {
+    private <R> Integer terminateConsumeFunction(ConsumeObserverContext consumeObserverContext) {
+        return 1;
+    }
+
+    private <R> Integer terminateConsumeFunctionWithException(ConsumeObserverContext consumeObserverContext) {
         throw new RuntimeException();
     }
 }

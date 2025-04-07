@@ -3,7 +3,6 @@ package io.appform.dropwizard.actors.observers;
 import org.slf4j.MDC;
 
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class ThreadLocalObserver extends RMQObserver {
 
@@ -22,7 +21,7 @@ public class ThreadLocalObserver extends RMQObserver {
     }
 
     @Override
-    public <T> T executeConsume(ConsumeObserverContext context, Supplier<T> supplier) {
+    public <T, R> R executeConsume(ConsumeObserverContext context, Function<ConsumeObserverContext, R> function) {
             return null;
     }
 }

@@ -27,9 +27,9 @@ public class MDCTracingRMQObserver extends RMQObserver {
     }
 
     @Override
-    public <T> T executeConsume(ConsumeObserverContext context, Supplier<T> supplier) {
+    public <T, R> R executeConsume(ConsumeObserverContext context, Function<ConsumeObserverContext, R> function) {
         try {
-            return proceedConsume(context, supplier);
+            return proceedConsume(context, function);
         } catch (Throwable t) {
             throw t;
         }
