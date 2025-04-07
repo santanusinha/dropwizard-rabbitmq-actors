@@ -127,8 +127,8 @@ public class ExpiryMessagesTest {
         val actorConfig = new ActorConfig();
         actorConfig.setExchange("test-exchange-1");
         actorConfig.setRetryConfig(CountLimitedFixedWaitRetryConfig.builder()
-                .maxAttempts(2)
-                .waitTime(io.dropwizard.util.Duration.milliseconds(100))
+                        .maxAttempts(2)
+                        .waitTime(io.dropwizard.util.Duration.milliseconds(100))
                 .build());
         val publisher = new UnmanagedPublisher<>(
                 queueName, actorConfig, connection, objectMapper);
@@ -366,3 +366,4 @@ public class ExpiryMessagesTest {
         return true;
     }
 }
+
