@@ -23,7 +23,6 @@ import java.util.HashMap;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.RandomUtils;
-
 @Slf4j
 public class UnmanagedPublisher<Message> {
 
@@ -62,18 +61,9 @@ public class UnmanagedPublisher<Message> {
             val routingKey = getRoutingKey();
             val context = PublishObserverContext.builder()
                     .queueName(queueName)
+                    .properties(properties)
                     .build();
-            observer.executePublish(context, () -> {
-                try {
-                    publishChannel.basicPublish(ttlExchange(config),
-                            routingKey, properties,
-                            mapper().writeValueAsBytes(message));
-                } catch (IOException e) {
-                    log.error("Error while publishing: {}", e);
-                    throw RabbitmqActorException.propagate(e);
-                }
-                return null;
-            });
+            observer.executePublish(context, publishObserverContext -> publishMessageWithContext(ttlExchange(config),message, routingKey, publishObserverContext));
         } else {
             publish(message, properties);
         }
@@ -103,17 +93,20 @@ public class UnmanagedPublisher<Message> {
         val routingKey = getRoutingKey();
         val context = PublishObserverContext.builder()
                 .queueName(queueName)
+                .properties(properties)
                 .build();
-        observer.executePublish(context, () -> {
-            val enrichedProperties = getEnrichedProperties(properties);
-            try {
-                publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
-            } catch (IOException e) {
-                log.error("Error while publishing: {}", e);
-                throw RabbitmqActorException.propagate(e);
-            }
-            return null;
-        });
+        observer.executePublish(context, publishObserverContext -> publishMessageWithContext(config.getExchange(),message, routingKey, publishObserverContext));
+    }
+
+    private Object publishMessageWithContext(String exchange,Message message, String routingKey, PublishObserverContext publishObserverContext) {
+        val enrichedProperties = getEnrichedProperties(publishObserverContext.getProperties());
+        try {
+            publishChannel.basicPublish(exchange, routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
+        } catch (IOException e) {
+            log.error("Error while publishing: {}", e);
+            throw RabbitmqActorException.propagate(e);
+        }
+        return null;
     }
 
     private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties) {
