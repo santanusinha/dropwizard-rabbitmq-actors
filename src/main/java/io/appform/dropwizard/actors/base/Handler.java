@@ -1,6 +1,9 @@
 package io.appform.dropwizard.actors.base;
 
 
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -13,18 +16,14 @@ import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-
 import java.io.IOException;
 import java.time.Instant;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
-
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 @Slf4j
 public class Handler<Message> extends DefaultConsumer {
@@ -70,7 +69,7 @@ public class Handler<Message> extends DefaultConsumer {
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
     }
 
-    private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) throws Exception {
+    private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) {
         running = true;
         val context = ConsumeObserverContext.builder()
                 .queueName(queueName)
@@ -82,7 +81,7 @@ public class Handler<Message> extends DefaultConsumer {
                         ? expiredMessageHandlingFunction.apply(message, messageMetadata)
                         : messageHandlingFunction.apply(message, messageMetadata);
             } catch (Exception e) {
-                log.error("Error while handling message: {}", e);
+                log.error("Error while handling message: ", e);
                 throw RabbitmqActorException.propagate(e);
             } finally {
                 running = false;
