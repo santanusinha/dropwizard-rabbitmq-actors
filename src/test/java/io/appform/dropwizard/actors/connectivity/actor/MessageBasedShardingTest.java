@@ -68,11 +68,7 @@ public class MessageBasedShardingTest {
 
     @BeforeAll
     @SneakyThrows
-    public static void setup() {
-//        System.setProperty("dw." + "server.applicationConnectors[0].port", "0");
-//        System.setProperty("dw." + "server.adminConnectors[0].port", "0");
-
-//        app.before();
+    static void setup() {
 
         RMQ_CONFIG = CommonTestUtils.getRMQConfig(RMQContainer.startContainer());
 
@@ -90,7 +86,7 @@ public class MessageBasedShardingTest {
 
     @AfterAll
     @SneakyThrows
-    public static void teardown() {
+    static void teardown() {
         connection.stop();
     }
 
@@ -139,7 +135,6 @@ public class MessageBasedShardingTest {
                 .pollInterval(Duration.ofSeconds(1))
                 .until(() -> {
                     val sum = counters.values().stream().mapToInt(AtomicInteger::get).sum();
-                    System.out.println("Count is: " + sum + " Required: " + originalTotalCount.get());
                     return sum == originalTotalCount.get();
                 });
         assertEquals(5, counters.size());
