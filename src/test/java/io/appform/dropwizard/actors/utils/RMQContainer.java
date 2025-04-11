@@ -8,9 +8,11 @@ import org.testcontainers.utility.DockerImageName;
 public class RMQContainer {
 
     public static final int RABBITMQ_MANAGEMENT_PORT = 15672;
-    public static final String RABBITMQ_DOCKER_IMAGE = "rabbitmq:3.12.12-management";
+    public static final String RABBITMQ_DOCKER_IMAGE = "rabbitmq:3-management";
     public static final String RABBITMQ_USERNAME = "guest";
     public static final String RABBITMQ_PASSWORD = "guest";
+    public static final int CONSUMER_TIMEOUT_MS = 60_000;
+    public static final String RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS = "RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS";
     public static volatile boolean loaded = false;
     private static RabbitMQContainer rmqContainer;
 
@@ -20,6 +22,8 @@ public class RMQContainer {
                 log.info("Loading RMQ Container");
                 RabbitMQContainer rabbitMQContainer = new RabbitMQContainer(
                         DockerImageName.parse(RABBITMQ_DOCKER_IMAGE));
+                rabbitMQContainer.withEnv(RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS,
+                        String.format("-rabbit consumer_timeout %d", CONSUMER_TIMEOUT_MS));
                 rabbitMQContainer.start();
                 log.info("Started RabbitMQ server");
                 loaded = true;

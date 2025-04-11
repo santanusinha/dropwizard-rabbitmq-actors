@@ -1,8 +1,22 @@
 # Changelog
 All notable changes to this project will be documented in this file.
+## 3.0.7-2
+
+- Merges from 2.0.28-14 (master)
+
 ## 3.0.7-1
 - Upgraded to dropwizard 3x line
 - Moved to bom based Junit usage
+
+## 2.0.28-14
+
+- Introduced shard ID calculator interface, with random shard id as the default implementation.
+
+## 2.0.28-13
+
+- Detect whether a channel is closed and automatically reopen a channel to avoid no consumers
+  running for a queue.
+>>>>>>> master
 
 ## 2.0.28-12
 - Bug fixes and support for delayed in observer
