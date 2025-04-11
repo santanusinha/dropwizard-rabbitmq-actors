@@ -20,5 +20,5 @@ package io.appform.dropwizard.actors.base;
  * Interface to generate shard id
  */
 public interface ShardIdCalculator<M> {
-    int calclateShardId(final M message);
+    int calculateShardId(final M message);
 }

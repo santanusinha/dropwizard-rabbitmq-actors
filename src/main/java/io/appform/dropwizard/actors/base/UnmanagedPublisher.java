@@ -279,6 +279,6 @@ public class UnmanagedPublisher<Message> {
     }
 
     private String getRoutingKey(Message message) {
-        return config.isSharded() ? NamingUtils.getShardedQueueName(queueName, shardIdCalculator.calclateShardId(message)) : queueName;
+        return config.isSharded() ? NamingUtils.getShardedQueueName(queueName, shardIdCalculator.calculateShardId(message)) : queueName;
     }
 }

@@ -30,7 +30,7 @@ public class RandomShardIdCalculator<M> implements ShardIdCalculator<M> {
     }
 
     @Override
-    public int calclateShardId(M message) {
+    public int calculateShardId(M message) {
         return RandomUtils.nextInt(0, config.getShardCount());
     }
 }
