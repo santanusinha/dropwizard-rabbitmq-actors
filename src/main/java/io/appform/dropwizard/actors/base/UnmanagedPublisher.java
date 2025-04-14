@@ -197,8 +197,9 @@ public class UnmanagedPublisher<Message> {
         final String dlx = NamingUtils.getSideline(config.getExchange());
         if (config.isDelayed()) {
             ensureDelayedExchange(exchange);
+        } else {
+            ensureExchange(exchange);
         }
-        ensureExchange(exchange);
         ensureExchange(dlx);
 
         this.publishChannel = connection.newChannel();
@@ -233,6 +234,7 @@ public class UnmanagedPublisher<Message> {
     private void ensureDelayedExchange(String exchange) throws IOException {
         if (config.getDelayType() == DelayType.TTL) {
             ensureExchange(ttlExchange(config));
+            ensureExchange(exchange);
         } else {
             // https://blog.rabbitmq.com/posts/2015/04/scheduling-messages-with-rabbitmq/
             connection.channel().exchangeDeclare(
