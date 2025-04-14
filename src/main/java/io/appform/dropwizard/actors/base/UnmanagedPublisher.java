@@ -197,9 +197,8 @@ public class UnmanagedPublisher<Message> {
         final String dlx = NamingUtils.getSideline(config.getExchange());
         if (config.isDelayed()) {
             ensureDelayedExchange(exchange);
-        } else {
-            ensureExchange(exchange);
         }
+        ensureExchange(exchange);
         ensureExchange(dlx);
 
         this.publishChannel = connection.newChannel();
