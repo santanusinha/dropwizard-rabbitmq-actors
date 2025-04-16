@@ -116,7 +116,7 @@ public class UnmanagedPublisher<Message> {
                         context));
     }
 
-    private Optional<?> publishMessageWithContext(final String exchange,
+    private Object publishMessageWithContext(final String exchange,
                                                   final Message message,
                                                   final AMQP.BasicProperties properties,
                                                   final PublishObserverContext observerContext) {
@@ -127,7 +127,7 @@ public class UnmanagedPublisher<Message> {
             log.error("Error while publishing: ", e);
             throw RabbitmqActorException.propagate(e);
         }
-        return Optional.empty();
+        return null;
     }
 
     private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties,final PublishObserverContext observerContext) {
