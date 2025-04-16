@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.RandomUtils;
@@ -60,9 +61,11 @@ public class UnmanagedPublisher<Message> {
         if (config.getDelayType() == DelayType.TTL) {
             val context = PublishObserverContext.builder()
                     .queueName(queueName)
-                    .properties(properties)
+                    .headers(properties.getHeaders() != null
+                             ? new HashMap<>(properties.getHeaders())
+                             : null)
                     .build();
-            observer.executePublish(context, publishObserverContext -> publishMessageWithContext(ttlExchange(config), message, publishObserverContext));
+            observer.executePublish(context, publishObserverContext -> publishMessageWithContext(ttlExchange(config), message, properties));
         } else {
             publish(message, properties);
         }
@@ -91,20 +94,22 @@ public class UnmanagedPublisher<Message> {
     public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
         val context = PublishObserverContext.builder()
                 .queueName(queueName)
-                .properties(properties)
+                .headers(properties.getHeaders() != null
+                         ? new HashMap<>(properties.getHeaders())
+                         : null)
                 .build();
-        observer.executePublish(context, publishObserverContext -> publishMessageWithContext(config.getExchange(), message, publishObserverContext));
+        observer.executePublish(context, publishObserverContext -> publishMessageWithContext(config.getExchange(), message, properties));
     }
 
-    private Object publishMessageWithContext(final String exchange, final Message message, final PublishObserverContext publishObserverContext) {
-        val enrichedProperties = getEnrichedProperties(publishObserverContext.getProperties());
+    private Optional<Object> publishMessageWithContext(final String exchange, final Message message, final AMQP.BasicProperties properties) {
+        val enrichedProperties = getEnrichedProperties(properties);
         try {
             publishChannel.basicPublish(exchange, getRoutingKey(), enrichedProperties, mapper().writeValueAsBytes(message));
         } catch (IOException e) {
             log.error("Error while publishing: ", e);
             throw RabbitmqActorException.propagate(e);
         }
-        return null;
+        return Optional.empty();
     }
 
     private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties) {
