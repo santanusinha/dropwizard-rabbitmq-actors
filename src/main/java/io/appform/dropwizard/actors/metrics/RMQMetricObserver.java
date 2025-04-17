@@ -10,11 +10,10 @@ import io.appform.dropwizard.actors.observers.RMQObserver;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 /**
  * An Observer that ingests queue metrics.
@@ -37,15 +36,15 @@ public class RMQMetricObserver extends RMQObserver {
     }
 
     @Override
-    public <T> T executePublish(final PublishObserverContext context, final Supplier<T> supplier) {
+    public <T> T executePublish(final PublishObserverContext context, final Function<PublishObserverContext, T> function) {
         if (!MetricUtil.isMetricApplicable(rmqConfig.getMetricConfig(), context.getQueueName())) {
-            return proceedPublish(context, supplier);
+            return proceedPublish(context, function);
         }
         val metricData = getMetricData(context);
         metricData.getTotal().mark();
         val timer = metricData.getTimer().time();
         try {
-            val response = proceedPublish(context, supplier);
+            val response = proceedPublish(context, function);
             metricData.getSuccess().mark();
             return response;
         } catch (Throwable t) {
@@ -56,10 +55,11 @@ public class RMQMetricObserver extends RMQObserver {
         }
     }
 
+
     @Override
-    public <T> T executeConsume(final ConsumeObserverContext context, final Supplier<T> supplier) {
+    public <T> T executeConsume(final ConsumeObserverContext context, final Function<ConsumeObserverContext, T> function) {
         if (!MetricUtil.isMetricApplicable(rmqConfig.getMetricConfig(), context.getQueueName())) {
-            return proceedConsume(context, supplier);
+            return proceedConsume(context, function);
         }
         val isRedelivered = context.isRedelivered();
         val metricData = getMetricData(context);
@@ -71,7 +71,7 @@ public class RMQMetricObserver extends RMQObserver {
         val timer = metricData.getTimer().time();
         val redeliveryTimer =  metricDataForRedelivery != null ? metricDataForRedelivery.getTimer().time(): null;
         try {
-            val response = proceedConsume(context, supplier);
+            val response = proceedConsume(context, function);
             metricData.getSuccess().mark();
             if (metricDataForRedelivery != null) {
                 metricDataForRedelivery.getSuccess().mark();

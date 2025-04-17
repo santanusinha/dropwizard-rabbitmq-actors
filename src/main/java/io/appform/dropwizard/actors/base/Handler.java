@@ -74,8 +74,9 @@ public class Handler<Message> extends DefaultConsumer {
         val context = ConsumeObserverContext.builder()
                 .queueName(queueName)
                 .redelivered(messageMetadata.isRedelivered())
+                .headers(messageMetadata.getHeaders())
                 .build();
-        return observer.executeConsume(context, () -> {
+        return observer.executeConsume(context, consumerObserverContext -> {
             try {
                 return expired
                         ? expiredMessageHandlingFunction.apply(message, messageMetadata)
