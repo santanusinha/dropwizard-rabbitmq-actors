@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.Channel;
 import io.appform.dropwizard.actors.actor.ActorConfig;
+import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.MetricConfig;
@@ -24,6 +25,10 @@ import org.mockito.Mockito;
 
 import java.time.Duration;
 import java.util.ArrayList;
+
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 
 class RabbitmqActorBundleTest {
@@ -88,8 +93,31 @@ class RabbitmqActorBundleTest {
         Mockito.doReturn(null).when(channel).exchangeDeclare(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyBoolean(), ArgumentMatchers.anyBoolean(), ArgumentMatchers.any());
         publisher.start();
         publisher.publish(message);
-
         ObserverTestUtil.validateThreadLocal(NamingUtils.queueName(actorConfig.getPrefix(), queueName));
+
+        val delayedQueueName = "queue-delayed-1";
+        val delayedActorConfig = new ActorConfig();
+        delayedActorConfig.setExchange("test-exchange-2");
+        delayedActorConfig.setDelayed(true);
+        delayedActorConfig.setDelayType(DelayType.TTL);
+        val delayedPublisher = new UnmanagedPublisher<>(delayedQueueName, delayedActorConfig, connection, objectMapper);
+        Mockito.doReturn(null).when(channel).exchangeDeclare(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyBoolean(), ArgumentMatchers.anyBoolean(), ArgumentMatchers.any());
+        delayedPublisher.start();
+
+        verify(channel, times(1)).exchangeDeclare(
+                "test-exchange-2",
+                "direct",
+                true
+        );
+        verify(channel, times(1)).exchangeDeclare(
+                "test-exchange-2_TTL",
+                "direct",
+                true
+        );
+
+        delayedPublisher.publish(message);
+
+        ObserverTestUtil.validateThreadLocal(NamingUtils.queueName(delayedActorConfig.getPrefix(), delayedQueueName));
     }
 
 }
