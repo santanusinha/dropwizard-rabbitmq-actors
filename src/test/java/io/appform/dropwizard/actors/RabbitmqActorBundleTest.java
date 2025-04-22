@@ -26,7 +26,6 @@ import org.mockito.Mockito;
 import java.time.Duration;
 import java.util.ArrayList;
 
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
