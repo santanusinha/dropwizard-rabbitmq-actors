@@ -68,7 +68,7 @@ public class UnmanagedPublisher<Message> {
         publishWithDelay(message, properties);
     }
 
-    private final void publishWithDelay(final Message message, final AMQP.BasicProperties properties) throws Exception {
+    private void publishWithDelay(final Message message, final AMQP.BasicProperties properties) throws Exception {
         if (!config.isDelayed()) {
             log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
         }
@@ -76,11 +76,12 @@ public class UnmanagedPublisher<Message> {
             val routingKey = getRoutingKey(message);
             val context = PublishObserverContext.builder()
                     .queueName(queueName)
+                    .messageProperties(properties)
                     .build();
-            observer.executePublish(context, () -> {
+            observer.executePublish(context, messageDetails -> {
                 try {
                     publishChannel.basicPublish(ttlExchange(config),
-                            routingKey, properties,
+                            routingKey, messageDetails.getMessageProperties(),
                             mapper().writeValueAsBytes(message));
                 } catch (IOException e) {
                     log.error("Error while publishing: {}", e);
@@ -117,9 +118,10 @@ public class UnmanagedPublisher<Message> {
         val routingKey = getRoutingKey(message);
         val context = PublishObserverContext.builder()
                 .queueName(queueName)
+                .messageProperties(properties)
                 .build();
-        observer.executePublish(context, () -> {
-            val enrichedProperties = getEnrichedProperties(properties);
+        observer.executePublish(context, messageDetails -> {
+            val enrichedProperties = getEnrichedProperties(messageDetails.getMessageProperties());
             try {
                 publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
             } catch (IOException e) {

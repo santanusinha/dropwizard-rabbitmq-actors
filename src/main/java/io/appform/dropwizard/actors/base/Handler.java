@@ -74,12 +74,13 @@ public class Handler<Message> extends DefaultConsumer {
         val context = ConsumeObserverContext.builder()
                 .queueName(queueName)
                 .redelivered(messageMetadata.isRedelivered())
+                .messageMetadata(messageMetadata)
                 .build();
-        return observer.executeConsume(context, () -> {
+        return observer.executeConsume(context, messageDetails -> {
             try {
                 return expired
-                        ? expiredMessageHandlingFunction.apply(message, messageMetadata)
-                        : messageHandlingFunction.apply(message, messageMetadata);
+                        ? expiredMessageHandlingFunction.apply(message, messageDetails.getMessageMetadata())
+                        : messageHandlingFunction.apply(message, messageDetails.getMessageMetadata());
             } catch (Exception e) {
                 log.error("Error while handling message: ", e);
                 throw RabbitmqActorException.propagate(e);

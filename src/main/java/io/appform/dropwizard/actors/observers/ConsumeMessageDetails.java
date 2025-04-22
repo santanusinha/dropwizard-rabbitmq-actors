@@ -6,8 +6,6 @@ import lombok.Value;
 
 @Value
 @Builder
-public class ConsumeObserverContext {
-    String queueName;
-    boolean redelivered;
+public class ConsumeMessageDetails {
     MessageMetadata messageMetadata;
 }

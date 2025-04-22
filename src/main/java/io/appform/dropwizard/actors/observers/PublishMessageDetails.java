@@ -6,7 +6,6 @@ import lombok.Value;
 
 @Value
 @Builder
-public class PublishObserverContext {
-    String queueName;
+public class PublishMessageDetails {
     AMQP.BasicProperties messageProperties;
 }
