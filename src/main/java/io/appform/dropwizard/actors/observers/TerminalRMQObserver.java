@@ -1,8 +1,5 @@
 package io.appform.dropwizard.actors.observers;
 
-import com.rabbitmq.client.AMQP;
-import io.appform.dropwizard.actors.actor.MessageMetadata;
-
 import java.util.function.Function;
 
 /**
@@ -14,12 +11,12 @@ public final class TerminalRMQObserver extends RMQObserver {
     }
 
     @Override
-    public <T> T executePublish(PublishObserverContext context, Function<PublishMessageDetails, T> publishFunction) {
-        return proceedPublish(context, publishFunction);
+    public <T> T executePublish(final PublishObserverContext context, final Function<PublishObserverContext, T> function) {
+        return proceedPublish(context, function);
     }
 
     @Override
-    public <T> T executeConsume(ConsumeObserverContext context, Function<ConsumeMessageDetails, T> consumeFunction) {
-        return proceedConsume(context, consumeFunction);
+    public <T> T executeConsume(final ConsumeObserverContext context, final Function<ConsumeObserverContext, T> function) {
+        return proceedConsume(context, function);
     }
 }
