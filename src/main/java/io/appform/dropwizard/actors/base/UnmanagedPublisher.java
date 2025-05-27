@@ -20,8 +20,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
+import static io.appform.dropwizard.actors.common.Constants.*;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
@@ -137,6 +136,12 @@ public class UnmanagedPublisher<Message> {
         if (properties.getHeaders() != null) {
             enrichedHeaders.putAll(properties.getHeaders());
         }
+        int retryCount = 1;
+        if (enrichedHeaders.containsKey(MESSAGE_RETRY_COUNT_TEXT)) {
+            Object value = enrichedHeaders.get(MESSAGE_RETRY_COUNT_TEXT);
+            retryCount = (Integer)value +1;
+        }
+        enrichedHeaders.put(MESSAGE_RETRY_COUNT_TEXT, retryCount);
         enrichedHeaders.put(MESSAGE_PUBLISHED_TEXT, Instant.now().toEpochMilli());
         return properties.builder()
                 .headers(Collections.unmodifiableMap(enrichedHeaders))
