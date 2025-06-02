@@ -3,14 +3,13 @@ package io.appform.dropwizard.actors.metrics;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Timer;
-import com.rabbitmq.client.AMQP;
-import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.config.RMQConfig;
-import io.appform.dropwizard.actors.observers.*;
+import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
+import io.appform.dropwizard.actors.observers.PublishObserverContext;
+import io.appform.dropwizard.actors.observers.RMQObserver;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -37,15 +36,15 @@ public class RMQMetricObserver extends RMQObserver {
     }
 
     @Override
-    public <T> T executePublish(final PublishObserverContext context, final Function<PublishMessageDetails, T> publishFunction) {
+    public <T> T executePublish(final PublishObserverContext context, final Function<PublishObserverContext, T> function) {
         if (!MetricUtil.isMetricApplicable(rmqConfig.getMetricConfig(), context.getQueueName())) {
-            return proceedPublish(context, publishFunction);
+            return proceedPublish(context, function);
         }
         val metricData = getMetricData(context);
         metricData.getTotal().mark();
         val timer = metricData.getTimer().time();
         try {
-            val response = proceedPublish(context, publishFunction);
+            val response = proceedPublish(context, function);
             metricData.getSuccess().mark();
             return response;
         } catch (Throwable t) {
@@ -56,10 +55,11 @@ public class RMQMetricObserver extends RMQObserver {
         }
     }
 
+
     @Override
-    public <T> T executeConsume(final ConsumeObserverContext context, final Function<ConsumeMessageDetails, T> consumeFunction) {
+    public <T> T executeConsume(final ConsumeObserverContext context, final Function<ConsumeObserverContext, T> function) {
         if (!MetricUtil.isMetricApplicable(rmqConfig.getMetricConfig(), context.getQueueName())) {
-            return proceedConsume(context, consumeFunction);
+            return proceedConsume(context, function);
         }
         val isRedelivered = context.isRedelivered();
         val metricData = getMetricData(context);
@@ -71,7 +71,7 @@ public class RMQMetricObserver extends RMQObserver {
         val timer = metricData.getTimer().time();
         val redeliveryTimer =  metricDataForRedelivery != null ? metricDataForRedelivery.getTimer().time(): null;
         try {
-            val response = proceedConsume(context, consumeFunction);
+            val response = proceedConsume(context, function);
             metricData.getSuccess().mark();
             if (metricDataForRedelivery != null) {
                 metricDataForRedelivery.getSuccess().mark();

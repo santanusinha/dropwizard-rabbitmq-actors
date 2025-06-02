@@ -1,6 +1,6 @@
 package io.appform.dropwizard.actors.observers;
 
-import com.rabbitmq.client.AMQP;
+import java.util.Map;
 import lombok.Builder;
 import lombok.Value;
 
@@ -8,5 +8,5 @@ import lombok.Value;
 @Builder
 public class PublishObserverContext {
     String queueName;
-    AMQP.BasicProperties messageProperties;
+    Map<String, Object> headers;
 }
