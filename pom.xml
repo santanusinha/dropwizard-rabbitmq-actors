@@ -96,7 +96,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <dropwizard.version>2.0.28</dropwizard.version>
-        <lombok.version>1.18.26</lombok.version>
+        <lombok.version>1.18.36</lombok.version>
         <guava.version>31.0.1-jre</guava.version>
         <okhttp.version>4.9.3</okhttp.version>
         <amqp-client.version>5.20.0</amqp-client.version>
@@ -243,6 +243,13 @@
                         <source>17</source>
                         <target>17</target>
                         <encoding>UTF-8</encoding>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
                     </configuration>
                 </plugin>
             </plugins>
