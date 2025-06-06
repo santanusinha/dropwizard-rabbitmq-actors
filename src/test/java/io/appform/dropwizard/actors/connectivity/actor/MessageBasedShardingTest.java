@@ -29,20 +29,24 @@ import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.exceptionhandler.config.DropConfig;
+import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
 import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.utils.CommonTestUtils;
 import io.appform.dropwizard.actors.utils.CustomShardingTestActor;
-import io.appform.dropwizard.actors.utils.RMQContainer;
 import io.appform.dropwizard.actors.utils.TestShardedMessage;
 import io.dropwizard.setup.Environment;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.io.IOException;
@@ -60,17 +64,19 @@ import static org.mockito.Mockito.when;
 /**
  *
  */
+
+@ExtendWith(RabbitMQExtension.class)
 public class MessageBasedShardingTest {
     private static RMQConnection connection;
     private static final Environment environment = mock(Environment.class);
     private static final MetricRegistry METRIC_REGISTRY = SharedMetricRegistries.getOrCreate("test");
     private static RMQConfig RMQ_CONFIG;
 
-    @BeforeAll
+    @BeforeEach
     @SneakyThrows
-    static void setup() {
+    void setup(final RabbitMQContainer rabbitMQContainer) {
 
-        RMQ_CONFIG = CommonTestUtils.getRMQConfig(RMQContainer.startContainer());
+        RMQ_CONFIG = CommonTestUtils.getRMQConfig(rabbitMQContainer);
 
         when(environment.metrics()).thenReturn(METRIC_REGISTRY);
         when(environment.healthChecks()).thenReturn(mock(HealthCheckRegistry.class));
@@ -84,9 +90,9 @@ public class MessageBasedShardingTest {
         connection.start();
     }
 
-    @AfterAll
+    @AfterEach
     @SneakyThrows
-    static void teardown() {
+    void teardown() {
         connection.stop();
     }
 

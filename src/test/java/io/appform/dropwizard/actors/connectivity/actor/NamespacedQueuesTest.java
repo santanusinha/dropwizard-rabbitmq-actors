@@ -17,11 +17,11 @@ import io.appform.dropwizard.actors.config.Broker;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
 import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.utils.ActorType;
 import io.appform.dropwizard.actors.utils.AsyncOperationHelper;
-import io.appform.dropwizard.actors.utils.RMQContainer;
 import io.appform.dropwizard.actors.utils.SidelineTestActor;
 import io.appform.dropwizard.actors.utils.TestMessage;
 import io.dropwizard.Configuration;
@@ -49,11 +49,13 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.RabbitMQContainer;
 
 
 @Slf4j
+@ExtendWith(RabbitMQExtension.class)
 public class NamespacedQueuesTest {
 
     private static final String NAMESPACE_VALUE = "namespace1";
@@ -74,10 +76,6 @@ public class NamespacedQueuesTest {
         app.after();
     }
 
-    private static RabbitMQContainer rabbitMQContainer() {
-        return RMQContainer.startContainer();
-    }
-
     @BeforeEach
     public void setup() {
         System.setProperty(NamingUtils.NAMESPACE_PROPERTY_NAME, NAMESPACE_VALUE);
@@ -92,9 +90,8 @@ public class NamespacedQueuesTest {
      * - Calls /api/queues on the RabbitMQ instance and verifies the names
      */
     @Test
-    public void testQueuesAreNamespacedWhenFeatureEnvIsSet() throws Exception {
+    public void testQueuesAreNamespacedWhenFeatureEnvIsSet(final RabbitMQContainer rabbitMQContainer) throws Exception {
         String queueName = "publisher-0";
-        RabbitMQContainer rabbitMQContainer = rabbitMQContainer();
         val mappedManagementPort = rabbitMQContainer.getMappedPort(RABBITMQ_MANAGEMENT_PORT);
         config = getRMQConfig(rabbitMQContainer);
 
@@ -130,10 +127,9 @@ public class NamespacedQueuesTest {
     }
 
     @Test
-    public void testQueuesAreNotNamespacedWhenFeatureEnvNotSet() throws Exception {
+    public void testQueuesAreNotNamespacedWhenFeatureEnvNotSet(final RabbitMQContainer rabbitMQContainer) throws Exception {
         String queueName = "publisher-1";
         System.clearProperty(NamingUtils.NAMESPACE_PROPERTY_NAME);
-        RabbitMQContainer rabbitMQContainer = rabbitMQContainer();
         val mappedManagementPort = rabbitMQContainer.getMappedPort(RABBITMQ_MANAGEMENT_PORT);
         config = getRMQConfig(rabbitMQContainer);
 
@@ -163,9 +159,8 @@ public class NamespacedQueuesTest {
     }
 
     @Test
-    public void testQueuesAreRemovedAfterTtl() throws Exception {
+    public void testQueuesAreRemovedAfterTtl(final RabbitMQContainer rabbitMQContainer) throws Exception {
         String queueName = "publisher-2";
-        RabbitMQContainer rabbitMQContainer = rabbitMQContainer();
         val mappedManagementPort = rabbitMQContainer.getMappedPort(RABBITMQ_MANAGEMENT_PORT);
         config = getRMQConfig(rabbitMQContainer);
 
@@ -245,8 +240,7 @@ public class NamespacedQueuesTest {
     }
 
     @Test
-    public void testQueuesSidelineForFailedMessages() throws Exception {
-        RabbitMQContainer rabbitMQContainer = rabbitMQContainer();
+    public void testQueuesSidelineForFailedMessages(final RabbitMQContainer rabbitMQContainer) throws Exception {
         val mappedManagementPort = rabbitMQContainer.getMappedPort(RABBITMQ_MANAGEMENT_PORT);
         config = getRMQConfig(rabbitMQContainer);
 

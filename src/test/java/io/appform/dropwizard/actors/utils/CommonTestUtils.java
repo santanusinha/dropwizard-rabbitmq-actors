@@ -31,18 +31,16 @@ import java.util.ArrayList;
 @Slf4j
 @UtilityClass
 public class CommonTestUtils {
-    private static final String RABBITMQ_USERNAME = "guest";
-    private static final String RABBITMQ_PASSWORD = "guest";
 
-    public static RMQConfig getRMQConfig(RabbitMQContainer rabbitmqContainer) {
+    public static RMQConfig getRMQConfig(final RabbitMQContainer rabbitmqContainer) {
         val rmqConfig = new RMQConfig();
         val mappedPort = rabbitmqContainer.getMappedPort(5672);
         val host = rabbitmqContainer.getHost();
         val brokers = new ArrayList<Broker>();
         brokers.add(new Broker(host, mappedPort));
         rmqConfig.setBrokers(brokers);
-        rmqConfig.setUserName(RABBITMQ_USERNAME);
-        rmqConfig.setPassword(RABBITMQ_PASSWORD);
+        rmqConfig.setUserName(RMQContainer.RABBITMQ_USERNAME);
+        rmqConfig.setPassword(RMQContainer.RABBITMQ_PASSWORD);
         rmqConfig.setVirtualHost("/");
         log.info("RabbitMQ connection details: {}", rmqConfig);
         return rmqConfig;
