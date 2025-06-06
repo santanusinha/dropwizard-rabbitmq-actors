@@ -91,8 +91,10 @@ public class MessageBasedShardingTest {
     }
 
     public static Stream<Arguments> shardIdGenerators() {
+        ActorConfig actorConfig = new ActorConfig();
+        actorConfig.setShardCount(5);
         return Stream.of(Arguments.arguments((ShardIdCalculator<TestShardedMessage>) TestShardedMessage::getShardId),
-                         Arguments.arguments(new RandomShardIdCalculator<>(new ActorConfig().setShardCount(5))));
+                         Arguments.arguments(new RandomShardIdCalculator<>(actorConfig)));
     }
 
 
@@ -103,11 +105,11 @@ public class MessageBasedShardingTest {
         val objectMapper = new ObjectMapper();
 
         val exchange = "sharding-test-exchange-1-" + Math.abs(shardIdCalculator.hashCode());
-        val actorConfig = new ActorConfig()
-                .setExchange(exchange)
-                .setShardCount(5)
-                .setExceptionHandlerConfig(new DropConfig())
-                .setConcurrency(5);
+        val actorConfig = new ActorConfig();
+        actorConfig.setExchange(exchange);
+        actorConfig.setShardCount(5);
+        actorConfig.setExceptionHandlerConfig(new DropConfig());
+        actorConfig.setConcurrency(5);
         val registry = new ConnectionRegistry(environment,
                                               (name, coreSize) -> Executors.newFixedThreadPool(1),
                                               RMQ_CONFIG,
