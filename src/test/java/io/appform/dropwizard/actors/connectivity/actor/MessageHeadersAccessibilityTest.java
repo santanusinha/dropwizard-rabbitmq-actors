@@ -9,48 +9,43 @@ import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
-import io.appform.dropwizard.actors.config.Broker;
-import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
 import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.appform.dropwizard.actors.utils.RMQContainer;
+import io.appform.dropwizard.actors.utils.RMQTestUtils;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
-import java.util.ArrayList;
+
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.testcontainers.containers.RabbitMQContainer;
 
 @Slf4j
+@ExtendWith(RabbitMQExtension.class)
 public class MessageHeadersAccessibilityTest {
 
     public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app =
             new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class);
-    private static final String RABBITMQ_USERNAME = "guest";
-    private static final String RABBITMQ_PASSWORD = "guest";
     private static RMQConnection connection;
-    private AtomicReference<Map<String, Object>> testDataHolder;
 
-    @BeforeAll
+    @BeforeEach
     @SneakyThrows
-    public static void beforeMethod() {
+    public void beforeMethod(final RabbitMQContainer rabbitMQContainer) {
         System.setProperty("dw." + "server.applicationConnectors[0].port", "0");
         System.setProperty("dw." + "server.adminConnectors[0].port", "0");
 
         app.before();
 
-        val config = getRMQConfig(RMQContainer.startContainer());
+        val config = RMQTestUtils.getRMQConfig(rabbitMQContainer);
 
         connection = new RMQConnection("test-conn", config,
                 Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build(), new TerminalRMQObserver());
@@ -62,25 +57,6 @@ public class MessageHeadersAccessibilityTest {
     @SneakyThrows
     public static void afterMethod() {
         app.after();
-    }
-
-    private static RMQConfig getRMQConfig(RabbitMQContainer rabbitmqContainer) {
-        val rmqConfig = new RMQConfig();
-        val mappedPort = rabbitmqContainer.getMappedPort(5672);
-        val host = rabbitmqContainer.getContainerIpAddress();
-        val brokers = new ArrayList<Broker>();
-        brokers.add(new Broker(host, mappedPort));
-        rmqConfig.setBrokers(brokers);
-        rmqConfig.setUserName(RABBITMQ_USERNAME);
-        rmqConfig.setPassword(RABBITMQ_PASSWORD);
-        rmqConfig.setVirtualHost("/");
-        log.info("RabbitMQ connection details: {}", rmqConfig);
-        return rmqConfig;
-    }
-
-    @AfterEach
-    public void clear() {
-        testDataHolder = null;
     }
 
     /**
