@@ -14,7 +14,7 @@ import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
 import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.appform.dropwizard.actors.utils.CommonTestUtils;
+import io.appform.dropwizard.actors.utils.RMQTestUtils;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 
 import java.util.Map;
@@ -45,7 +45,7 @@ public class MessageHeadersAccessibilityTest {
 
         app.before();
 
-        val config = CommonTestUtils.getRMQConfig(rabbitMQContainer);
+        val config = RMQTestUtils.getRMQConfig(rabbitMQContainer);
 
         connection = new RMQConnection("test-conn", config,
                 Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build(), new TerminalRMQObserver());

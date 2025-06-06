@@ -15,8 +15,7 @@ import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
 import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.retry.config.CountLimitedFixedWaitRetryConfig;
-import io.appform.dropwizard.actors.utils.CommonTestUtils;
-import io.appform.dropwizard.actors.utils.RMQContainer;
+import io.appform.dropwizard.actors.utils.RMQTestUtils;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +40,7 @@ public class ExpiryMessagesTest {
 
     @BeforeAll
     @SneakyThrows
-    public static void beforeMethod(final RabbitMQContainer rabbitMQContainer) {
+    public static void beforeMethod() {
         System.setProperty("dw." + "server.applicationConnectors[0].port", "0");
         System.setProperty("dw." + "server.adminConnectors[0].port", "0");
         app.before();
@@ -49,7 +48,7 @@ public class ExpiryMessagesTest {
 
     @BeforeEach
     public void beforeEach(final RabbitMQContainer rabbitMQContainer) throws Exception {
-        val config = CommonTestUtils.getRMQConfig(rabbitMQContainer);
+        val config = RMQTestUtils.getRMQConfig(rabbitMQContainer);
 
         connection = new RMQConnection("test-conn", config,
                 Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build(), new RMQMetricObserver(config, metricRegistry));

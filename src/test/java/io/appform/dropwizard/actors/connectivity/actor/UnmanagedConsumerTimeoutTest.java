@@ -14,8 +14,7 @@ import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
 import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.appform.dropwizard.actors.utils.CommonTestUtils;
-import io.appform.dropwizard.actors.utils.RMQContainer;
+import io.appform.dropwizard.actors.utils.RMQTestUtils;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 
 import java.util.HashMap;
@@ -46,7 +45,7 @@ public class UnmanagedConsumerTimeoutTest {
     public void beforeMethod(final RabbitMQContainer rabbitMQContainer) {
         app.before();
 
-        RMQConfig config = CommonTestUtils.getRMQConfig(rabbitMQContainer);
+        RMQConfig config = RMQTestUtils.getRMQConfig(rabbitMQContainer);
 
         connection = new RMQConnection("test-conn", config, Executors.newSingleThreadExecutor(), app.getEnvironment(),
                 TtlConfig.builder()
@@ -89,7 +88,7 @@ public class UnmanagedConsumerTimeoutTest {
                             if (seen.get() == 1) { // only sleep for the first time to induce consumer timeout
                                 // Thread.sleep() is set to a value more than 2 times the consumer_timeout to avoid test flakiness
                                 // as the RMQ periodically checks for consumer timeout
-                                Thread.sleep((long) (RMQContainer.CONSUMER_TIMEOUT_MS * 2.2));
+                                Thread.sleep((long) (RMQTestUtils.CONSUMER_TIMEOUT_MS * 2.2));
                             }
                             latch.countDown();
                             log.info("Processed message {}", msg);
@@ -102,7 +101,7 @@ public class UnmanagedConsumerTimeoutTest {
         });
         t.start();
         // set timeout to ensure the tests do not hang
-        latch.await(RMQContainer.CONSUMER_TIMEOUT_MS * 3, TimeUnit.MILLISECONDS);
+        latch.await(RMQTestUtils.CONSUMER_TIMEOUT_MS * 3, TimeUnit.MILLISECONDS);
         Assertions.assertNotNull(testDataHolder.get());
         log.info("Contents {}", testDataHolder.get());
         Assertions.assertEquals(2, testDataHolder.get()

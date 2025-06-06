@@ -30,7 +30,12 @@ import java.util.ArrayList;
  */
 @Slf4j
 @UtilityClass
-public class CommonTestUtils {
+public class RMQTestUtils {
+
+    public static final int RABBITMQ_MANAGEMENT_PORT = 15672;
+    public static final String RABBITMQ_USERNAME = "guest";
+    public static final String RABBITMQ_PASSWORD = "guest";
+    public static final int CONSUMER_TIMEOUT_MS = 60_000;
 
     public static RMQConfig getRMQConfig(final RabbitMQContainer rabbitmqContainer) {
         val rmqConfig = new RMQConfig();
@@ -39,8 +44,8 @@ public class CommonTestUtils {
         val brokers = new ArrayList<Broker>();
         brokers.add(new Broker(host, mappedPort));
         rmqConfig.setBrokers(brokers);
-        rmqConfig.setUserName(RMQContainer.RABBITMQ_USERNAME);
-        rmqConfig.setPassword(RMQContainer.RABBITMQ_PASSWORD);
+        rmqConfig.setUserName(RABBITMQ_USERNAME);
+        rmqConfig.setPassword(RABBITMQ_PASSWORD);
         rmqConfig.setVirtualHost("/");
         log.info("RabbitMQ connection details: {}", rmqConfig);
         return rmqConfig;

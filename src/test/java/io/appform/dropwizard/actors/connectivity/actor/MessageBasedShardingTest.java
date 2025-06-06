@@ -32,15 +32,13 @@ import io.appform.dropwizard.actors.exceptionhandler.config.DropConfig;
 import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
 import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.appform.dropwizard.actors.utils.CommonTestUtils;
+import io.appform.dropwizard.actors.utils.RMQTestUtils;
 import io.appform.dropwizard.actors.utils.CustomShardingTestActor;
 import io.appform.dropwizard.actors.utils.TestShardedMessage;
 import io.dropwizard.setup.Environment;
 import lombok.SneakyThrows;
 import lombok.val;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -76,7 +74,7 @@ public class MessageBasedShardingTest {
     @SneakyThrows
     void setup(final RabbitMQContainer rabbitMQContainer) {
 
-        RMQ_CONFIG = CommonTestUtils.getRMQConfig(rabbitMQContainer);
+        RMQ_CONFIG = RMQTestUtils.getRMQConfig(rabbitMQContainer);
 
         when(environment.metrics()).thenReturn(METRIC_REGISTRY);
         when(environment.healthChecks()).thenReturn(mock(HealthCheckRegistry.class));
@@ -137,7 +135,7 @@ public class MessageBasedShardingTest {
                 }));
 
         Awaitility.await()
-                .atMost(Duration.ofSeconds(90))
+                .atMost(Duration.ofSeconds(60))
                 .pollInterval(Duration.ofSeconds(1))
                 .until(() -> {
                     val sum = counters.values().stream().mapToInt(AtomicInteger::get).sum();

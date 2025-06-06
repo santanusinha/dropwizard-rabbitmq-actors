@@ -2,22 +2,16 @@ package io.appform.dropwizard.actors.junit.extension;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.*;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @Slf4j
-public class RabbitMQExtension implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback, ParameterResolver {
+public class RabbitMQExtension implements BeforeEachCallback, AfterEachCallback, ParameterResolver {
 
     private static final String RABBITMQ_DOCKER_IMAGE = "rabbitmq:3-management";
     private static final int CONSUMER_TIMEOUT_MS = 60_000;
     private static final String RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS = "RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS";
-
-    @Override
-    public void beforeAll(ExtensionContext context) {
-
-    }
 
 
     @Override
