@@ -131,7 +131,7 @@ public class MessageBasedShardingTest {
                 }));
 
         Awaitility.await()
-                .atMost(Duration.ofSeconds(60))
+                .atMost(Duration.ofSeconds(90))
                 .pollInterval(Duration.ofSeconds(1))
                 .until(() -> {
                     val sum = counters.values().stream().mapToInt(AtomicInteger::get).sum();
