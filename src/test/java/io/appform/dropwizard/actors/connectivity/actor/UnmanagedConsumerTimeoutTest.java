@@ -8,15 +8,15 @@ import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.actor.QueueType;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
-import io.appform.dropwizard.actors.config.Broker;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
 import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.appform.dropwizard.actors.utils.RMQContainer;
+import io.appform.dropwizard.actors.utils.RMQTestUtils;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
-import java.util.ArrayList;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -24,31 +24,28 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.testcontainers.containers.RabbitMQContainer;
 
 @Slf4j
+@ExtendWith(RabbitMQExtension.class)
 public class UnmanagedConsumerTimeoutTest {
 
     public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app = new DropwizardAppExtension<>(
             RabbitMQBundleTestApplication.class);
     public static final String TEST_EXCHANGE = "test-exchange";
-    private static final String RABBITMQ_USERNAME = "guest";
-    private static final String RABBITMQ_PASSWORD = "guest";
     private static RMQConnection connection;
 
-    @BeforeAll
+    @BeforeEach
     @SneakyThrows
-    public static void beforeMethod() {
+    public void beforeMethod(final RabbitMQContainer rabbitMQContainer) {
         app.before();
 
-        RabbitMQContainer rabbitMQContainer = RMQContainer.startContainer();
-        RMQConfig config = getRMQConfig(rabbitMQContainer);
+        RMQConfig config = RMQTestUtils.getRMQConfig(rabbitMQContainer);
 
         connection = new RMQConnection("test-conn", config, Executors.newSingleThreadExecutor(), app.getEnvironment(),
                 TtlConfig.builder()
@@ -56,24 +53,10 @@ public class UnmanagedConsumerTimeoutTest {
         connection.start();
     }
 
-    @AfterAll
+    @AfterEach
     @SneakyThrows
-    public static void afterMethod() {
+    public void afterMethod() {
         app.after();
-    }
-
-    private static RMQConfig getRMQConfig(RabbitMQContainer rabbitmqContainer) {
-        RMQConfig rmqConfig = new RMQConfig();
-        Integer mappedPort = rabbitmqContainer.getMappedPort(5672);
-        String host = rabbitmqContainer.getContainerIpAddress();
-        ArrayList<Broker> brokers = new ArrayList<Broker>();
-        brokers.add(new Broker(host, mappedPort));
-        rmqConfig.setBrokers(brokers);
-        rmqConfig.setUserName(RABBITMQ_USERNAME);
-        rmqConfig.setPassword(RABBITMQ_PASSWORD);
-        rmqConfig.setVirtualHost("/");
-        log.info("RabbitMQ connection details: {}", rmqConfig);
-        return rmqConfig;
     }
 
     @Test
@@ -105,7 +88,7 @@ public class UnmanagedConsumerTimeoutTest {
                             if (seen.get() == 1) { // only sleep for the first time to induce consumer timeout
                                 // Thread.sleep() is set to a value more than 2 times the consumer_timeout to avoid test flakiness
                                 // as the RMQ periodically checks for consumer timeout
-                                Thread.sleep((long) (RMQContainer.CONSUMER_TIMEOUT_MS * 2.2));
+                                Thread.sleep((long) (RMQTestUtils.CONSUMER_TIMEOUT_MS * 2.2));
                             }
                             latch.countDown();
                             log.info("Processed message {}", msg);
@@ -118,7 +101,7 @@ public class UnmanagedConsumerTimeoutTest {
         });
         t.start();
         // set timeout to ensure the tests do not hang
-        latch.await(RMQContainer.CONSUMER_TIMEOUT_MS * 3, TimeUnit.MILLISECONDS);
+        latch.await(RMQTestUtils.CONSUMER_TIMEOUT_MS * 3, TimeUnit.MILLISECONDS);
         Assertions.assertNotNull(testDataHolder.get());
         log.info("Contents {}", testDataHolder.get());
         Assertions.assertEquals(2, testDataHolder.get()

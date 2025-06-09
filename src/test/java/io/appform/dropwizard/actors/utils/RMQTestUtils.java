@@ -30,11 +30,14 @@ import java.util.ArrayList;
  */
 @Slf4j
 @UtilityClass
-public class CommonTestUtils {
-    private static final String RABBITMQ_USERNAME = "guest";
-    private static final String RABBITMQ_PASSWORD = "guest";
+public class RMQTestUtils {
 
-    public static RMQConfig getRMQConfig(RabbitMQContainer rabbitmqContainer) {
+    public static final int RABBITMQ_MANAGEMENT_PORT = 15672;
+    public static final String RABBITMQ_USERNAME = "guest";
+    public static final String RABBITMQ_PASSWORD = "guest";
+    public static final int CONSUMER_TIMEOUT_MS = 60_000;
+
+    public static RMQConfig getRMQConfig(final RabbitMQContainer rabbitmqContainer) {
         val rmqConfig = new RMQConfig();
         val mappedPort = rabbitmqContainer.getMappedPort(5672);
         val host = rabbitmqContainer.getHost();

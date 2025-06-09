@@ -1,8 +1,5 @@
 package io.appform.dropwizard.actors.connectivity.actor;
 
-import static io.appform.dropwizard.actors.utils.RMQContainer.RABBITMQ_MANAGEMENT_PORT;
-import static io.appform.dropwizard.actors.utils.RMQContainer.RABBITMQ_PASSWORD;
-import static io.appform.dropwizard.actors.utils.RMQContainer.RABBITMQ_USERNAME;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheckRegistry;
@@ -13,28 +10,24 @@ import io.appform.dropwizard.actors.TtlConfig;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
-import io.appform.dropwizard.actors.config.Broker;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
 import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.appform.dropwizard.actors.utils.ActorType;
-import io.appform.dropwizard.actors.utils.AsyncOperationHelper;
-import io.appform.dropwizard.actors.utils.RMQContainer;
-import io.appform.dropwizard.actors.utils.SidelineTestActor;
-import io.appform.dropwizard.actors.utils.TestMessage;
+import io.appform.dropwizard.actors.utils.*;
 import io.dropwizard.Configuration;
 import io.dropwizard.jackson.Jackson;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Executors;
 import javax.validation.Validation;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -49,11 +42,14 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.GenericContainer;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.testcontainers.containers.RabbitMQContainer;
+
+import static io.appform.dropwizard.actors.utils.RMQTestUtils.RABBITMQ_MANAGEMENT_PORT;
 
 
 @Slf4j
+@ExtendWith(RabbitMQExtension.class)
 public class NamespacedQueuesTest {
 
     private static final String NAMESPACE_VALUE = "namespace1";
@@ -74,14 +70,11 @@ public class NamespacedQueuesTest {
         app.after();
     }
 
-    private static RabbitMQContainer rabbitMQContainer() {
-        return RMQContainer.startContainer();
-    }
-
     @BeforeEach
     public void setup() {
         System.setProperty(NamingUtils.NAMESPACE_PROPERTY_NAME, NAMESPACE_VALUE);
     }
+
     private RMQConfig config;
 
     /**
@@ -92,11 +85,10 @@ public class NamespacedQueuesTest {
      * - Calls /api/queues on the RabbitMQ instance and verifies the names
      */
     @Test
-    public void testQueuesAreNamespacedWhenFeatureEnvIsSet() throws Exception {
+    public void testQueuesAreNamespacedWhenFeatureEnvIsSet(final RabbitMQContainer rabbitMQContainer) throws Exception {
         String queueName = "publisher-0";
-        RabbitMQContainer rabbitMQContainer = rabbitMQContainer();
         val mappedManagementPort = rabbitMQContainer.getMappedPort(RABBITMQ_MANAGEMENT_PORT);
-        config = getRMQConfig(rabbitMQContainer);
+        config = RMQTestUtils.getRMQConfig(rabbitMQContainer);
 
         RMQConnection connection = new RMQConnection("test-conn-0", config,
                 Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build(), new RMQMetricObserver(config, metricRegistry));
@@ -130,12 +122,11 @@ public class NamespacedQueuesTest {
     }
 
     @Test
-    public void testQueuesAreNotNamespacedWhenFeatureEnvNotSet() throws Exception {
+    public void testQueuesAreNotNamespacedWhenFeatureEnvNotSet(final RabbitMQContainer rabbitMQContainer) throws Exception {
         String queueName = "publisher-1";
         System.clearProperty(NamingUtils.NAMESPACE_PROPERTY_NAME);
-        RabbitMQContainer rabbitMQContainer = rabbitMQContainer();
         val mappedManagementPort = rabbitMQContainer.getMappedPort(RABBITMQ_MANAGEMENT_PORT);
-        config = getRMQConfig(rabbitMQContainer);
+        config = RMQTestUtils.getRMQConfig(rabbitMQContainer);
 
         RMQConnection connection = new RMQConnection("test-conn-1", config,
                 Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build(), new RMQMetricObserver(config, metricRegistry));
@@ -163,11 +154,10 @@ public class NamespacedQueuesTest {
     }
 
     @Test
-    public void testQueuesAreRemovedAfterTtl() throws Exception {
+    public void testQueuesAreRemovedAfterTtl(final RabbitMQContainer rabbitMQContainer) throws Exception {
         String queueName = "publisher-2";
-        RabbitMQContainer rabbitMQContainer = rabbitMQContainer();
         val mappedManagementPort = rabbitMQContainer.getMappedPort(RABBITMQ_MANAGEMENT_PORT);
-        config = getRMQConfig(rabbitMQContainer);
+        config = RMQTestUtils.getRMQConfig(rabbitMQContainer);
 
         TtlConfig ttlConfig = TtlConfig.builder()
                 .ttlEnabled(true)
@@ -245,10 +235,9 @@ public class NamespacedQueuesTest {
     }
 
     @Test
-    public void testQueuesSidelineForFailedMessages() throws Exception {
-        RabbitMQContainer rabbitMQContainer = rabbitMQContainer();
+    public void testQueuesSidelineForFailedMessages(final RabbitMQContainer rabbitMQContainer) throws Exception {
         val mappedManagementPort = rabbitMQContainer.getMappedPort(RABBITMQ_MANAGEMENT_PORT);
-        config = getRMQConfig(rabbitMQContainer);
+        config = RMQTestUtils.getRMQConfig(rabbitMQContainer);
 
         RMQConnection connection = new RMQConnection("test-conn-3", config,
                 Executors.newSingleThreadExecutor(), app.getEnvironment(), null, new RMQMetricObserver(config, metricRegistry));
@@ -257,12 +246,12 @@ public class NamespacedQueuesTest {
         ActorConfig actorConfig = AsyncOperationHelper.buildActorConfig();
         val objectMapper = Jackson.newObjectMapper();
         Environment environment = new Environment("testing",
-                                                  objectMapper,
-                                                  Validation.buildDefaultValidatorFactory(),
-                                                  new MetricRegistry(),
-                                                  Thread.currentThread().getContextClassLoader(),
-                                                  new HealthCheckRegistry(),
-                                                  new Configuration());
+                objectMapper,
+                Validation.buildDefaultValidatorFactory(),
+                new MetricRegistry(),
+                Thread.currentThread().getContextClassLoader(),
+                new HealthCheckRegistry(),
+                new Configuration());
         ConnectionRegistry registry = new ConnectionRegistry(environment,
                 (name, coreSize) -> Executors.newFixedThreadPool(1),
                 config, TtlConfig.builder().build(), new RMQMetricObserver(config, metricRegistry));
@@ -291,20 +280,6 @@ public class NamespacedQueuesTest {
         Assertions.assertEquals(ActorType.ALWAYS_FAIL_ACTOR, actualMessage.getActorType());
         Assertions.assertEquals("test_message", actualMessage.getName());
         response.close();
-    }
-
-    private static RMQConfig getRMQConfig(GenericContainer rabbitmqContainer) {
-        RMQConfig rmqConfig = new RMQConfig();
-        Integer mappedPort = rabbitmqContainer.getMappedPort(5672);
-        String host = rabbitmqContainer.getContainerIpAddress();
-        List<Broker> brokers = new ArrayList<Broker>();
-        brokers.add(new Broker(host, mappedPort));
-        rmqConfig.setBrokers(brokers);
-        rmqConfig.setUserName(RABBITMQ_USERNAME);
-        rmqConfig.setPassword(RABBITMQ_PASSWORD);
-        rmqConfig.setVirtualHost("/");
-        log.info("RabbitMQ connection details: {}", rmqConfig);
-        return rmqConfig;
     }
 
 }
