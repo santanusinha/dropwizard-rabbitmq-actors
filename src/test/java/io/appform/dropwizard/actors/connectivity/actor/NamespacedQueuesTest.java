@@ -96,7 +96,7 @@ public class NamespacedQueuesTest {
 
         ActorConfig actorConfig = new ActorConfig();
         actorConfig.setExchange("test-exchange-0");
-        UnmanagedPublisher publisher = new UnmanagedPublisher<>(queueName, actorConfig, connection, null);
+        UnmanagedPublisher publisher = new UnmanagedPublisher<>(NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig, connection, null);
         publisher.start();
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -134,7 +134,7 @@ public class NamespacedQueuesTest {
 
         ActorConfig actorConfig = new ActorConfig();
         actorConfig.setExchange("test-exchange-1");
-        UnmanagedPublisher publisher = new UnmanagedPublisher<>(queueName, actorConfig, connection, null);
+        UnmanagedPublisher publisher = new UnmanagedPublisher<>(NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig, connection, null);
         publisher.start();
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -169,7 +169,7 @@ public class NamespacedQueuesTest {
 
         ActorConfig actorConfig = new ActorConfig();
         actorConfig.setExchange("test-exchange-2");
-        UnmanagedPublisher publisher = new UnmanagedPublisher<>(queueName, actorConfig, connection, null);
+        UnmanagedPublisher publisher = new UnmanagedPublisher<>(NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig, connection, null);
         publisher.start();
 
         Thread.sleep(4_000);

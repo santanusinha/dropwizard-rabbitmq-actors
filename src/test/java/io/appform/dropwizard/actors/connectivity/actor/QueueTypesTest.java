@@ -8,6 +8,7 @@ import io.appform.dropwizard.actors.actor.HaMode;
 import io.appform.dropwizard.actors.actor.QueueType;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
+import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
@@ -130,15 +131,15 @@ public class QueueTypesTest {
         AtomicReference<Map<String, Object>> testDataHolder = new AtomicReference<>(null);
         ObjectMapper objectMapper = new ObjectMapper();
         actorConfig.setExchange("test-exchange-1");
-        UnmanagedPublisher<Object> publisher = new UnmanagedPublisher<>(queueName, actorConfig, connection,
+        UnmanagedPublisher<Object> publisher = new UnmanagedPublisher<>(NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig, connection,
                 objectMapper);
         publisher.start();
 
         ImmutableMap<String, String> message = ImmutableMap.of("key", "test-message");
         publisher.publish(message);
 
-        UnmanagedConsumer<Map> consumer = new UnmanagedConsumer<>(queueName, actorConfig, connection, objectMapper,
-                new RetryStrategyFactory(), new ExceptionHandlingFactory(), Map.class, (msg, metadata) -> {
+        UnmanagedConsumer<Map> consumer = new UnmanagedConsumer<>(NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig.getPrefetchCount(), actorConfig.getConcurrency(),actorConfig.isSharded(), actorConfig.getShardCount() , actorConfig.getConsumer(), connection,
+                objectMapper, new RetryStrategyFactory().create(actorConfig.getRetryConfig()), new ExceptionHandlingFactory().create(actorConfig.getExceptionHandlerConfig()), Map.class, (msg, metadata) -> {
             testDataHolder.set(Map.of("MESSAGE", msg));
             return true;
         }, (x, y) -> true, (x) -> true);
