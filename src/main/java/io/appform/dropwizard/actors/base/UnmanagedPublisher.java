@@ -1,5 +1,8 @@
 package io.appform.dropwizard.actors.base;
 
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.AMQP;
@@ -12,16 +15,14 @@ import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.observers.PublishObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
-
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
+import java.util.Objects;
+import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
@@ -68,27 +69,18 @@ public class UnmanagedPublisher<Message> {
         publishWithDelay(message, properties);
     }
 
-    private void publishWithDelay(final Message message, final AMQP.BasicProperties properties) throws Exception {
+    private final void publishWithDelay(final Message message, final AMQP.BasicProperties properties) throws Exception {
         if (!config.isDelayed()) {
             log.warn("Publishing delayed message to non-delayed queue queue:{}", queueName);
         }
         if (config.getDelayType() == DelayType.TTL) {
-            val routingKey = getRoutingKey(message);
             val context = PublishObserverContext.builder()
                     .queueName(queueName)
-                    .messageProperties(properties)
+                    .headers(Objects.requireNonNullElse(properties.getHeaders(), new HashMap<>()))
                     .build();
-            observer.executePublish(context, messageDetails -> {
-                try {
-                    publishChannel.basicPublish(ttlExchange(config),
-                            routingKey, messageDetails.getMessageProperties(),
-                            mapper().writeValueAsBytes(message));
-                } catch (IOException e) {
-                    log.error("Error while publishing: {}", e);
-                    throw RabbitmqActorException.propagate(e);
-                }
-                return null;
-            });
+            observer.executePublish(context,
+                    publishObserverContext -> publishMessageWithContext(ttlExchange(config), message, properties,
+                            context));
         } else {
             publish(message, properties);
         }
@@ -115,28 +107,31 @@ public class UnmanagedPublisher<Message> {
     }
 
     public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
-        val routingKey = getRoutingKey(message);
         val context = PublishObserverContext.builder()
                 .queueName(queueName)
-                .messageProperties(properties)
+                .headers(Objects.requireNonNullElse(properties.getHeaders(), new HashMap<>()))
                 .build();
-        observer.executePublish(context, messageDetails -> {
-            val enrichedProperties = getEnrichedProperties(messageDetails.getMessageProperties());
-            try {
-                publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
-            } catch (IOException e) {
-                log.error("Error while publishing: {}", e);
-                throw RabbitmqActorException.propagate(e);
-            }
-            return null;
-        });
+        observer.executePublish(context,
+                publishObserverContext -> publishMessageWithContext(config.getExchange(), message, properties,
+                        context));
     }
 
-    private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties) {
-        HashMap<String, Object> enrichedHeaders = new HashMap<>();
-        if (properties.getHeaders() != null) {
-            enrichedHeaders.putAll(properties.getHeaders());
+    private Object publishMessageWithContext(final String exchange,
+                                                  final Message message,
+                                                  final AMQP.BasicProperties properties,
+                                                  final PublishObserverContext observerContext) {
+        val enrichedProperties = getEnrichedProperties(properties, observerContext);
+        try {
+            publishChannel.basicPublish(exchange, getRoutingKey(message), enrichedProperties, mapper().writeValueAsBytes(message));
+        } catch (IOException e) {
+            log.error("Error while publishing: ", e);
+            throw RabbitmqActorException.propagate(e);
         }
+        return null;
+    }
+
+    private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties,final PublishObserverContext observerContext) {
+        val enrichedHeaders = Objects.requireNonNullElse(observerContext.getHeaders(), new HashMap<String, Object>());
         enrichedHeaders.put(MESSAGE_PUBLISHED_TEXT, Instant.now().toEpochMilli());
         return properties.builder()
                 .headers(Collections.unmodifiableMap(enrichedHeaders))
