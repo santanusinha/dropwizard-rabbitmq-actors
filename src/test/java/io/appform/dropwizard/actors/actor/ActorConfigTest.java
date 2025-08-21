@@ -3,7 +3,7 @@ package io.appform.dropwizard.actors.actor;
 import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
 import io.appform.dropwizard.actors.utils.AsyncOperationHelper;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

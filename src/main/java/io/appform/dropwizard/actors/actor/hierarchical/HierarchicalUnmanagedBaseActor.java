@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType>, Message> {
 
-    private final HierarchicalTreeConfig<HierarchicalActorConfig, String, HierarchicalWorkerActorConfig> hierarchicalTreeConfig;
+    private final HierarchicalTreeConfig<HierarchicalActorConfig, String, HierarchicalSubActorConfig> hierarchicalTreeConfig;
     private final ConnectionRegistry connectionRegistry;
     private final ObjectMapper mapper;
     private final RetryStrategyFactory retryStrategyFactory;
@@ -43,10 +43,10 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
     private final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction;
 
     private HierarchicalDataStoreSupplierTree<
-            HierarchicalWorkerActorConfig,
+            HierarchicalSubActorConfig,
                         HierarchicalActorConfig,
                         MessageType,
-            HierarchicalWorkerActor<MessageType, ? extends Message>> worker;
+            HierarchicalSubActor<MessageType, ? extends Message>> worker;
 
 
     public HierarchicalUnmanagedBaseActor(MessageType messageType,
@@ -75,13 +75,13 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
         log.info("Initializing Router");
         this.initializeRouter();
         log.info("Staring all workers");
-        worker.traverse(hierarchicalWorkerActor -> {
+        worker.traverse(hierarchicalSubActor -> {
             try {
-                log.info("Starting worker: {} {}", hierarchicalWorkerActor.getType(), hierarchicalWorkerActor.getRoutingKey().getRoutingKey());
-                hierarchicalWorkerActor.start();
+                log.info("Starting worker: {} {}", hierarchicalSubActor.getType(), hierarchicalSubActor.getRoutingKey().getRoutingKey());
+                hierarchicalSubActor.start();
             } catch (Exception e) {
-                log.error("Unable to start worker: {}", hierarchicalWorkerActor);
-                val errorMessage = "Unable to start worker: " + hierarchicalWorkerActor.getType();
+                log.error("Unable to start worker: {}", hierarchicalSubActor);
+                val errorMessage = "Unable to start worker: " + hierarchicalSubActor.getType();
                 throw new RabbitmqActorException(ErrorCode.INTERNAL_ERROR, errorMessage, e);
             }
         });
@@ -89,13 +89,13 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
 
     public void stop() throws Exception {
         log.info("Stopping all workers");
-        worker.traverse(hierarchicalWorkerActor -> {
+        worker.traverse(hierarchicalSubActor -> {
             try {
-                log.info("Stopping worker: {} {}", hierarchicalWorkerActor.getType(), hierarchicalWorkerActor.getRoutingKey().getRoutingKey());
-                hierarchicalWorkerActor.stop();
+                log.info("Stopping worker: {} {}", hierarchicalSubActor.getType(), hierarchicalSubActor.getRoutingKey().getRoutingKey());
+                hierarchicalSubActor.stop();
             } catch (Exception e) {
-                log.error("Unable to stop worker: {}", hierarchicalWorkerActor);
-                val errorMessage = "Unable to stop worker: " + hierarchicalWorkerActor.getType();
+                log.error("Unable to stop worker: {}", hierarchicalSubActor);
+                val errorMessage = "Unable to stop worker: " + hierarchicalSubActor.getType();
                 throw new RabbitmqActorException(ErrorCode.INTERNAL_ERROR, errorMessage, e);
             }
         });
@@ -103,16 +103,16 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
 
     public final long pendingMessagesCount() {
         val atomicLong = new AtomicLong(0l);
-        worker.traverse(hierarchicalWorkerActor -> {
-            atomicLong.getAndAdd(hierarchicalWorkerActor.pendingMessagesCount());
+        worker.traverse(hierarchicalSubActor -> {
+            atomicLong.getAndAdd(hierarchicalSubActor.pendingMessagesCount());
         });
         return atomicLong.get();
     }
 
     public final long pendingSidelineMessagesCount() {
         val atomicLong = new AtomicLong(0l);
-        worker.traverse(hierarchicalWorkerActor -> {
-            atomicLong.getAndAdd(hierarchicalWorkerActor.pendingSidelineMessagesCount());
+        worker.traverse(hierarchicalSubActor -> {
+            atomicLong.getAndAdd(hierarchicalSubActor.pendingSidelineMessagesCount());
         });
         return atomicLong.get();
     }
@@ -140,18 +140,18 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
         publishActor(routingKey).publish(message, properties);
     }
 
-    private HierarchicalWorkerActor<MessageType, Message> publishActor(final HierarchicalRoutingKey<String> routingKey) {
-        return (HierarchicalWorkerActor<MessageType, Message>) this.worker.get(messageType, routingKey);
+    private HierarchicalSubActor<MessageType, Message> publishActor(final HierarchicalRoutingKey<String> routingKey) {
+        return (HierarchicalSubActor<MessageType, Message>) this.worker.get(messageType, routingKey);
     }
 
     private void initializeRouter() {
         this.worker = new HierarchicalDataStoreSupplierTree<>(
                 messageType,
                 hierarchicalTreeConfig,
-                HierarchicalRouterUtils.actorConfigToWorkerConfigFunc,
-                (routingKey, messageTypeKey, workerConfig) -> new HierarchicalWorkerActor<>(
+                HierarchicalRouterUtils.actorConfigToSubActorConfigFunc,
+                (routingKey, messageTypeKey, subActorConfig) -> new HierarchicalSubActor<>(
                         messageType,
-                        workerConfig,
+                        subActorConfig,
                         hierarchicalTreeConfig.getDefaultData(),
                         routingKey,
                         connectionRegistry,

@@ -9,36 +9,32 @@ import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
-import io.appform.dropwizard.actors.config.Broker;
-import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
+import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
 import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.retry.config.CountLimitedFixedWaitRetryConfig;
-import io.appform.dropwizard.actors.utils.RMQContainer;
+import io.appform.dropwizard.actors.utils.RMQTestUtils;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.testcontainers.containers.RabbitMQContainer;
 
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+
 @Slf4j
+@ExtendWith({RabbitMQExtension.class})
 public class ExpiryMessagesTest {
 
     public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app =
             new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class);
-    private static final String RABBITMQ_USERNAME = "guest";
-    private static final String RABBITMQ_PASSWORD = "guest";
     private static RMQConnection connection;
     private static final MetricRegistry metricRegistry = new MetricRegistry();
 
@@ -47,35 +43,27 @@ public class ExpiryMessagesTest {
     public static void beforeMethod() {
         System.setProperty("dw." + "server.applicationConnectors[0].port", "0");
         System.setProperty("dw." + "server.adminConnectors[0].port", "0");
-
         app.before();
+    }
 
-        val config = getRMQConfig(RMQContainer.startContainer());
+    @BeforeEach
+    public void beforeEach(final RabbitMQContainer rabbitMQContainer) throws Exception {
+        val config = RMQTestUtils.getRMQConfig(rabbitMQContainer);
 
         connection = new RMQConnection("test-conn", config,
                 Executors.newSingleThreadExecutor(), app.getEnvironment(), TtlConfig.builder().build(), new RMQMetricObserver(config, metricRegistry));
         connection.start();
+    }
 
+    @AfterEach
+    void tearDown() throws Exception {
+        connection.stop();
     }
 
     @AfterAll
     @SneakyThrows
     public static void afterMethod() {
         app.after();
-    }
-
-    private static RMQConfig getRMQConfig(RabbitMQContainer rabbitmqContainer) {
-        val rmqConfig = new RMQConfig();
-        val mappedPort = rabbitmqContainer.getMappedPort(5672);
-        val host = rabbitmqContainer.getContainerIpAddress();
-        val brokers = new ArrayList<Broker>();
-        brokers.add(new Broker(host, mappedPort));
-        rmqConfig.setBrokers(brokers);
-        rmqConfig.setUserName(RABBITMQ_USERNAME);
-        rmqConfig.setPassword(RABBITMQ_PASSWORD);
-        rmqConfig.setVirtualHost("/");
-        log.info("RabbitMQ connection details: {}", rmqConfig);
-        return rmqConfig;
     }
 
     /**
@@ -85,7 +73,7 @@ public class ExpiryMessagesTest {
      * - Consumer would consume the message in expired handler and delay in consumption should be more than 1500ms
      */
     @Test
-    public void testWhenMessagesAreExpired() throws Exception {
+    void testWhenMessagesAreExpired() throws Exception {
         val queueName = "queue-1";
         val objectMapper = new ObjectMapper();
         val actorConfig = new ActorConfig();
@@ -121,7 +109,7 @@ public class ExpiryMessagesTest {
      * - Here the count should be 2 and delay should be more than 1500ms
      */
     @Test
-    public void testReDeliveryOfExpiredMessages() throws Exception {
+    void testReDeliveryOfExpiredMessages() throws Exception {
         val queueName = "queue-5";
         val objectMapper = new ObjectMapper();
         val actorConfig = new ActorConfig();

@@ -1,12 +1,11 @@
 package io.appform.dropwizard.actors.observers;
 
+import com.rabbitmq.client.AMQP;
+import io.appform.dropwizard.actors.actor.MessageMetadata;
 import lombok.Getter;
 
-import java.util.function.Supplier;
+import java.util.function.Function;
 
-/**
- *
- */
 public abstract class RMQObserver {
 
     @Getter
@@ -16,9 +15,9 @@ public abstract class RMQObserver {
         this.next = next;
     }
 
-    public abstract <T> T executePublish(final PublishObserverContext context, final Supplier<T> supplier);
+    public abstract <T> T executePublish(final PublishObserverContext context, final Function<PublishMessageDetails, T> publishFunction);
 
-    public abstract <T> T executeConsume(final ConsumeObserverContext context, final Supplier<T> supplier);
+    public abstract <T> T executeConsume(final ConsumeObserverContext context, final Function<ConsumeMessageDetails, T> consumeFunction);
 
     public final RMQObserver setNext(final RMQObserver next) {
         this.next = next;
@@ -26,17 +25,17 @@ public abstract class RMQObserver {
     }
 
     protected final <T> T proceedPublish(final PublishObserverContext context,
-                                         final Supplier<T> supplier) {
+                                         final Function<PublishMessageDetails, T> publishFunction) {
         if (null == next) {
-            return supplier.get();
+            return publishFunction.apply(PublishMessageDetails.builder().messageProperties(context.getMessageProperties()).build());
         }
-        return next.executePublish(context, supplier);
+        return next.executePublish(context, publishFunction);
     }
 
-    protected final <T> T proceedConsume(final ConsumeObserverContext context, final Supplier<T> supplier) {
+    protected final <T> T proceedConsume(final ConsumeObserverContext context, final Function<ConsumeMessageDetails, T> consumeFunction) {
         if (null == next) {
-            return supplier.get();
+            return consumeFunction.apply(ConsumeMessageDetails.builder().messageMetadata(context.getMessageMetadata()).build());
         }
-        return next.executeConsume(context, supplier);
+        return next.executeConsume(context, consumeFunction);
     }
 }

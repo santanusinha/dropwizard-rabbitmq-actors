@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.0.28-14
+
+- Introduced shard ID calculator interface, with random shard id as the default implementation.
+
 ## 2.0.28-13
 
 - Detect whether a channel is closed and automatically reopen a channel to avoid no consumers

@@ -2,7 +2,6 @@ package io.appform.dropwizard.actors.base;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
 import com.rabbitmq.client.Channel;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.ConsumerConfig;
@@ -15,12 +14,14 @@ import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 
 @Slf4j
 public class UnmanagedConsumer<Message> {
@@ -38,7 +39,7 @@ public class UnmanagedConsumer<Message> {
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
     private final RMQObserver observer;
-    private final List<Handler<Message>> handlers = Lists.newArrayList();
+    private final List<Handler<Message>> handlers = new CopyOnWriteArrayList<>();
     private int consumerIndex = 1;
 
     public UnmanagedConsumer(final String name,

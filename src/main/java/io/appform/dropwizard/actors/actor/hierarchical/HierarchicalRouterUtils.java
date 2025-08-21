@@ -1,13 +1,9 @@
 package io.appform.dropwizard.actors.actor.hierarchical;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.ConsumerConfig;
 import io.appform.dropwizard.actors.actor.ProducerConfig;
 import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategy;
-import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategyVisitor;
-import io.appform.dropwizard.actors.connectivity.strategy.DefaultConnectionStrategy;
-import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
 import io.appform.dropwizard.actors.actor.hierarchical.tree.key.RoutingKey;
 import io.appform.dropwizard.actors.utils.MapperUtils;
 import lombok.SneakyThrows;
@@ -15,7 +11,6 @@ import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -25,7 +20,6 @@ import java.util.stream.Stream;
 @UtilityClass
 public class HierarchicalRouterUtils {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
     private static final String EXCHANGES = "exchanges";
     private static final String ACTORS = "actors";
 
@@ -33,8 +27,8 @@ public class HierarchicalRouterUtils {
             .filter(e -> !StringUtils.isEmpty(e))
             .collect(Collectors.joining(delimiter));
 
-    public static final Function<HierarchicalActorConfig, HierarchicalWorkerActorConfig> actorConfigToWorkerConfigFunc =
-            actorConfig -> HierarchicalWorkerActorConfig.builder()
+    public static final Function<HierarchicalActorConfig, HierarchicalSubActorConfig> actorConfigToSubActorConfigFunc =
+            actorConfig -> HierarchicalSubActorConfig.builder()
                     .concurrency(actorConfig.getConcurrency())
                     .prefetchCount(actorConfig.getPrefetchCount())
                     .shardCount(actorConfig.getShardCount())
@@ -48,7 +42,6 @@ public class HierarchicalRouterUtils {
                     .haMode(actorConfig.getHaMode())
                     .haParams(actorConfig.getHaParams())
                     .maxPriority(actorConfig.getMaxPriority())
-                    .maxPriority(actorConfig.getMaxPriority())
                     .lazyMode(actorConfig.isLazyMode())
                     .retryConfig(actorConfig.getRetryConfig())
                     .exceptionHandlerConfig(actorConfig.getExceptionHandlerConfig())
@@ -58,32 +51,36 @@ public class HierarchicalRouterUtils {
     @SneakyThrows
     public static <MessageType extends Enum<MessageType>> ActorConfig toActorConfig(final MessageType messageType,
                                                                                     final RoutingKey routingKeyData,
-                                                                                    final HierarchicalWorkerActorConfig workerConfig,
+                                                                                    final HierarchicalSubActorConfig subActorConfig,
                                                                                     final HierarchicalActorConfig mainActorConfig) {
         val useParentConfigInWorker = mainActorConfig.isUseParentConfigInWorker();
         return ActorConfig.builder()
                 // Custom fields
                 .exchange(exchangeName(mainActorConfig.getExchange(), messageType, routingKeyData))
                 .prefix(prefix(mainActorConfig.getPrefix(), routingKeyData))
-                .consumer(consumerConfig(workerConfig.getConsumer(), mainActorConfig.getConsumer(), routingKeyData))
-                .producer(producerConfig(workerConfig.getProducer(), mainActorConfig.getProducer(), routingKeyData))
+                .consumer(consumerConfig(subActorConfig.getConsumer(), mainActorConfig.getConsumer()))
+                .producer(producerConfig(subActorConfig.getProducer(), mainActorConfig.getProducer()))
 
-                // Copy parent data
-                .concurrency(useParentConfigInWorker ? mainActorConfig.getConcurrency() : workerConfig.getConcurrency())
-                .shardCount(useParentConfigInWorker ? mainActorConfig.getShardCount() :
-                        Objects.nonNull(workerConfig.getShardCount()) && workerConfig.getShardCount() >= 1 ? workerConfig.getShardCount() : null)
+                // Direct subactor config
+                .concurrency(subActorConfig.getConcurrency())
+                .prefetchCount(subActorConfig.getPrefetchCount())
+                .shardCount(Objects.nonNull(subActorConfig.getShardCount()) && subActorConfig.getShardCount() >= 1 ? subActorConfig.getShardCount() : null)
+
+                // Copy from parent if useParentConfigInWorker is set
+                .queueType(useParentConfigInWorker ? mainActorConfig.getQueueType() : subActorConfig.getQueueType())
+                .retryConfig(useParentConfigInWorker ? mainActorConfig.getRetryConfig() : subActorConfig.getRetryConfig())
+                .exceptionHandlerConfig(useParentConfigInWorker ? mainActorConfig.getExceptionHandlerConfig() : subActorConfig.getExceptionHandlerConfig())
+
+                // Direct from Parent
+                .haMode(mainActorConfig.getHaMode())
+                .haParams(mainActorConfig.getHaParams())
+                .lazyMode(mainActorConfig.isLazyMode())
                 .priorityQueue(mainActorConfig.isPriorityQueue())
-                .maxPriority(useParentConfigInWorker ? mainActorConfig.getMaxPriority() : workerConfig.getMaxPriority())
-                .delayed(useParentConfigInWorker ? mainActorConfig.isDelayed() : workerConfig.isDelayed())
-                .delayType(useParentConfigInWorker ? mainActorConfig.getDelayType() : workerConfig.getDelayType())
-                .queueType(useParentConfigInWorker ? mainActorConfig.getQueueType() : workerConfig.getQueueType())
-                .haMode(useParentConfigInWorker ? mainActorConfig.getHaMode() : workerConfig.getHaMode())
-                .haParams(useParentConfigInWorker ? mainActorConfig.getHaParams() : workerConfig.getHaParams())
-                .lazyMode(useParentConfigInWorker ? mainActorConfig.isLazyMode() : workerConfig.isLazyMode())
-                .quorumInitialGroupSize(useParentConfigInWorker ? mainActorConfig.getQuorumInitialGroupSize() : workerConfig.getQuorumInitialGroupSize())
-                .retryConfig(useParentConfigInWorker ? mainActorConfig.getRetryConfig() : workerConfig.getRetryConfig())
-                .exceptionHandlerConfig(useParentConfigInWorker ? mainActorConfig.getExceptionHandlerConfig() : workerConfig.getExceptionHandlerConfig())
-                .ttlConfig(useParentConfigInWorker ? mainActorConfig.getTtlConfig(): workerConfig.getTtlConfig())
+                .maxPriority(mainActorConfig.getMaxPriority())
+                .quorumInitialGroupSize(mainActorConfig.getQuorumInitialGroupSize())
+                .delayed(mainActorConfig.isDelayed())
+                .delayType(mainActorConfig.getDelayType())
+                .ttlConfig(mainActorConfig.getTtlConfig())
                 .build();
     }
 
@@ -114,53 +111,30 @@ public class HierarchicalRouterUtils {
     }
 
 
-    private static ProducerConfig producerConfig(final ProducerConfig workerConfig,
-                                                 final ProducerConfig parentProducerConfig,
-                                                 final RoutingKey routingKeyData) {
-        if (Objects.isNull(workerConfig)) {
+    private static ProducerConfig producerConfig(final ProducerConfig subActorConfig,
+                                                 final ProducerConfig parentProducerConfig) {
+        if (Objects.isNull(subActorConfig)) {
             return MapperUtils.clone(parentProducerConfig, ProducerConfig.class);
         }
 
-        if (Objects.isNull(workerConfig.getConnectionIsolationStrategy())) {
-            val isolationStrtegy = MapperUtils.clone(parentProducerConfig.getConnectionIsolationStrategy(), ConnectionIsolationStrategy.class);
-            workerConfig.setConnectionIsolationStrategy(isolationStrtegy);
+        if (Objects.isNull(subActorConfig.getConnectionIsolationStrategy())) {
+            val isolationStrategy = MapperUtils.clone(parentProducerConfig.getConnectionIsolationStrategy(), ConnectionIsolationStrategy.class);
+            subActorConfig.setConnectionIsolationStrategy(isolationStrategy);
         }
-        updateIsolationStrategyConfig(workerConfig.getConnectionIsolationStrategy(), routingKeyData.getRoutingKey());
-        return workerConfig;
+        return subActorConfig;
     }
 
-    private static ConsumerConfig consumerConfig(final ConsumerConfig workerConfig,
-                                                 final ConsumerConfig parentConsumerConfig,
-                                                 final RoutingKey routingKeyData) {
-        if (Objects.isNull(workerConfig)) {
+    private static ConsumerConfig consumerConfig(final ConsumerConfig subActorConfig,
+                                                 final ConsumerConfig parentConsumerConfig) {
+        if (Objects.isNull(subActorConfig)) {
             return MapperUtils.clone(parentConsumerConfig, ConsumerConfig.class);
         }
 
-        if (Objects.isNull(workerConfig.getConnectionIsolationStrategy())) {
-            val isolationStrtegy = MapperUtils.clone(parentConsumerConfig.getConnectionIsolationStrategy(), ConnectionIsolationStrategy.class);
-            workerConfig.setConnectionIsolationStrategy(isolationStrtegy);
+        if (Objects.isNull(subActorConfig.getConnectionIsolationStrategy())) {
+            val isolationStrategy = MapperUtils.clone(parentConsumerConfig.getConnectionIsolationStrategy(), ConnectionIsolationStrategy.class);
+            subActorConfig.setConnectionIsolationStrategy(isolationStrategy);
         }
-        updateIsolationStrategyConfig(workerConfig.getConnectionIsolationStrategy(), routingKeyData.getRoutingKey());
-        return workerConfig;
-    }
-
-
-    private static void updateIsolationStrategyConfig(final ConnectionIsolationStrategy isolationStrategy,
-                                                      final List<String> routingKeyData) {
-        isolationStrategy.accept(new ConnectionIsolationStrategyVisitor<Void>() {
-            @Override
-            public Void visit(SharedConnectionStrategy strategy) {
-                val producerIsolationStrategyName = beautifierFunction.apply(Stream.of("p",
-                        strategy.getName(), String.join("_", routingKeyData)), "_");
-                strategy.setName(producerIsolationStrategyName);
-                return null;
-            }
-
-            @Override
-            public Void visit(DefaultConnectionStrategy strategy) {
-                return null;
-            }
-        });
+        return subActorConfig;
     }
 
 }

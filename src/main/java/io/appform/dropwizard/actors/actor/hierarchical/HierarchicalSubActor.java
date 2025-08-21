@@ -16,27 +16,27 @@ import java.util.Set;
 @Getter
 @EqualsAndHashCode
 @SuppressWarnings({"java:S119", "java:S107"})
-public class HierarchicalWorkerActor<MessageType extends Enum<MessageType>, Message>
+public class HierarchicalSubActor<MessageType extends Enum<MessageType>, Message>
         extends Actor<MessageType, Message> {
 
     private final RoutingKey routingKey;
     private final MessageHandlingFunction<Message, Boolean> handlerFunction;
     private final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction;
 
-    public HierarchicalWorkerActor(final MessageType messageType,
-                                   final HierarchicalWorkerActorConfig workerConfig,
-                                   final HierarchicalActorConfig hierarchicalActorConfig,
-                                   final RoutingKey routingKey,
-                                   final ConnectionRegistry connectionRegistry,
-                                   final ObjectMapper mapper,
-                                   final RetryStrategyFactory retryStrategyFactory,
-                                   final ExceptionHandlingFactory exceptionHandlingFactory,
-                                   final Class<? extends Message> clazz,
-                                   final Set<Class<?>> droppedExceptionTypes,
-                                   final MessageHandlingFunction<Message, Boolean> handlerFunction,
-                                   final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction) {
+    public HierarchicalSubActor(final MessageType messageType,
+                                final HierarchicalSubActorConfig subActorConfig,
+                                final HierarchicalActorConfig hierarchicalActorConfig,
+                                final RoutingKey routingKey,
+                                final ConnectionRegistry connectionRegistry,
+                                final ObjectMapper mapper,
+                                final RetryStrategyFactory retryStrategyFactory,
+                                final ExceptionHandlingFactory exceptionHandlingFactory,
+                                final Class<? extends Message> clazz,
+                                final Set<Class<?>> droppedExceptionTypes,
+                                final MessageHandlingFunction<Message, Boolean> handlerFunction,
+                                final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction) {
         super(messageType,
-                HierarchicalRouterUtils.toActorConfig(messageType, routingKey, workerConfig, hierarchicalActorConfig),
+                HierarchicalRouterUtils.toActorConfig(messageType, routingKey, subActorConfig, hierarchicalActorConfig),
                 connectionRegistry,
                 mapper,
                 retryStrategyFactory,
