@@ -17,17 +17,19 @@ import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
 import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.utils.*;
-import io.dropwizard.Configuration;
+
+import io.dropwizard.core.Configuration;
+import io.dropwizard.core.setup.Environment;
 import io.dropwizard.jackson.Jackson;
-import io.dropwizard.setup.Environment;
+
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.Executors;
-import javax.validation.Validation;
 
+import jakarta.validation.Validation;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -60,13 +62,13 @@ public class NamespacedQueuesTest {
 
     @BeforeAll
     @SneakyThrows
-    public static void setupClass() {
+    static void setupClass() {
         app.before();
     }
 
     @AfterAll
     @SneakyThrows
-    public static void cleanupClass() {
+    static void cleanupClass() {
         app.after();
     }
 
