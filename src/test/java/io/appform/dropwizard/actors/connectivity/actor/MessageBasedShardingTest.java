@@ -35,7 +35,7 @@ import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.utils.RMQTestUtils;
 import io.appform.dropwizard.actors.utils.CustomShardingTestActor;
 import io.appform.dropwizard.actors.utils.TestShardedMessage;
-import io.dropwizard.setup.Environment;
+import io.dropwizard.core.setup.Environment;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;

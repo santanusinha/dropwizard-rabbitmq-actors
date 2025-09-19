@@ -15,6 +15,7 @@ public class TtlConfig {
 
     private boolean ttlEnabled;
 
+    @Builder.Default
     private Duration ttl = Duration.ofSeconds(1800);
 
 }

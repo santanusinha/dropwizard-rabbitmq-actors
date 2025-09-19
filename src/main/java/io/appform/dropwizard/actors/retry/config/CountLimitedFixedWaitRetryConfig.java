@@ -18,20 +18,18 @@ package io.appform.dropwizard.actors.retry.config;
 
 import io.appform.dropwizard.actors.retry.RetryType;
 import io.dropwizard.util.Duration;
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
 import java.util.Set;
 
 /**
  * No retry will be done
  */
-@Data
+@Getter
+@Setter
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 public class CountLimitedFixedWaitRetryConfig extends RetryConfig {

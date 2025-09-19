@@ -1,8 +1,8 @@
 package io.appform.dropwizard.actors.connectivity.actor;
 
-import io.dropwizard.Application;
-import io.dropwizard.setup.Environment;
 
+import io.dropwizard.core.Application;
+import io.dropwizard.core.setup.Environment;
 
 public class RabbitMQBundleTestApplication extends Application<RabbitMQBundleTestAppConfiguration> {
 
