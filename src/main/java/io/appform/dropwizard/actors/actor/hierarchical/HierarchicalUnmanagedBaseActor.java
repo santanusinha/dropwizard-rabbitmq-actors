@@ -3,7 +3,9 @@ package io.appform.dropwizard.actors.actor.hierarchical;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import io.appform.dropwizard.actors.ConnectionRegistry;
+import io.appform.dropwizard.actors.actor.Actor;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
+import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.actor.hierarchical.tree.HierarchicalDataStoreSupplierTree;
 import io.appform.dropwizard.actors.actor.hierarchical.tree.HierarchicalTreeConfig;
 import io.appform.dropwizard.actors.actor.hierarchical.tree.key.HierarchicalRoutingKey;
@@ -46,7 +48,7 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
             HierarchicalSubActorConfig,
                         HierarchicalActorConfig,
                         MessageType,
-            HierarchicalSubActor<MessageType, ? extends Message>> worker;
+            Actor<MessageType, ? extends Message>> worker;
 
 
     public HierarchicalUnmanagedBaseActor(MessageType messageType,
@@ -74,10 +76,8 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
     public void start() throws Exception {
         log.info("Initializing Router");
         this.initializeRouter();
-        log.info("Staring all workers");
         worker.traverse(hierarchicalSubActor -> {
             try {
-                log.info("Starting worker: {} {}", hierarchicalSubActor.getType(), hierarchicalSubActor.getRoutingKey().getRoutingKey());
                 hierarchicalSubActor.start();
             } catch (Exception e) {
                 log.error("Unable to start worker: {}", hierarchicalSubActor);
@@ -91,7 +91,6 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
         log.info("Stopping all workers");
         worker.traverse(hierarchicalSubActor -> {
             try {
-                log.info("Stopping worker: {} {}", hierarchicalSubActor.getType(), hierarchicalSubActor.getRoutingKey().getRoutingKey());
                 hierarchicalSubActor.stop();
             } catch (Exception e) {
                 log.error("Unable to stop worker: {}", hierarchicalSubActor);
@@ -140,8 +139,8 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
         publishActor(routingKey).publish(message, properties);
     }
 
-    private HierarchicalSubActor<MessageType, Message> publishActor(final HierarchicalRoutingKey<String> routingKey) {
-        return (HierarchicalSubActor<MessageType, Message>) this.worker.get(messageType, routingKey);
+    private Actor<MessageType, Message> publishActor(final HierarchicalRoutingKey<String> routingKey) {
+        return (Actor<MessageType, Message>) this.worker.get(messageType, routingKey);
     }
 
     private void initializeRouter() {
@@ -149,19 +148,25 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
                 messageType,
                 hierarchicalTreeConfig,
                 HierarchicalRouterUtils.actorConfigToSubActorConfigFunc,
-                (routingKey, messageTypeKey, subActorConfig) -> new HierarchicalSubActor<>(
-                        messageType,
-                        subActorConfig,
-                        hierarchicalTreeConfig.getDefaultData(),
-                        routingKey,
+                (routingKey, messageTypeKey, subActorConfig) -> new Actor<MessageType, Message>(messageType,
+                        HierarchicalRouterUtils.toActorConfig(messageType, routingKey, subActorConfig, hierarchicalTreeConfig.getDefaultData()),
                         connectionRegistry,
                         mapper,
                         retryStrategyFactory,
                         exceptionHandlingFactory,
                         clazz,
-                        droppedExceptionTypes,
-                        handlerFunction,
-                        expiredMessageHandlingFunction)
+                        droppedExceptionTypes) {
+
+                    @Override
+                    protected boolean handle(Message message, MessageMetadata messageMetadata) throws Exception {
+                        return handlerFunction.apply(message, messageMetadata);
+                    }
+
+                    @Override
+                    protected boolean handleExpiredMessages(Message message, MessageMetadata messageMetadata) throws Exception {
+                        return expiredMessageHandlingFunction.apply(message, messageMetadata);
+                    }
+                }
         );
     }
 }
