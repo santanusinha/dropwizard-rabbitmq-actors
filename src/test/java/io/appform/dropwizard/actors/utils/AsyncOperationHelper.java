@@ -3,6 +3,7 @@ package io.appform.dropwizard.actors.utils;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.ConsumerConfig;
 import io.appform.dropwizard.actors.actor.ProducerConfig;
+import io.appform.dropwizard.actors.actor.SidelineProcessorConfig;
 import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
 import io.appform.dropwizard.actors.exceptionhandler.config.DropConfig;
 import io.appform.dropwizard.actors.retry.config.CountLimitedExponentialWaitRetryConfig;
@@ -53,13 +54,19 @@ public class AsyncOperationHelper {
                 .prefix("test")
                 .concurrency(2)
                 .prefetchCount(1)
-                .shardCount(2)
                 .retryConfig(CountLimitedExponentialWaitRetryConfig.builder()
                         .maxAttempts(1)
                         .multipier(50)
                         .maxTimeBetweenRetries(Duration.seconds(30))
                         .build())
-                .sidelineProcessorConcurrency(1)
+                .sidelineProcessorConfig(SidelineProcessorConfig.builder()
+                        .concurrency(2)
+                        .consumerConfig(ConsumerConfig.builder()
+                                .connectionIsolationStrategy(SharedConnectionStrategy.builder()
+                                        .name(String.join("_", "s", String.join("_", routingKey).toLowerCase()))
+                                        .build())
+                                .build())
+                        .build())
                 .producer(ProducerConfig.builder()
                         .connectionIsolationStrategy(SharedConnectionStrategy.builder()
                                 .name(String.join("_", "p", String.join("_", routingKey).toLowerCase()))
@@ -68,11 +75,6 @@ public class AsyncOperationHelper {
                 .consumer(ConsumerConfig.builder()
                         .connectionIsolationStrategy(SharedConnectionStrategy.builder()
                                 .name(String.join("_", "c", String.join("_", routingKey).toLowerCase()))
-                                .build())
-                        .build())
-                .sidelineProcessor(ConsumerConfig.builder()
-                        .connectionIsolationStrategy(SharedConnectionStrategy.builder()
-                                .name(String.join("_", "s", String.join("_", routingKey).toLowerCase()))
                                 .build())
                         .build())
                 .build();

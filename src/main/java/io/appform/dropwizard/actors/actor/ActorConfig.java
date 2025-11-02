@@ -38,11 +38,11 @@ import lombok.ToString;
  * Configuration for an actor
  */
 @Data
-@EqualsAndHashCode
-@ToString
-@AllArgsConstructor
-@NoArgsConstructor
 @Builder
+@ToString
+@EqualsAndHashCode
+@NoArgsConstructor
+@AllArgsConstructor
 public class ActorConfig {
 
     @NotNull
@@ -91,22 +91,13 @@ public class ActorConfig {
 
     @Min(1)
     @Max(100)
-    private Integer sidelineProcessorConcurrency;
-
-    @Min(1)
-    @Max(100)
     @Builder.Default
     private int prefetchCount = 1;
 
-    @NotNull
     @Valid
+    @NotNull
     @Builder.Default
     private RetryConfig retryConfig = new NoRetryConfig();
-
-    @NotNull
-    @Valid
-    @Builder.Default
-    private RetryConfig sidelineProcessorRetryConfig = new NoRetryConfig();
 
     private ExceptionHandlerConfig exceptionHandlerConfig;
 
@@ -117,17 +108,17 @@ public class ActorConfig {
     private ConsumerConfig consumer;
 
     @Valid
-    private ConsumerConfig sidelineProcessor;
-
-    @Valid
     private TtlConfig ttlConfig;
 
     @Min(2)
     @Max(32)
     private Integer shardCount;
 
+    @Valid
+    private SidelineProcessorConfig sidelineProcessorConfig;
+
     public boolean isSidelineProcessorEnabled() {
-        return Objects.nonNull(sidelineProcessorConcurrency);
+        return Objects.nonNull(sidelineProcessorConfig);
     }
 
     public boolean isSharded() {
@@ -138,15 +129,15 @@ public class ActorConfig {
         return Objects.nonNull(shardCount) ? shardCount : 0;
     }
 
-    public int getSidelineProcessorConcurrency() {
-        return Objects.nonNull(sidelineProcessorConcurrency)
-               ? sidelineProcessorConcurrency
-               : 0;
-    }
-
     @ValidationMethod(message = "Concurrency should be multiple of shard count for sharded queue.")
     public boolean isValidSharding() {
         return !isSharded() || getConcurrency() % getShardCount() == 0;
+    }
+
+    @ValidationMethod(message = "SidelineProcessor Concurrency should be multiple of shard count for sharded queue.")
+    public boolean isValidShardingSidelineProcessor() {
+        return !isSharded() || !isSidelineProcessorEnabled()
+                || getSidelineProcessorConfig().getConcurrency() % getShardCount() == 0;
     }
 
 }

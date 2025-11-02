@@ -334,7 +334,7 @@ public class NamespacedQueuesTest {
         connection.start();
 
         final var  actorConfig = AsyncOperationHelper.buildActorConfigWithSidelineProcessorEnabled();
-        actorConfig.setSidelineProcessorRetryConfig(CountLimitedFixedWaitRetryConfig.builder()
+        actorConfig.getSidelineProcessorConfig().setRetryConfig(CountLimitedFixedWaitRetryConfig.builder()
                 .maxAttempts(3)
                 .waitTime(io.dropwizard.util.Duration.milliseconds(1))
                 .build());
@@ -431,7 +431,7 @@ public class NamespacedQueuesTest {
         connection.start();
 
         final var actorConfig = AsyncOperationHelper.buildActorConfigWithSidelineProcessorEnabled();
-        actorConfig.setSidelineProcessorRetryConfig(CountLimitedFixedWaitRetryConfig.builder()
+        actorConfig.getSidelineProcessorConfig().setRetryConfig(CountLimitedFixedWaitRetryConfig.builder()
                 .maxAttempts(3)
                 .waitTime(io.dropwizard.util.Duration.milliseconds(1))
                 .build());
@@ -564,6 +564,100 @@ public class NamespacedQueuesTest {
 
         //Move Message to sideline processing queue
         final var  sidelineProcessingQueue = NAMESPACE_VALUE + ".test.ALWAYS_FAIL_ACTOR_SIDELINE_PROCESSOR";
+        final var  shovelName  = "MoveToSidelineProcessing";
+        final var  shovelEndpoint = "/api/parameters/shovel/%2F/" + shovelName;
+
+        final var shovelBody =  RMQShovelMessages.builder()
+                .shovelRequestName(shovelName)
+                .value(RmqShovelRequestValue.builder()
+                        .sourceQueue(sidelineQueue)
+                        .destinationQueue(sidelineProcessingQueue)
+                        .user(config.getUserName())
+                        .virtualHost(config.getVirtualHost())
+                        .build())
+                .build();
+
+        final var shovelBodyString = objectMapper.writeValueAsString(shovelBody);
+
+        final var  shovelMessageResponse = sendPutRequest(shovelEndpoint, shovelBodyString, mappedManagementPort);
+        Assertions.assertNotNull(shovelMessageResponse);
+
+
+        // Retry until exactly 3 sideline processor attempts have occurred
+        ASSERTION_RETRYER.call(() -> {
+            if (actor.getHandleSidelineProcessorCalledCount() != 1) {
+                throw new IllegalStateException("Waiting for 1 sideline processor calls");
+            }
+            return null;
+        });
+        Assertions.assertEquals(1,actor.getHandleSidelineProcessorCalledCount());
+
+        // Check the number of messages in sideline queue
+        assertCountOfMessagesInQueue(sidelineQueue, 0, mappedManagementPort, objectMapper);
+
+
+        // Check the number of messages in sideline processing queue
+        assertCountOfMessagesInQueue(sidelineProcessingQueue, 0, mappedManagementPort, objectMapper);
+    }
+
+    /**
+     * This test does the following:
+     * - Launches a RabbitMQ instance in a Docker container added bash command to start rmq server with shovel component
+     * - Launches a dummy Dropwizard app for fetching its Environment
+     * - Publishes Message on SidelineProcessorTestActor and fails and moves to sideline
+     * - Calls Shovel API to move the messages from sideline to Sideline processor queue shard 0
+     * - Sideline Processor queue is configured to handle the messages successfully
+     * - Validates the number of messages in the sideline queue and sideline processing queue to be 0
+     */
+    @Test
+    public void testQueueSidelineProcessorWithShardsWithoutRetryerForFailedMessages(final RabbitMQContainer rabbitMQContainer) throws Exception {
+        final var mappedManagementPort = rabbitMQContainer.getMappedPort(RMQTestUtils.RABBITMQ_MANAGEMENT_PORT);
+        config = RMQTestUtils.getRMQConfig(rabbitMQContainer);
+
+        final var  connection = new RMQConnection("test-conn-6", config,
+                Executors.newSingleThreadExecutor(), app.getEnvironment(), null, new RMQMetricObserver(config, metricRegistry));
+        connection.start();
+
+        final var  actorConfig = AsyncOperationHelper.buildActorConfigWithSidelineProcessorEnabled();
+        actorConfig.setShardCount(2);
+
+        final var  objectMapper = Jackson.newObjectMapper();
+        final var  environment = new Environment("testing",
+                objectMapper,
+                Validation.buildDefaultValidatorFactory(),
+                new MetricRegistry(),
+                Thread.currentThread().getContextClassLoader(),
+                new HealthCheckRegistry(),
+                new Configuration());
+        final var  registry = new ConnectionRegistry(environment,
+                (name, coreSize) -> Executors.newFixedThreadPool(1),
+                config, TtlConfig.builder().build(), new RMQMetricObserver(config, metricRegistry));
+        final var  actor = new SidelineProcessorTestActor(actorConfig, registry, objectMapper,
+                new RetryStrategyFactory(), new ExceptionHandlingFactory());
+        actor.start();
+        final var  message = TestMessage.builder()
+                .actorType(ActorType.ALWAYS_FAIL_ACTOR)
+                .name("test_message")
+                .sidelineProcessorQueueHandleSuccessCount(1)
+                .build();
+        actor.publish(message);
+
+        // Ensure the original handle is called once
+        ASSERTION_RETRYER.call(() -> {
+            if (actor.getHandleCalledCount() != 1) {
+                throw new IllegalStateException("Expected 1 handle call, got " + actor.getHandleCalledCount());
+            }
+            return null;
+        });
+
+        Assertions.assertEquals(1,actor.getHandleCalledCount());
+        final var  sidelineQueue = NAMESPACE_VALUE + ".test.ALWAYS_FAIL_ACTOR_SIDELINE";
+
+        assertCountOfMessagesInQueue(sidelineQueue, 1, mappedManagementPort, objectMapper);
+
+
+        //Move Message to sideline processing queue
+        final var  sidelineProcessingQueue = NAMESPACE_VALUE + ".test.ALWAYS_FAIL_ACTOR_SIDELINE_PROCESSOR_0";
         final var  shovelName  = "MoveToSidelineProcessing";
         final var  shovelEndpoint = "/api/parameters/shovel/%2F/" + shovelName;
 

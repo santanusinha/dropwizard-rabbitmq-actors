@@ -40,9 +40,9 @@ import org.apache.commons.lang3.NotImplementedException;
  * dropwizard.
  */
 @Data
-@EqualsAndHashCode
-@ToString
 @Slf4j
+@ToString
+@EqualsAndHashCode
 @SuppressWarnings("java:S107")
 public class UnmanagedBaseActor<Message> {
 
@@ -126,8 +126,8 @@ public class UnmanagedBaseActor<Message> {
 
         this(name, config, connectionRegistry.createOrGet(NamingUtils.producerConnectionName(config.getProducer())),
                 connectionRegistry.createOrGet(NamingUtils.consumerConnectionName(config.getConsumer())),
-                connectionRegistry.createOrGet(
-                        NamingUtils.sidelineProcessorConnectionName(config.getSidelineProcessor())), mapper,
+                connectionRegistry.createOrGet(NamingUtils.sidelineProcessorConnectionName(
+                        config.getSidelineProcessorConfig())), mapper,
                 shardIdCalculator, retryStrategyFactory, exceptionHandlingFactory, clazz, handlerFunction,
                 sidelineProcessorHandleFunction, expiredMessageHandlingFunction,
                 sidelineProcessorExpiredMessageHandlingFunction, errorCheckFunction);
@@ -158,9 +158,13 @@ public class UnmanagedBaseActor<Message> {
                         expiredMessageHandlingFunction, errorCheckFunction), config.isSidelineProcessorEnabled()
                                                                              ? new UnmanagedConsumer<>(
                         NamingUtils.sidelineProcessorQueueName(config.getPrefix(), name), config.getPrefetchCount(),
-                        config.getSidelineProcessorConcurrency(), false, 0, config.getSidelineProcessor(),
-                        sidelineProcessorConnection, mapper,
-                        retryStrategyFactory.create(config.getSidelineProcessorRetryConfig()),
+                        config.getSidelineProcessorConfig()
+                                .getConcurrency(), config.isSharded(), config
+                        .getShardCount(), config.getSidelineProcessorConfig()
+                        .getConsumerConfig(),
+                        sidelineProcessorConnection, mapper, retryStrategyFactory.create(
+                        config.getSidelineProcessorConfig()
+                                .getRetryConfig()),
                         exceptionHandlingFactory.create(config.getExceptionHandlerConfig()), clazz,
                         sidelineProcessorHandleFunction, sidelineProcessorExpiredMessageHandlingFunction,
                         errorCheckFunction)

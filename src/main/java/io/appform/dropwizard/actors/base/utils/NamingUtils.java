@@ -2,12 +2,14 @@ package io.appform.dropwizard.actors.base.utils;
 
 import io.appform.dropwizard.actors.actor.ConsumerConfig;
 import io.appform.dropwizard.actors.actor.ProducerConfig;
+import io.appform.dropwizard.actors.actor.SidelineProcessorConfig;
 import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategy;
 import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategyVisitor;
 import io.appform.dropwizard.actors.connectivity.strategy.DefaultConnectionStrategy;
 import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
 import io.appform.dropwizard.actors.utils.CommonUtils;
+import javax.validation.Valid;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -71,12 +73,12 @@ public class NamingUtils {
     }
 
 
-    public String sidelineProcessorConnectionName(final ConsumerConfig sidelineProcessorConfig) {
-        if (sidelineProcessorConfig == null) {
+    public String sidelineProcessorConnectionName(final SidelineProcessorConfig sidelineProcessorConfig) {
+        if (sidelineProcessorConfig == null || sidelineProcessorConfig.getConsumerConfig() == null) {
             return Constants.DEFAULT_SIDELINE_PROCESSOR_CONNECTION_NAME;
         }
 
-        return deriveConnectionName(sidelineProcessorConfig.getConnectionIsolationStrategy(),
+        return deriveConnectionName(sidelineProcessorConfig.getConsumerConfig().getConnectionIsolationStrategy(),
                 Constants.DEFAULT_SIDELINE_PROCESSOR_CONNECTION_NAME);
     }
 

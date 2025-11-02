@@ -236,8 +236,22 @@ public class UnmanagedPublisher<Message> {
 
             final var sidelineProcessorQueue = NamingUtils.getSidelineProcessor(queueName);
 
-            connection.ensure(sidelineProcessorQueue, sidelineProcessorExchange, connection.rmqOpts(dlx, config));
-            connection.addBinding(sidelineQueueName, dlx, sidelineProcessorQueue);
+            if(config.isSharded())
+            {
+                int bound = config.getShardCount();
+
+                for (int shardId = 0; shardId < bound ; shardId++)
+                {
+                    String shardedQueueName = NamingUtils.getShardedQueueName(sidelineProcessorQueue, shardId);
+                    connection.ensure(shardedQueueName, sidelineProcessorExchange, connection.rmqOpts(dlx, config));
+                    connection.addBinding(sidelineQueueName, dlx, shardedQueueName);
+                }
+            }
+            else
+            {
+                connection.ensure(sidelineProcessorQueue, sidelineProcessorExchange, connection.rmqOpts(dlx, config));
+                connection.addBinding(sidelineQueueName, dlx, sidelineProcessorQueue);
+            }
         }
     }
 
