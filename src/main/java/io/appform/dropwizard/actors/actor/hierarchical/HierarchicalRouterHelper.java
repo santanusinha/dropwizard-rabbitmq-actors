@@ -1,13 +1,13 @@
 package io.appform.dropwizard.actors.actor.hierarchical;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.ConsumerConfig;
 import io.appform.dropwizard.actors.actor.ProducerConfig;
 import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategy;
 import io.appform.dropwizard.actors.actor.hierarchical.tree.key.RoutingKey;
-import io.appform.dropwizard.actors.utils.MapperUtils;
+import io.appform.dropwizard.actors.utils.SerDeProvider;
 import lombok.SneakyThrows;
-import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 
@@ -17,11 +17,16 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@UtilityClass
-public class HierarchicalRouterUtils {
+public class HierarchicalRouterHelper {
 
     private static final String EXCHANGES = "exchanges";
     private static final String ACTORS = "actors";
+
+    private final SerDeProvider serDeProvider;
+
+    public HierarchicalRouterHelper(ObjectMapper mapper) {
+        this.serDeProvider = new SerDeProvider(mapper);
+    }
 
     private static final BiFunction<Stream<String>, String, String> beautifierFunction = (stream, delimiter) -> stream
             .filter(e -> !StringUtils.isEmpty(e))
@@ -49,10 +54,10 @@ public class HierarchicalRouterUtils {
                     .build();
 
     @SneakyThrows
-    public static <MessageType extends Enum<MessageType>> ActorConfig toActorConfig(final MessageType messageType,
-                                                                                    final RoutingKey routingKeyData,
-                                                                                    final HierarchicalSubActorConfig subActorConfig,
-                                                                                    final HierarchicalActorConfig mainActorConfig) {
+    public <MessageType extends Enum<MessageType>> ActorConfig toActorConfig(final MessageType messageType,
+                                                                             final RoutingKey routingKeyData,
+                                                                             final HierarchicalSubActorConfig subActorConfig,
+                                                                             final HierarchicalActorConfig mainActorConfig) {
         val useParentConfigInWorker = mainActorConfig.isUseParentConfigInWorker();
         return ActorConfig.builder()
                 // Custom fields
@@ -84,14 +89,14 @@ public class HierarchicalRouterUtils {
                 .build();
     }
 
-    public static <MessageType extends Enum<MessageType>> String exchangeName(final String parentExchangeName,
-                                                                              final MessageType messageType,
-                                                                              final RoutingKey routingKeyData) {
+    public <MessageType extends Enum<MessageType>> String exchangeName(final String parentExchangeName,
+                                                                       final MessageType messageType,
+                                                                       final RoutingKey routingKeyData) {
         val routingKey = routingKeyData.getRoutingKey();
 
         if (!StringUtils.isEmpty(parentExchangeName)) {
             // For backward compatibility
-            if(routingKey.isEmpty()) {
+            if (routingKey.isEmpty()) {
                 return parentExchangeName;
             }
 
@@ -101,8 +106,8 @@ public class HierarchicalRouterUtils {
         return beautifierFunction.apply(Stream.of(EXCHANGES, String.join(".", routingKey), messageType.name()), ".");
     }
 
-    private static String prefix(final String parentPrefixName,
-                                 final RoutingKey routingKeyData) {
+    private String prefix(final String parentPrefixName,
+                          final RoutingKey routingKeyData) {
         val routingKey = routingKeyData.getRoutingKey();
         if (!StringUtils.isEmpty(parentPrefixName)) {
             return beautifierFunction.apply(Stream.of(parentPrefixName, String.join(".", routingKey)), ".");
@@ -111,27 +116,27 @@ public class HierarchicalRouterUtils {
     }
 
 
-    private static ProducerConfig producerConfig(final ProducerConfig subActorConfig,
-                                                 final ProducerConfig parentProducerConfig) {
+    private ProducerConfig producerConfig(final ProducerConfig subActorConfig,
+                                          final ProducerConfig parentProducerConfig) {
         if (Objects.isNull(subActorConfig)) {
-            return MapperUtils.clone(parentProducerConfig, ProducerConfig.class);
+            return serDeProvider.clone(parentProducerConfig, ProducerConfig.class);
         }
 
         if (Objects.isNull(subActorConfig.getConnectionIsolationStrategy())) {
-            val isolationStrategy = MapperUtils.clone(parentProducerConfig.getConnectionIsolationStrategy(), ConnectionIsolationStrategy.class);
+            val isolationStrategy = serDeProvider.clone(parentProducerConfig.getConnectionIsolationStrategy(), ConnectionIsolationStrategy.class);
             subActorConfig.setConnectionIsolationStrategy(isolationStrategy);
         }
         return subActorConfig;
     }
 
-    private static ConsumerConfig consumerConfig(final ConsumerConfig subActorConfig,
-                                                 final ConsumerConfig parentConsumerConfig) {
+    private ConsumerConfig consumerConfig(final ConsumerConfig subActorConfig,
+                                          final ConsumerConfig parentConsumerConfig) {
         if (Objects.isNull(subActorConfig)) {
-            return MapperUtils.clone(parentConsumerConfig, ConsumerConfig.class);
+            return serDeProvider.clone(parentConsumerConfig, ConsumerConfig.class);
         }
 
         if (Objects.isNull(subActorConfig.getConnectionIsolationStrategy())) {
-            val isolationStrategy = MapperUtils.clone(parentConsumerConfig.getConnectionIsolationStrategy(), ConnectionIsolationStrategy.class);
+            val isolationStrategy = serDeProvider.clone(parentConsumerConfig.getConnectionIsolationStrategy(), ConnectionIsolationStrategy.class);
             subActorConfig.setConnectionIsolationStrategy(isolationStrategy);
         }
         return subActorConfig;

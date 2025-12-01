@@ -13,6 +13,7 @@ import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.observers.PublishObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -32,6 +33,7 @@ public class UnmanagedPublisher<Message> {
     private final RMQConnection connection;
     private final ObjectMapper mapper;
     private final ShardIdCalculator<Message> shardIdCalculator;
+    @Getter
     private final String queueName;
     private final RMQObserver observer;
     private Channel publishChannel;
@@ -286,8 +288,4 @@ public class UnmanagedPublisher<Message> {
         return config.isSharded() ? NamingUtils.getShardedQueueName(queueName, shardIdCalculator.calculateShardId(message)) : queueName;
     }
 
-    @VisibleForTesting
-    public String queueName() {
-        return queueName;
-    }
 }

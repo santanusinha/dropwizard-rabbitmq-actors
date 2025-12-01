@@ -2,12 +2,14 @@ package io.appform.dropwizard.actors.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.experimental.UtilityClass;
 
-@UtilityClass
-public class MapperUtils {
+public class SerDeProvider {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper;
+
+    public SerDeProvider(ObjectMapper mapper) {
+        this.mapper =  mapper;
+    }
 
     public <T> T deserialize(final byte[] data,
                              final Class<T> valueType) {
@@ -17,7 +19,7 @@ public class MapperUtils {
         try {
             return mapper.readValue(data, valueType);
         } catch (Exception e) {
-            throw new RuntimeException("ERROR in Deserilizing", e);
+            throw new RuntimeException("ERROR in Deserializing", e);
         }
     }
 
@@ -30,7 +32,7 @@ public class MapperUtils {
         try {
             return mapper.writeValueAsBytes(data);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("ERROR in serilizing", e);
+            throw new RuntimeException("ERROR in serializing", e);
         }
     }
 

@@ -81,7 +81,7 @@ class FlowActorTest {
                 val flowLevelPrefix = Arrays.asList(RMQ_CONFIG.getWorkers().get(flowType).getPrefix().split("\\."));
 
                 Assertions.assertNotNull(router);
-                val publisherQueueName = router.getActorImpl().getPublishActor().queueName();
+                val publisherQueueName = router.getActorImpl().getPublishActor().getQueueName();
                 Assertions.assertNotNull(publisherQueueName);
                 message.setExchangeName(String.join("-", publisherQueueName));
                 try {

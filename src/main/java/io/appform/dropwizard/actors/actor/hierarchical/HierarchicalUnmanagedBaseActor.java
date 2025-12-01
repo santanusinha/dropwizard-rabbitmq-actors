@@ -19,6 +19,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -80,7 +81,7 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
             try {
                 hierarchicalSubActor.start();
             } catch (Exception e) {
-                log.error("Unable to start worker: {}", hierarchicalSubActor);
+                log.error("Unable to start worker: {}", logSubActor(hierarchicalSubActor), e);
                 val errorMessage = "Unable to start worker: " + hierarchicalSubActor.getType();
                 throw new RabbitmqActorException(ErrorCode.INTERNAL_ERROR, errorMessage, e);
             }
@@ -93,11 +94,18 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
             try {
                 hierarchicalSubActor.stop();
             } catch (Exception e) {
-                log.error("Unable to stop worker: {}", hierarchicalSubActor);
+                log.error("Unable to stop worker: {}", logSubActor(hierarchicalSubActor), e);
                 val errorMessage = "Unable to stop worker: " + hierarchicalSubActor.getType();
                 throw new RabbitmqActorException(ErrorCode.INTERNAL_ERROR, errorMessage, e);
             }
         });
+    }
+
+    private String logSubActor(Actor<MessageType, ? extends Message> subActor) {
+        val innerActor = subActor.getActorImpl();
+        val publisherQueue = Objects.isNull(innerActor.getPublishActor()) ? "": innerActor.getPublishActor().getQueueName();
+        val consumerQueue = Objects.isNull(innerActor.getConsumeActor()) ? "": innerActor.getConsumeActor().getQueueName();
+        return String.format(" Type : %s, Publisher Queue: %s, Consumer Queue: %s", subActor.getType(), publisherQueue, consumerQueue);
     }
 
     public final long pendingMessagesCount() {
@@ -144,12 +152,13 @@ public class HierarchicalUnmanagedBaseActor<MessageType extends Enum<MessageType
     }
 
     private void initializeRouter() {
+        val hierarchicalRouterHelper = new HierarchicalRouterHelper(mapper);
         this.worker = new HierarchicalDataStoreSupplierTree<>(
                 messageType,
                 hierarchicalTreeConfig,
-                HierarchicalRouterUtils.actorConfigToSubActorConfigFunc,
+                HierarchicalRouterHelper.actorConfigToSubActorConfigFunc,
                 (routingKey, messageTypeKey, subActorConfig) -> new Actor<MessageType, Message>(messageType,
-                        HierarchicalRouterUtils.toActorConfig(messageType, routingKey, subActorConfig, hierarchicalTreeConfig.getDefaultData()),
+                        hierarchicalRouterHelper.toActorConfig(messageType, routingKey, subActorConfig, hierarchicalTreeConfig.getDefaultData()),
                         connectionRegistry,
                         mapper,
                         retryStrategyFactory,

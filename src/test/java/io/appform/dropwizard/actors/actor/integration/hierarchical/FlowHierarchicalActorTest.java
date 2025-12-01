@@ -1,7 +1,7 @@
 package io.appform.dropwizard.actors.actor.integration.hierarchical;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import io.appform.dropwizard.actors.actor.hierarchical.HierarchicalBaseActor;
+import io.appform.dropwizard.actors.actor.hierarchical.HierarchicalActor;
 import io.appform.dropwizard.actors.actor.integration.RMQIntegrationTestHelper;
 import io.appform.dropwizard.actors.actor.integration.data.ActionMessage;
 import io.appform.dropwizard.actors.actor.integration.data.C2CDataActionMessage;
@@ -25,7 +25,7 @@ class FlowHierarchicalActorTest {
     private final static RMQIntegrationTestHelper ROUTER_TEST_HELPER = new RMQIntegrationTestHelper();
     private final static FlowHierarchicalActorConfig<FlowType> RMQ_CONFIG = YamlReader.loadConfig("rmqHierarchical.yaml", new TypeReference<>() {
     });
-    private Map<FlowType, HierarchicalBaseActor<FlowType, ActionMessage>> actorActors;
+    private Map<FlowType, HierarchicalActor<FlowType, ActionMessage>> actorActors;
 
     @SneakyThrows
     public void createActors() {
@@ -90,12 +90,12 @@ class FlowHierarchicalActorTest {
                 Assertions.assertNotNull(router);
                 val worker = router.getActorImpl().getWorker().get(flowType, routingKey);
                 Assertions.assertNotNull(worker);
-                val publisherQueueName = worker.getActorImpl().getPublishActor().queueName();
+                val publisherQueueName = worker.getActorImpl().getPublishActor().getQueueName();
                 Assertions.assertNotNull(publisherQueueName);
                 val publisherQueueNameTokens = new LinkedHashSet<>(Arrays.stream(worker
                                 .getActorImpl()
                                 .getPublishActor()
-                                .queueName()
+                                .getQueueName()
                                 .split("\\."))
                         .filter(e -> !e.isBlank() && !flowLevelPrefix.contains(e))
                         .toList());

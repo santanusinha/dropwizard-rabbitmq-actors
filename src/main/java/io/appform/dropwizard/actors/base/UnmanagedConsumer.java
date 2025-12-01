@@ -14,6 +14,7 @@ import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -35,6 +36,7 @@ public class UnmanagedConsumer<Message> {
     private final MessageHandlingFunction<Message, Boolean> handlerFunction;
     private final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction;
     private final Function<Throwable, Boolean> errorCheckFunction;
+    @Getter
     private final String queueName;
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
@@ -107,11 +109,6 @@ public class UnmanagedConsumer<Message> {
                 .filter(StringUtils::isNotBlank)
                 .map(tagPrefix -> tagPrefix + "_" + consumerIndex)
                 .orElse(StringUtils.EMPTY);
-    }
-
-    @VisibleForTesting
-    public String queueName() {
-        return queueName;
     }
 
     private void channelClosedHandler(String queueName) {
