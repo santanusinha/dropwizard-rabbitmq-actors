@@ -9,6 +9,7 @@ import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
+import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
@@ -79,7 +80,7 @@ public class ExpiryMessagesTest {
         val actorConfig = new ActorConfig();
         actorConfig.setExchange("test-exchange-1");
         val publisher = new UnmanagedPublisher<>(
-                queueName, actorConfig, connection, objectMapper);
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig, connection, objectMapper);
         publisher.start();
 
         val message = ImmutableMap.of(
@@ -91,7 +92,8 @@ public class ExpiryMessagesTest {
 
         val expiredDeliveryCount = new AtomicInteger();
         val consumer = new UnmanagedConsumer<>(
-                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig.getPrefetchCount(), actorConfig.getConcurrency(),actorConfig.isSharded(), actorConfig.getShardCount() , actorConfig.getConsumer(), connection,
+                objectMapper, new RetryStrategyFactory().create(actorConfig.getRetryConfig()), new ExceptionHandlingFactory().create(actorConfig.getExceptionHandlerConfig()),
                 Map.class, this::handleForNoExpectedMsg, handleExpiredMessage(expiredDeliveryCount), (x) -> true);
         consumer.start();
 
@@ -115,11 +117,11 @@ public class ExpiryMessagesTest {
         val actorConfig = new ActorConfig();
         actorConfig.setExchange("test-exchange-1");
         actorConfig.setRetryConfig(CountLimitedFixedWaitRetryConfig.builder()
-                        .maxAttempts(2)
-                        .waitTime(io.dropwizard.util.Duration.milliseconds(100))
+                .maxAttempts(2)
+                .waitTime(io.dropwizard.util.Duration.milliseconds(100))
                 .build());
         val publisher = new UnmanagedPublisher<>(
-                queueName, actorConfig, connection, objectMapper);
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig, connection, objectMapper);
         publisher.start();
 
         val message = ImmutableMap.of(
@@ -131,7 +133,8 @@ public class ExpiryMessagesTest {
 
         val expiredDeliveryCount = new AtomicInteger();
         val consumer = new UnmanagedConsumer<>(
-                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig.getPrefetchCount(), actorConfig.getConcurrency(),actorConfig.isSharded(), actorConfig.getShardCount() , actorConfig.getConsumer(), connection,
+                objectMapper, new RetryStrategyFactory().create(actorConfig.getRetryConfig()), new ExceptionHandlingFactory().create(actorConfig.getExceptionHandlerConfig()),
                 Map.class, this::handleForNoExpectedMsg, handleExpectedMessageForReDelivery(expiredDeliveryCount), (x) -> true);
         consumer.start();
 
@@ -153,7 +156,7 @@ public class ExpiryMessagesTest {
         val actorConfig = new ActorConfig();
         actorConfig.setExchange("test-exchange-1");
         val publisher = new UnmanagedPublisher<>(
-                queueName, actorConfig, connection, objectMapper);
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig, connection, objectMapper);
         publisher.start();
 
         val message = ImmutableMap.of(
@@ -165,7 +168,8 @@ public class ExpiryMessagesTest {
 
         val normalDeliveryCount = new AtomicInteger();
         val consumer = new UnmanagedConsumer<>(
-                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig.getPrefetchCount(), actorConfig.getConcurrency(),actorConfig.isSharded(), actorConfig.getShardCount() , actorConfig.getConsumer(),connection,
+                objectMapper, new RetryStrategyFactory().create(actorConfig.getRetryConfig()), new ExceptionHandlingFactory().create(actorConfig.getExceptionHandlerConfig()),
                 Map.class, handleDelayedMessageConsumption(normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
         consumer.start();
 
@@ -187,7 +191,7 @@ public class ExpiryMessagesTest {
         val actorConfig = new ActorConfig();
         actorConfig.setExchange("test-exchange-1");
         val publisher = new UnmanagedPublisher<>(
-                queueName, actorConfig, connection, objectMapper);
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig, connection, objectMapper);
         publisher.start();
 
         val message = ImmutableMap.of(
@@ -197,7 +201,8 @@ public class ExpiryMessagesTest {
 
         val normalDeliveryCount = new AtomicInteger();
         val consumer = new UnmanagedConsumer<>(
-                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig.getPrefetchCount(), actorConfig.getConcurrency(),actorConfig.isSharded(), actorConfig.getShardCount() , actorConfig.getConsumer(), connection,
+                objectMapper, new RetryStrategyFactory().create(actorConfig.getRetryConfig()), new ExceptionHandlingFactory().create(actorConfig.getExceptionHandlerConfig()),
                 Map.class, handleExpectedMessage(1500, normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
         consumer.start();
 
@@ -218,7 +223,7 @@ public class ExpiryMessagesTest {
         val actorConfig = new ActorConfig();
         actorConfig.setExchange("test-exchange-1");
         val publisher = new UnmanagedPublisher<>(
-                queueName, actorConfig, connection, objectMapper);
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig, connection, objectMapper);
         publisher.start();
 
         val message = ImmutableMap.of(
@@ -227,7 +232,8 @@ public class ExpiryMessagesTest {
 
         val normalDeliveryCount = new AtomicInteger();
         val consumer = new UnmanagedConsumer<>(
-                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig.getPrefetchCount(), actorConfig.getConcurrency(),actorConfig.isSharded(), actorConfig.getShardCount() , actorConfig.getConsumer(), connection,
+                objectMapper, new RetryStrategyFactory().create(actorConfig.getRetryConfig()), new ExceptionHandlingFactory().create(actorConfig.getExceptionHandlerConfig()),
                 Map.class, handleExpectedMessage(1000, normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
         consumer.start();
 
@@ -249,7 +255,7 @@ public class ExpiryMessagesTest {
         val actorConfig = new ActorConfig();
         actorConfig.setExchange("test-exchange-1");
         val publisher = new UnmanagedPublisher<>(
-                queueName, actorConfig, connection, objectMapper);
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig, connection, objectMapper);
         publisher.start();
 
         val message = ImmutableMap.of(
@@ -260,7 +266,8 @@ public class ExpiryMessagesTest {
         Thread.sleep(1000);
         val normalDeliveryCount = new AtomicInteger();
         val consumer = new UnmanagedConsumer<>(
-                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig.getPrefetchCount(), actorConfig.getConcurrency(),actorConfig.isSharded(), actorConfig.getShardCount() , actorConfig.getConsumer(), connection,
+                objectMapper, new RetryStrategyFactory().create(actorConfig.getRetryConfig()), new ExceptionHandlingFactory().create(actorConfig.getExceptionHandlerConfig()),
                 Map.class, handleExpectedMessageWithDelay(1000, normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
         consumer.start();
 
@@ -280,7 +287,7 @@ public class ExpiryMessagesTest {
         val actorConfig = new ActorConfig();
         actorConfig.setExchange("test-exchange-1");
         val publisher = new UnmanagedPublisher<>(
-                queueName, actorConfig, connection, objectMapper);
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig, connection, objectMapper);
         publisher.start();
 
         val message = ImmutableMap.of(
@@ -290,7 +297,8 @@ public class ExpiryMessagesTest {
         publisher.publish(message);
         val normalDeliveryCount = new AtomicInteger();
         val consumer = new UnmanagedConsumer<>(
-                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig.getPrefetchCount(), actorConfig.getConcurrency(),actorConfig.isSharded(), actorConfig.getShardCount() , actorConfig.getConsumer(), connection,
+                objectMapper, new RetryStrategyFactory().create(actorConfig.getRetryConfig()), new ExceptionHandlingFactory().create(actorConfig.getExceptionHandlerConfig()),
                 Map.class, handleExpectedMessageWithDelay(0, normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
         consumer.start();
         Thread.sleep(500);

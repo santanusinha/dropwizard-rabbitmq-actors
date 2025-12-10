@@ -8,6 +8,7 @@ import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.actor.QueueType;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
+import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
@@ -69,7 +70,7 @@ public class UnmanagedConsumerTimeoutTest {
                 .concurrency(1)
                 .build();
         String queueName = "test-queue-timeout";
-        UnmanagedPublisher<Object> publisher = new UnmanagedPublisher<>(queueName, actorConfig, connection,
+        UnmanagedPublisher<Object> publisher = new UnmanagedPublisher<>(NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig, connection,
                 objectMapper);
         publisher.start();
 
@@ -80,8 +81,8 @@ public class UnmanagedConsumerTimeoutTest {
         CountDownLatch latch = new CountDownLatch(2);
         Thread t = new Thread(() -> {
             try {
-                UnmanagedConsumer<Map> consumer = new UnmanagedConsumer<>(queueName, actorConfig, connection,
-                        objectMapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(), Map.class,
+                UnmanagedConsumer<Map> consumer = new UnmanagedConsumer<>(NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig.getPrefetchCount(), actorConfig.getConcurrency(),actorConfig.isSharded(), actorConfig.getShardCount() , actorConfig.getConsumer(), connection,
+                        objectMapper, new RetryStrategyFactory().create(actorConfig.getRetryConfig()), new ExceptionHandlingFactory().create(actorConfig.getExceptionHandlerConfig()), Map.class,
                         (msg, metadata) -> {
                             testDataHolder.get()
                                     .put(seen.incrementAndGet(), metadata);

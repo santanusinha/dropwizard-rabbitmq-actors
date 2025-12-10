@@ -15,6 +15,7 @@ import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.ConsumerConfig;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
+import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
@@ -107,19 +108,21 @@ public class TagsBasedConsumerTest {
         assertEquals(StringUtils.EMPTY, actualTag, "Expected consumer tag not generated");
     }
 
-    private UnmanagedConsumer<String> createConsumer(String tagPrefix) throws IOException {
+    private UnmanagedConsumer<String> createConsumer(final String tagPrefix) throws IOException {
         when(actorConfig.getConcurrency()).thenReturn(1);
         when(actorConfig.getPrefix()).thenReturn("test-prefix");
         when(actorConfig.isSharded()).thenReturn(false);
         when(actorConfig.getShardCount()).thenReturn(1);
-        when(actorConfig.getConsumer()).thenReturn(ConsumerConfig.builder().tagPrefix(tagPrefix).build());
+        when(actorConfig.getConsumer()).thenReturn(ConsumerConfig.builder()
+                .tagPrefix(tagPrefix)
+                .build());
         when(rmqConnection.newChannel()).thenReturn(channel);
 
-        when(retryStrategyFactory.create(any())).thenReturn(retryStrategy);
-        when(exceptionHandlingFactory.create(any())).thenReturn(exceptionHandler);
 
-        final UnmanagedConsumer<String> consumer = new UnmanagedConsumer<>("test-name", actorConfig, rmqConnection,
-                objectMapper, retryStrategyFactory, exceptionHandlingFactory, String.class, handlerFunction,
+        final UnmanagedConsumer<String> consumer = new UnmanagedConsumer<>(NamingUtils.queueName(actorConfig.getPrefix(), "test-name"), actorConfig.getPrefetchCount(),
+                actorConfig.getConcurrency(), actorConfig.isSharded(), actorConfig.getShardCount(),
+                actorConfig.getConsumer(), rmqConnection,
+                objectMapper, retryStrategy, exceptionHandler, String.class, handlerFunction,
                 expiredMessageHandlingFunction, errorCheckFunction);
 
         return consumer;

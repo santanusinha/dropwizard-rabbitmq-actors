@@ -17,17 +17,11 @@
 package io.appform.dropwizard.actors.actor;
 
 import io.appform.dropwizard.actors.TtlConfig;
-import io.appform.dropwizard.actors.common.Constants;
-import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
 import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConfig;
 import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
 import io.dropwizard.validation.ValidationMethod;
-
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
@@ -44,12 +38,13 @@ import lombok.ToString;
  * Configuration for an actor
  */
 @Data
-@EqualsAndHashCode
-@ToString
-@AllArgsConstructor
-@NoArgsConstructor
 @Builder
+@ToString
+@EqualsAndHashCode
+@NoArgsConstructor
+@AllArgsConstructor
 public class ActorConfig {
+
     @NotNull
     @NotEmpty
     private String exchange;
@@ -99,8 +94,8 @@ public class ActorConfig {
     @Builder.Default
     private int prefetchCount = 1;
 
-    @NotNull
     @Valid
+    @NotNull
     @Builder.Default
     private RetryConfig retryConfig = new NoRetryConfig();
 
@@ -119,8 +114,19 @@ public class ActorConfig {
     @Max(32)
     private Integer shardCount;
 
+    @Valid
+    private SidelineProcessorConfig sidelineProcessorConfig;
+
+    public boolean isSidelineProcessorEnabled() {
+        return Objects.nonNull(sidelineProcessorConfig);
+    }
+
     public boolean isSharded() {
         return Objects.nonNull(shardCount);
+    }
+
+    public int getShardCount() {
+        return Objects.nonNull(shardCount) ? shardCount : 0;
     }
 
     @ValidationMethod(message = "Concurrency should be multiple of shard count for sharded queue.")
@@ -128,36 +134,10 @@ public class ActorConfig {
         return !isSharded() || getConcurrency() % getShardCount() == 0;
     }
 
-    @ValidationMethod(message = "Custom connection names should be different from default connection names")
-    public boolean isCustomConnectionNamesValid() {
-
-        if (Objects.isNull(producer) && Objects.isNull(consumer)) {
-            return true;
-        }
-
-        AtomicBoolean validConnectionNames = new AtomicBoolean(true);
-
-        getConnectionNames().forEach(connectionName -> {
-            if (Constants.DEFAULT_CONNECTIONS.contains(connectionName)) {
-                validConnectionNames.set(false);
-            }
-        });
-
-        return validConnectionNames.get();
-    }
-
-    private Set<String> getConnectionNames() {
-        Set<String> proposedConnectionNames = new HashSet<>();
-        if (Objects.nonNull(producer) && Objects.nonNull(producer.getConnectionIsolationStrategy()) &&
-                producer.getConnectionIsolationStrategy() instanceof SharedConnectionStrategy) {
-            proposedConnectionNames.add(((SharedConnectionStrategy) producer.getConnectionIsolationStrategy()).getName());
-        }
-        if (Objects.nonNull(consumer) && Objects.nonNull(consumer.getConnectionIsolationStrategy()) &&
-                consumer.getConnectionIsolationStrategy() instanceof SharedConnectionStrategy) {
-            proposedConnectionNames.add(((SharedConnectionStrategy) consumer.getConnectionIsolationStrategy()).getName());
-        }
-
-        return proposedConnectionNames;
+    @ValidationMethod(message = "SidelineProcessor Concurrency should be multiple of shard count for sharded queue.")
+    public boolean isValidShardingSidelineProcessor() {
+        return !isSharded() || !isSidelineProcessorEnabled()
+                || getSidelineProcessorConfig().getConcurrency() % getShardCount() == 0;
     }
 
 }

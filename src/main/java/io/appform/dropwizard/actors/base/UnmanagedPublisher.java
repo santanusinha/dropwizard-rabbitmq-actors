@@ -1,7 +1,6 @@
 package io.appform.dropwizard.actors.base;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -9,6 +8,7 @@ import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
+import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.observers.PublishObserverContext;
@@ -22,19 +22,15 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
-
 @Slf4j
 public class UnmanagedPublisher<Message> {
 
-    private final String name;
+    @Getter
+    private final String queueName;
     private final ActorConfig config;
     private final RMQConnection connection;
     private final ObjectMapper mapper;
     private final ShardIdCalculator<Message> shardIdCalculator;
-    @Getter
-    private final String queueName;
     private final RMQObserver observer;
     private Channel publishChannel;
 
@@ -50,18 +46,16 @@ public class UnmanagedPublisher<Message> {
              mapper);
     }
 
-    public UnmanagedPublisher(
-            String name,
-            ActorConfig config,
-            ShardIdCalculator<Message> shardIdCalculator,
-            RMQConnection connection,
-            ObjectMapper mapper) {
-        this.name = NamingUtils.prefixWithNamespace(name);
+    public UnmanagedPublisher(final String queueName,
+                              final ActorConfig config,
+                              final ShardIdCalculator<Message> shardIdCalculator,
+                              final RMQConnection connection,
+                              final ObjectMapper mapper) {
+        this.queueName = queueName;
         this.config = config;
         this.shardIdCalculator = shardIdCalculator;
         this.connection = connection;
         this.mapper = mapper;
-        this.queueName = NamingUtils.queueName(config.getPrefix(), name);
         this.observer = connection.getRootObserver();
     }
 
@@ -140,7 +134,8 @@ public class UnmanagedPublisher<Message> {
         if (properties.getHeaders() != null) {
             enrichedHeaders.putAll(properties.getHeaders());
         }
-        enrichedHeaders.put(MESSAGE_PUBLISHED_TEXT, Instant.now().toEpochMilli());
+        enrichedHeaders.put(Constants.MESSAGE_PUBLISHED_TEXT, Instant.now()
+                .toEpochMilli());
         return properties.builder()
                 .headers(Collections.unmodifiableMap(enrichedHeaders))
                 .build();
@@ -163,9 +158,9 @@ public class UnmanagedPublisher<Message> {
         if (expiryInMs <= 0) {
             return properties;
         }
-        val expiresAt = Instant.now().toEpochMilli() + expiryInMs;
-        return new AMQP.BasicProperties.Builder()
-                .headers(ImmutableMap.of(MESSAGE_EXPIRY_TEXT, expiresAt))
+        val expiresAt = Instant.now()
+                .toEpochMilli() + expiryInMs;
+        return new AMQP.BasicProperties.Builder().headers(ImmutableMap.of(Constants.MESSAGE_EXPIRY_TEXT, expiresAt))
                 .build();
     }
 
@@ -191,6 +186,15 @@ public class UnmanagedPublisher<Message> {
     public final long pendingSidelineMessagesCount() {
         try {
             return publishChannel.messageCount(NamingUtils.getSideline(queueName));
+        } catch (IOException e) {
+            log.error("Issue getting message count. Will return max", e);
+        }
+        return Long.MAX_VALUE;
+    }
+
+    public final long pendingSidelineProcessorMessagesCount() {
+        try {
+            return publishChannel.messageCount(NamingUtils.getSidelineProcessor(queueName));
         } catch (IOException e) {
             log.error("Issue getting message count. Will return max", e);
         }
@@ -226,6 +230,30 @@ public class UnmanagedPublisher<Message> {
                     queueName,
                     ttlExchange(config),
                     connection.rmqOpts(exchange, config));
+        }
+
+        if (config.isSidelineProcessorEnabled()) {
+            final var sidelineProcessorExchange = NamingUtils.getSidelineProcessor(config.getExchange());
+            ensureExchange(sidelineProcessorExchange);
+
+            final var sidelineProcessorQueue = NamingUtils.getSidelineProcessor(queueName);
+
+            if(config.isSharded())
+            {
+                int bound = config.getShardCount();
+
+                for (int shardId = 0; shardId < bound ; shardId++)
+                {
+                    String shardedQueueName = NamingUtils.getShardedQueueName(sidelineProcessorQueue, shardId);
+                    connection.ensure(shardedQueueName, sidelineProcessorExchange, connection.rmqOpts(dlx, config));
+                    connection.addBinding(sidelineQueueName, dlx, shardedQueueName);
+                }
+            }
+            else
+            {
+                connection.ensure(sidelineProcessorQueue, sidelineProcessorExchange, connection.rmqOpts(dlx, config));
+                connection.addBinding(sidelineQueueName, dlx, sidelineProcessorQueue);
+            }
         }
     }
 
@@ -264,14 +292,14 @@ public class UnmanagedPublisher<Message> {
 
     public void stop() throws Exception {
         try {
-            if(publishChannel.isOpen()) {
+            if (publishChannel.isOpen()) {
                 publishChannel.close();
-                log.info("Publisher channel closed for [{}] with prefix [{}]", name, config.getPrefix());
+                log.info("Publisher channel closed for queue [{}]", queueName);
             } else {
-                log.warn("Publisher channel already closed for [{}] with prefix [{}]", name, config.getPrefix());
+                log.warn("Publisher channel already closed for queue [{}]", queueName);
             }
         } catch (Exception e) {
-            log.error(String.format("Error closing publisher channel for [%s] with prefix [%s]", name, config.getPrefix()), e);
+            log.error(String.format("Error closing publisher channel for queue [%s]", queueName), e);
             throw e;
         }
     }

@@ -9,4 +9,10 @@ public class NamingUtilsTest {
     public void shouldReturnSidelineQueueName() {
         Assertions.assertEquals("app.TEST_QUEUE_SIDELINE", NamingUtils.getSideline("app" + ".TEST_QUEUE"));
     }
+
+
+    @Test
+    public void shouldReturnSidelineProcessorQueueName() {
+        Assertions.assertEquals("app.TEST_QUEUE_SIDELINE_PROCESSOR", NamingUtils.getSidelineProcessor("app" + ".TEST_QUEUE"));
+    }
 }

@@ -1,19 +1,15 @@
 package io.appform.dropwizard.actors.base;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
 import com.rabbitmq.client.Channel;
-import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.ConsumerConfig;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
-import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
-import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -27,53 +23,61 @@ import java.util.function.Function;
 @Slf4j
 public class UnmanagedConsumer<Message> {
 
-    private final String name;
-    private final ActorConfig config;
+    @Getter
+    private final String queueName;
+    private final int prefetchCount;
+    private final int concurrency;
+    private final boolean isSharded;
+    private final int shardCount;
+    private final ConsumerConfig consumerConfig;
     private final RMQConnection connection;
     private final ObjectMapper mapper;
     private final Class<? extends Message> clazz;
-    private final int prefetchCount;
     private final MessageHandlingFunction<Message, Boolean> handlerFunction;
     private final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction;
     private final Function<Throwable, Boolean> errorCheckFunction;
-    @Getter
-    private final String queueName;
     private final RetryStrategy retryStrategy;
     private final ExceptionHandler exceptionHandler;
     private final RMQObserver observer;
     private final List<Handler<Message>> handlers = new CopyOnWriteArrayList<>();
     private int consumerIndex = 1;
 
-    public UnmanagedConsumer(final String name,
-                             final ActorConfig config,
+    public UnmanagedConsumer(final String queueName,
+                             final int prefetchCount,
+                             final int concurrency,
+                             final boolean isSharded,
+                             final int shardCount,
+                             final ConsumerConfig consumerConfig,
                              final RMQConnection connection,
                              final ObjectMapper mapper,
-                             final RetryStrategyFactory retryStrategyFactory,
-                             final ExceptionHandlingFactory exceptionHandlingFactory,
+                             final RetryStrategy retryStrategy,
+                             final ExceptionHandler exceptionHandler,
                              final Class<? extends Message> clazz,
                              final MessageHandlingFunction<Message, Boolean> handlerFunction,
                              final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
                              final Function<Throwable, Boolean> errorCheckFunction) {
-        this.name = NamingUtils.prefixWithNamespace(name);
-        this.config = config;
         this.connection = connection;
         this.mapper = mapper;
         this.clazz = clazz;
-        this.prefetchCount = config.getPrefetchCount();
+        this.prefetchCount = prefetchCount;
         this.handlerFunction = handlerFunction;
         this.expiredMessageHandlingFunction = expiredMessageHandlingFunction;
         this.errorCheckFunction = errorCheckFunction;
-        this.queueName = NamingUtils.queueName(config.getPrefix(), name);
-        this.retryStrategy = retryStrategyFactory.create(config.getRetryConfig());
-        this.exceptionHandler = exceptionHandlingFactory.create(config.getExceptionHandlerConfig());
+        this.concurrency = concurrency;
+        this.isSharded = isSharded;
+        this.shardCount = shardCount;
+        this.consumerConfig = consumerConfig;
+        this.queueName = queueName;
+        this.retryStrategy = retryStrategy;
+        this.exceptionHandler = exceptionHandler;
         this.observer = connection.getRootObserver();
     }
 
     public void start() throws Exception {
-        for (int i = 1; i <= config.getConcurrency(); i++) {
+        for (int i = 1; i <= concurrency; i++) {
             String queueNameForConsumption;
-            if (config.isSharded()) {
-                queueNameForConsumption = NamingUtils.getShardedQueueName(queueName, i % config.getShardCount());
+            if (isSharded) {
+                queueNameForConsumption = NamingUtils.getShardedQueueName(queueName, i % shardCount);
             } else {
                 queueNameForConsumption = queueName;
             }
@@ -85,7 +89,7 @@ public class UnmanagedConsumer<Message> {
         handlers.forEach(handler -> {
             try {
                 final Channel channel = handler.getChannel();
-                if(channel.isOpen()) {
+                if (channel.isOpen()) {
                     channel.basicCancel(handler.getTag());
                     //Wait till the handler completes consuming and ack'ing the current message.
                     log.info("Waiting for handler to complete processing the current message..");
@@ -93,18 +97,19 @@ public class UnmanagedConsumer<Message> {
                         // wait for the handler to complete processing the current message
                     }
                     channel.close();
-                    log.info("Consumer channel closed for [{}] with prefix [{}]", name, config.getPrefix());
+                    log.info("Consumer channel closed for queue [{}]", queueName);
                 } else {
-                    log.warn("Consumer channel already closed for [{}] with prefix [{}]", name, config.getPrefix());
+                    log.warn("Consumer channel already closed for queue [{}]", queueName);
                 }
-            } catch (Exception e) {
-                log.error(String.format("Error closing consumer channel [%s] for [%s] with prefix [%s]", handler.getTag(), name, config.getPrefix()), e);
+            } catch (final Exception e) {
+                log.error(String.format("Error closing consumer channel [%s] for queue [%s]", handler.getTag(),
+                        queueName), e);
             }
         });
     }
 
     private String getConsumerTag(int consumerIndex) {
-        return Optional.ofNullable(config.getConsumer())
+        return Optional.ofNullable(consumerConfig)
                 .map(ConsumerConfig::getTagPrefix)
                 .filter(StringUtils::isNotBlank)
                 .map(tagPrefix -> tagPrefix + "_" + consumerIndex)
@@ -125,7 +130,8 @@ public class UnmanagedConsumer<Message> {
         consumeChannel.addShutdownListener(shutdownSignalException -> {
             // This needs to be run in a separate thread to avoid deadlock
             CompletableFuture.runAsync(() -> {
-                log.error("Channel shutdown signal exception received for queue {}", queueName, shutdownSignalException);
+                log.error("Channel shutdown signal exception received for queue {}", queueName,
+                        shutdownSignalException);
                 channelClosedHandler(queueName);
             });
         });
@@ -134,7 +140,7 @@ public class UnmanagedConsumer<Message> {
         final String tag = consumeChannel.basicConsume(queueName, false, getConsumerTag(consumerIndex++), handler);
         handler.setTag(tag);
         handlers.add(handler);
-        log.info("Started consumer for queue {} with tag {}", name, tag);
+        log.info("Started consumer for queue {} with tag {}", queueName, tag);
     }
 
 }

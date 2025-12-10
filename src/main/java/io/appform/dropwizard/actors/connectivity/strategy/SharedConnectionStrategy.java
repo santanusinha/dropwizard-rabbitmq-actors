@@ -1,6 +1,8 @@
 package io.appform.dropwizard.actors.connectivity.strategy;
 
 import io.appform.dropwizard.actors.actor.ConnectionIsolationLevel;
+import io.appform.dropwizard.actors.common.Constants;
+import io.dropwizard.validation.ValidationMethod;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -31,5 +33,11 @@ public class SharedConnectionStrategy extends ConnectionIsolationStrategy {
     @Override
     public <T> T accept(ConnectionIsolationStrategyVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    @ValidationMethod(message = "Custom connection names should be different from default connection names")
+    public boolean isCustomConnectionNamesValid() {
+
+        return !Constants.DEFAULT_CONNECTIONS.contains(this.name);
     }
 }
