@@ -1,0 +1,13 @@
+workers:
+  FLOW_ONE:
+    exchange: test.actors.flowone
+    delayed: false
+    prefix: test.actors.flowone
+    concurrency: 1
+    shardCount: 1
+  FLOW_TWO:
+    exchange: test.actors.flowtwo
+    delayed: false
+    prefix: test.actors.flowtwo
+    concurrency: 1
+    shardCount: 1

@@ -44,7 +44,7 @@ import org.apache.commons.lang3.ClassUtils;
 @EqualsAndHashCode
 @ToString
 @Slf4j
-public abstract class BaseActor<Message> implements Managed {
+public abstract class BaseActor<Message> implements IBaseActor<Message> {
 
     private final UnmanagedBaseActor<Message> actorImpl;
     private final Set<Class<?>> droppedExceptionTypes;
@@ -207,14 +207,17 @@ public abstract class BaseActor<Message> implements Managed {
                 .anyMatch(exceptionType -> ClassUtils.isAssignable(t.getClass(), exceptionType));
     }
 
+    @Override
     public final void publishWithDelay(final Message message, final long delayMilliseconds) throws Exception {
         actorImpl.publishWithDelay(message, delayMilliseconds);
     }
 
+    @Override
     public final void publishWithExpiry(final Message message, final long expiryInMs) throws Exception {
         actorImpl.publishWithExpiry(message, expiryInMs);
     }
 
+    @Override
     public final void publish(final Message message) throws Exception {
         val properties = new AMQP.BasicProperties.Builder()
                 .deliveryMode(2)
@@ -223,14 +226,17 @@ public abstract class BaseActor<Message> implements Managed {
         publish(message, properties);
     }
 
+    @Override
     public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
         actorImpl.publish(message, properties);
     }
 
+    @Override
     public final long pendingMessagesCount() {
         return actorImpl.pendingMessagesCount();
     }
 
+    @Override
     public final long pendingSidelineMessagesCount() {
         return actorImpl.pendingSidelineMessagesCount();
     }

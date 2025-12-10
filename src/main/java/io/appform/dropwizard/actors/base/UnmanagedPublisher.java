@@ -13,6 +13,7 @@ import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.observers.PublishObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -24,6 +25,7 @@ import java.util.HashMap;
 @Slf4j
 public class UnmanagedPublisher<Message> {
 
+    @Getter
     private final String queueName;
     private final ActorConfig config;
     private final RMQConnection connection;
@@ -313,4 +315,5 @@ public class UnmanagedPublisher<Message> {
     private String getRoutingKey(Message message) {
         return config.isSharded() ? NamingUtils.getShardedQueueName(queueName, shardIdCalculator.calculateShardId(message)) : queueName;
     }
+
 }

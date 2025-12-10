@@ -41,6 +41,18 @@ public abstract class Actor<MessageType extends Enum<MessageType>, Message> exte
 
     private MessageType type;
 
+    /**
+     *  <p>Deprecated : This is constructor to create RMQ Actor instance</p>
+     *
+     * @param type Enum will be used to categories message
+     * @param config Actor level config
+     * @param connection RMQ connection registry
+     * @param mapper Data Serde mapper
+     * @param retryStrategyFactory Config to retry message
+     * @param exceptionHandlingFactory Config to handle exception if raised
+     * @param clazz Parent message clazz which actor will be processing
+     * @param droppedExceptionTypes ignored exceptions set
+     */
     @Deprecated
     protected Actor(
             MessageType type,
@@ -56,6 +68,18 @@ public abstract class Actor<MessageType extends Enum<MessageType>, Message> exte
         this.type = type;
     }
 
+    /**
+     * <p>This is constructor to create RMQ Actor instance</p>
+     *
+     * @param type Enum will be used to categories message
+     * @param config Actor level config
+     * @param connectionRegistry RMQ connection registry
+     * @param mapper Data Serde mapper
+     * @param retryStrategyFactory Config to retry message
+     * @param exceptionHandlingFactory Config to handle exception if raised
+     * @param clazz Parent message clazz which actor will be processing
+     * @param droppedExceptionTypes ignored exceptions set
+     */
     protected Actor(
             MessageType type,
             ActorConfig config,
