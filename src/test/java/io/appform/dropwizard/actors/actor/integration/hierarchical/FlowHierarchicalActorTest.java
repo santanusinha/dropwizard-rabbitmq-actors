@@ -4,8 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.appform.dropwizard.actors.actor.hierarchical.HierarchicalActor;
 import io.appform.dropwizard.actors.actor.integration.RMQIntegrationTestHelper;
 import io.appform.dropwizard.actors.actor.integration.data.ActionMessage;
-import io.appform.dropwizard.actors.actor.integration.data.C2CDataActionMessage;
-import io.appform.dropwizard.actors.actor.integration.data.C2MDataActionMessage;
+import io.appform.dropwizard.actors.actor.integration.data.OneDataActionMessage;
+import io.appform.dropwizard.actors.actor.integration.data.TwoDataActionMessage;
 import io.appform.dropwizard.actors.actor.integration.data.FlowType;
 import io.appform.dropwizard.actors.actor.hierarchical.tree.key.RoutingKey;
 import io.appform.dropwizard.actors.utils.YamlReader;
@@ -55,28 +55,28 @@ class FlowHierarchicalActorTest {
         createActors();
         val messages = Map.of(
                 RoutingKey.builder().list(List.of("")).build(),
-                C2MDataActionMessage.builder()
-                        .data("C2M")
+                OneDataActionMessage.builder()
+                        .data("FLOW_ONE")
                         .build(),
 
-                RoutingKey.builder().list(List.of("REGULAR", "JAR")).build(),
-                C2MDataActionMessage.builder()
-                        .data("C2M-REGULAR-JAR-SOME")
+                RoutingKey.builder().list(List.of("L1", "L2")).build(),
+                OneDataActionMessage.builder()
+                        .data("FLOW_ONE-L1-L2-SOME")
                         .build(),
 
-                RoutingKey.builder().list(List.of("REGULAR")).build(),
-                C2CDataActionMessage.builder()
-                        .data("C2C-REGULAR")
+                RoutingKey.builder().list(List.of("L1")).build(),
+                TwoDataActionMessage.builder()
+                        .data("FLOW_TWO-L1")
                         .build(),
 
-                RoutingKey.builder().list(List.of("C2C_AUTH_FLOW")).build(),
-                C2CDataActionMessage.builder()
-                        .data("C2C")
+                RoutingKey.builder().list(List.of("FLOW_TWO")).build(),
+                TwoDataActionMessage.builder()
+                        .data("L2")
                         .build(),
 
-                RoutingKey.builder().list(List.of("FULL_AUTH", "JAR")).build(),
-                C2MDataActionMessage.builder()
-                        .data("C2M-FULL_AUTH-JAR-SOME")
+                RoutingKey.builder().list(List.of("L2", "SOME")).build(),
+                OneDataActionMessage.builder()
+                        .data("FLOW_ONE-L2-L2-SOME")
                         .build()
         );
 
@@ -90,13 +90,17 @@ class FlowHierarchicalActorTest {
                 Assertions.assertNotNull(router);
                 val worker = router.getActorImpl().getWorker().get(flowType, routingKey);
                 Assertions.assertNotNull(worker);
-                val publisherQueueName = worker.getActorImpl().getPublishActor().getQueueName();
+                val publisher = worker.getActorImpl().getPublishActor();
+                val consumer = worker.getActorImpl().getConsumeActor();
+
+                val publisherQueueName = publisher.getQueueName();
+                val consumerQueueName = consumer.getQueueName();
                 Assertions.assertNotNull(publisherQueueName);
-                val publisherQueueNameTokens = new LinkedHashSet<>(Arrays.stream(worker
-                                .getActorImpl()
-                                .getPublishActor()
-                                .getQueueName()
-                                .split("\\."))
+                Assertions.assertNotNull(consumerQueueName);
+                val publisherQueueNameTokens = new LinkedHashSet<>(Arrays.stream(publisherQueueName.split("\\."))
+                        .filter(e -> !e.isBlank() && !flowLevelPrefix.contains(e))
+                        .toList());
+                val consumerQueueNameTokens = new LinkedHashSet<>(Arrays.stream(consumerQueueName.split("\\."))
                         .filter(e -> !e.isBlank() && !flowLevelPrefix.contains(e))
                         .toList());
 
@@ -104,6 +108,7 @@ class FlowHierarchicalActorTest {
                 expectedElementsInQueueName.add(flowType.name());
 
                 publisherQueueNameTokens.forEach(ele -> Assertions.assertTrue(expectedElementsInQueueName.contains(ele)));
+                consumerQueueNameTokens.forEach(ele -> Assertions.assertTrue(expectedElementsInQueueName.contains(ele)));
                 message.setExchangeName(String.join("-", expectedElementsInQueueName));
                 try {
                     router.publish(routingKey, message);

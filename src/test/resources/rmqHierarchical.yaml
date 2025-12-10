@@ -1,33 +1,33 @@
 workers:
-  C2M_AUTH_FLOW:
-    exchange: prod.mandate.actors
+  FLOW_ONE:
+    exchange: test.actors.flowone
     delayed: false
-    prefix: prod.mandate.actors
+    prefix: test.actors.flowone
     concurrency: 1
     shardCount: 1
     children:
-      REGULAR:
+      L1:
         nodeData:
           concurrency: 1
           shardCount: 2
         children:
-          HOTSTAR:
+          L1:
             nodeData:
               concurrency: 1
               shardCount: 1
-          JAR:
+          L2:
             nodeData:
               concurrency: 1
               shardCount: 1
-      FULL_AUTH:
+      L2:
         nodeData:
           concurrency: 1
           shardCount: 1
-  C2C_AUTH_FLOW:
+  FLOW_TWO:
     concurrency: 1
     shardCount: 1
     children:
-      REGULAR:
+      L1:
         nodeData:
           concurrency: 1
           shardCount: 1

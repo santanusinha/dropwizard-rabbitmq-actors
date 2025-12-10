@@ -2,7 +2,6 @@ package io.appform.dropwizard.actors.actor.integration.normal;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.appform.dropwizard.actors.actor.ActorConfig;
-import io.appform.dropwizard.actors.actor.hierarchical.HierarchicalActorConfig;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

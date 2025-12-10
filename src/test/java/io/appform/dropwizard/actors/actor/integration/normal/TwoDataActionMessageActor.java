@@ -5,14 +5,15 @@ import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.actor.integration.RMQIntegrationTestHelper;
 import io.appform.dropwizard.actors.actor.integration.data.ActionMessage;
-import io.appform.dropwizard.actors.actor.integration.data.C2MDataActionMessage;
+import io.appform.dropwizard.actors.actor.integration.data.TwoDataActionMessage;
 import io.appform.dropwizard.actors.actor.integration.data.FlowType;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class TwoDataActionMessageActor extends Actor<FlowType, ActionMessage> {
 
 
-public class C2MDataActionMessageActor extends Actor<FlowType, ActionMessage> {
-
-
-    public C2MDataActionMessageActor(final FlowType flowType,
+    public TwoDataActionMessageActor(final FlowType flowType,
                                      final ActorConfig config,
                                      final RMQIntegrationTestHelper routerTestHelper) {
         super(flowType,
@@ -21,13 +22,13 @@ public class C2MDataActionMessageActor extends Actor<FlowType, ActionMessage> {
                 routerTestHelper.getMapper(),
                 routerTestHelper.getRetryStrategyFactory(),
                 routerTestHelper.getExceptionHandlingFactory(),
-                C2MDataActionMessage.class,
+                TwoDataActionMessage.class,
                 routerTestHelper.getDroppedExceptionTypes());
     }
 
     @Override
     protected boolean handle(ActionMessage actionMessage, MessageMetadata messageMetadata) throws Exception {
-        System.out.println("C2M : " + actionMessage);
+        log.info("TWO : {}", actionMessage);
         return true;
     }
 }

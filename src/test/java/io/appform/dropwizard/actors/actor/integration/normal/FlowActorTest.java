@@ -4,8 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import io.appform.dropwizard.actors.actor.Actor;
 import io.appform.dropwizard.actors.actor.integration.RMQIntegrationTestHelper;
 import io.appform.dropwizard.actors.actor.integration.data.ActionMessage;
-import io.appform.dropwizard.actors.actor.integration.data.C2CDataActionMessage;
-import io.appform.dropwizard.actors.actor.integration.data.C2MDataActionMessage;
+import io.appform.dropwizard.actors.actor.integration.data.OneDataActionMessage;
+import io.appform.dropwizard.actors.actor.integration.data.TwoDataActionMessage;
 import io.appform.dropwizard.actors.actor.integration.data.FlowType;
 import io.appform.dropwizard.actors.utils.YamlReader;
 import lombok.SneakyThrows;
@@ -52,24 +52,24 @@ class FlowActorTest {
     void testRouter() {
         createActors();
         val messages = List.of(
-                C2MDataActionMessage.builder()
-                        .data("C2M")
+                TwoDataActionMessage.builder()
+                        .data("L2")
                         .build(),
 
-                C2MDataActionMessage.builder()
-                        .data("C2M-REGULAR-JAR-SOME")
+                TwoDataActionMessage.builder()
+                        .data("L2-L1-L2-SOME")
                         .build(),
 
-                C2CDataActionMessage.builder()
-                        .data("C2C-REGULAR")
+                OneDataActionMessage.builder()
+                        .data("L1-L1")
                         .build(),
 
-                C2CDataActionMessage.builder()
-                        .data("C2C")
+                OneDataActionMessage.builder()
+                        .data("L1")
                         .build(),
 
-                C2MDataActionMessage.builder()
-                        .data("C2M-FULL_AUTH-JAR-SOME")
+                TwoDataActionMessage.builder()
+                        .data("L2-L1-L1-SOME")
                         .build()
         );
 

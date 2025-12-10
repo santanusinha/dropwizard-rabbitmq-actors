@@ -18,12 +18,12 @@ public class FlowTypeHierarchicalActorBuilder implements FlowType.FlowTypeVisito
     }
 
     @Override
-    public HierarchicalActor<FlowType, ActionMessage> visitC2M() {
-        return new C2MDataActionMessageHierarchicalActor(FlowType.C2M_AUTH_FLOW, hierarchicalTreeConfig, routerTestHelper);
+    public HierarchicalActor<FlowType, ActionMessage> visitOne() {
+        return new OneDataActionMessageHierarchicalActor(FlowType.FLOW_ONE, hierarchicalTreeConfig, routerTestHelper);
     }
 
     @Override
-    public HierarchicalActor<FlowType, ActionMessage> visitC2C() {
-        return new C2CDataActionMessageHierarchicalActor(FlowType.C2C_AUTH_FLOW, hierarchicalTreeConfig, routerTestHelper);
+    public HierarchicalActor<FlowType, ActionMessage> visitTwo() {
+        return new TwoDataActionMessageHierarchicalActor(FlowType.FLOW_TWO, hierarchicalTreeConfig, routerTestHelper);
     }
 }

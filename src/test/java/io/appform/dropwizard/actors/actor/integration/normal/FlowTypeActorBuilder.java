@@ -18,12 +18,12 @@ public class FlowTypeActorBuilder implements FlowType.FlowTypeVisitor<Actor<Flow
     }
 
     @Override
-    public Actor<FlowType, ActionMessage> visitC2M() {
-        return new C2MDataActionMessageActor(FlowType.C2M_AUTH_FLOW, config, routerTestHelper);
+    public Actor<FlowType, ActionMessage> visitOne() {
+        return new OneDataActionMessageActor(FlowType.FLOW_ONE, config, routerTestHelper);
     }
 
     @Override
-    public Actor<FlowType, ActionMessage> visitC2C() {
-        return new C2CDataActionMessageActor(FlowType.C2C_AUTH_FLOW, config, routerTestHelper);
+    public Actor<FlowType, ActionMessage> visitTwo() {
+        return new TwoDataActionMessageActor(FlowType.FLOW_TWO, config, routerTestHelper);
     }
 }

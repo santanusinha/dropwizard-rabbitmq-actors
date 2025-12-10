@@ -1,25 +1,25 @@
 package io.appform.dropwizard.actors.actor.integration.data;
 
 public enum FlowType {
-    C2M_AUTH_FLOW {
+    FLOW_ONE {
         @Override
         public <T> T accept(FlowTypeVisitor<T> visitor) {
-            return visitor.visitC2M();
+            return visitor.visitOne();
         }
     },
-    C2C_AUTH_FLOW {
+    FLOW_TWO {
         @Override
         public <T> T accept(FlowTypeVisitor<T> visitor) {
-            return visitor.visitC2C();
+            return visitor.visitTwo();
         }
     };
 
-    public static final String C2M_AUTH_FLOW_TEXT = "C2M_AUTH_FLOW";
-    public static final String C2C_AUTH_FLOW_TEXT = "C2C_AUTH_FLOW";
+    public static final String FLOW_ONE_TEXT = "FLOW_ONE";
+    public static final String FLOW_TWO_TEXT = "FLOW_TWO";
 
     public abstract <T> T accept(FlowTypeVisitor<T> visitor);
     public interface FlowTypeVisitor<T> {
-        T visitC2M();
-        T visitC2C();
+        T visitOne();
+        T visitTwo();
     }
 }

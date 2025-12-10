@@ -5,14 +5,15 @@ import io.appform.dropwizard.actors.actor.hierarchical.HierarchicalActor;
 import io.appform.dropwizard.actors.actor.hierarchical.HierarchicalActorConfig;
 import io.appform.dropwizard.actors.actor.integration.RMQIntegrationTestHelper;
 import io.appform.dropwizard.actors.actor.integration.data.ActionMessage;
-import io.appform.dropwizard.actors.actor.integration.data.C2CDataActionMessage;
 import io.appform.dropwizard.actors.actor.integration.data.FlowType;
+import io.appform.dropwizard.actors.actor.integration.data.OneDataActionMessage;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class OneDataActionMessageHierarchicalActor extends HierarchicalActor<FlowType, ActionMessage> {
 
 
-public class C2CDataActionMessageHierarchicalActor extends HierarchicalActor<FlowType, ActionMessage> {
-
-
-    public C2CDataActionMessageHierarchicalActor(final FlowType flowType,
+    public OneDataActionMessageHierarchicalActor(final FlowType flowType,
                                                  final HierarchicalActorConfig hierarchicalTreeConfig,
                                                  final RMQIntegrationTestHelper routerTestHelper) {
         super(flowType,
@@ -21,13 +22,13 @@ public class C2CDataActionMessageHierarchicalActor extends HierarchicalActor<Flo
                 routerTestHelper.getMapper(),
                 routerTestHelper.getRetryStrategyFactory(),
                 routerTestHelper.getExceptionHandlingFactory(),
-                C2CDataActionMessage.class,
+                OneDataActionMessage.class,
                 routerTestHelper.getDroppedExceptionTypes());
     }
 
     @Override
     protected boolean handle(ActionMessage actionMessage, MessageMetadata messageMetadata) throws Exception {
-        System.out.println("C2C : " + actionMessage);
+        log.info("ONE : {}", actionMessage);
         return true;
     }
 }

@@ -14,8 +14,8 @@ import javax.validation.constraints.NotNull;
 @ToString
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(name = FlowType.C2M_AUTH_FLOW_TEXT, value = C2MDataActionMessage.class),
-        @JsonSubTypes.Type(name = FlowType.C2C_AUTH_FLOW_TEXT, value = C2CDataActionMessage.class)
+        @JsonSubTypes.Type(name = FlowType.FLOW_ONE_TEXT, value = OneDataActionMessage.class),
+        @JsonSubTypes.Type(name = FlowType.FLOW_TWO_TEXT, value = TwoDataActionMessage.class)
 })
 public abstract class ActionMessage {
 
