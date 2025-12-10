@@ -27,16 +27,15 @@ import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.dropwizard.lifecycle.Managed;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Set;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.ClassUtils;
-
-import java.util.Collections;
-import java.util.Date;
-import java.util.Set;
 
 /**
  * This is a managed wrapper for {@link UnmanagedBaseActor} this is managed and therefore started by D/W.
@@ -51,17 +50,18 @@ public abstract class BaseActor<Message> implements Managed {
     private final Set<Class<?>> droppedExceptionTypes;
 
     protected BaseActor(UnmanagedPublisher<Message> publishActor, Set<Class<?>> droppedExceptionTypes) {
-        this(publishActor, null, droppedExceptionTypes);
+        this(publishActor, null, null, droppedExceptionTypes);
     }
 
     protected BaseActor(UnmanagedConsumer<Message> consumeActor, Set<Class<?>> droppedExceptionTypes) {
-        this(null, consumeActor, droppedExceptionTypes);
+        this(null, consumeActor, null, droppedExceptionTypes);
     }
 
     protected BaseActor(UnmanagedPublisher<Message> produceActor,
                         UnmanagedConsumer<Message> consumeActor,
+                        UnmanagedConsumer<Message> sidelineProcessor,
                         Set<Class<?>> droppedExceptionTypes) {
-        actorImpl = new UnmanagedBaseActor<>(produceActor, consumeActor);
+        actorImpl = new UnmanagedBaseActor<>(produceActor, consumeActor, sidelineProcessor);
         this.droppedExceptionTypes = droppedExceptionTypes;
     }
 
@@ -109,7 +109,9 @@ public abstract class BaseActor<Message> implements Managed {
                                              exceptionHandlingFactory,
                                              clazz,
                                              this::handle,
+                                             this::handleSidelineProcessor,
                                              this::handleExpiredMessages,
+                                             this::handleExpiredMessagesSidelineProcessor,
                                              this::isExceptionIgnorable);
     }
 
@@ -155,7 +157,9 @@ public abstract class BaseActor<Message> implements Managed {
                                              exceptionHandlingFactory,
                                              clazz,
                                              this::handle,
+                                             this::handleSidelineProcessor,
                                              this::handleExpiredMessages,
+                                             this::handleExpiredMessagesSidelineProcessor,
                                              this::isExceptionIgnorable);
     }
 
@@ -171,6 +175,22 @@ public abstract class BaseActor<Message> implements Managed {
      */
     protected boolean handleExpiredMessages(Message message, MessageMetadata messageMetadata) throws Exception {
         return true;
+    }
+
+    /*
+       Override this method in your code for custom implementation for sidelineProcessor handling.
+    */
+    protected boolean handleSidelineProcessor(final Message message,
+                                              final MessageMetadata messageMetadata) throws Exception {
+        return handle(message, messageMetadata);
+    }
+
+    /*
+        Override this method in your code in case you want to handle the expired messages separately for sidelineProcessor
+    */
+    protected boolean handleExpiredMessagesSidelineProcessor(final Message message,
+                                                             final MessageMetadata messageMetadata) throws Exception {
+        return handleExpiredMessages(message, messageMetadata);
     }
 
     /*
@@ -213,6 +233,10 @@ public abstract class BaseActor<Message> implements Managed {
 
     public final long pendingSidelineMessagesCount() {
         return actorImpl.pendingSidelineMessagesCount();
+    }
+
+    public final long pendingSidelineProcessorMessagesCount() {
+        return actorImpl.pendingSidelineProcessorMessagesCount();
     }
 
     @Override

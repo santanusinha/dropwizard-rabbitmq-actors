@@ -13,8 +13,10 @@ public class Constants {
 
     public static final String DEFAULT_CONSUMER_CONNECTION_NAME = "__defaultconsumer";
 
+    public static final String DEFAULT_SIDELINE_PROCESSOR_CONNECTION_NAME = "__defaultsidelineprocessor";
+
     public static final Set<String> DEFAULT_CONNECTIONS = Sets.newHashSet(DEFAULT_PRODUCER_CONNECTION_NAME,
-            DEFAULT_CONSUMER_CONNECTION_NAME);
+            DEFAULT_CONSUMER_CONNECTION_NAME, DEFAULT_SIDELINE_PROCESSOR_CONNECTION_NAME);
     public static final int DEFAULT_THREADS_PER_CONNECTION = 10;
 
     public static final int MAX_THREADS_PER_CONNECTION = 300;

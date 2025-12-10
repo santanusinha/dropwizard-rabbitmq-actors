@@ -9,6 +9,7 @@ import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
+import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
@@ -72,7 +73,7 @@ public class MessageHeadersAccessibilityTest {
         val actorConfig = new ActorConfig();
         actorConfig.setExchange("test-exchange-1");
         val publisher = new UnmanagedPublisher<>(
-                queueName, actorConfig, connection, objectMapper);
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig, connection, objectMapper);
         publisher.start();
 
         val message = ImmutableMap.of(
@@ -82,8 +83,8 @@ public class MessageHeadersAccessibilityTest {
         publisher.publish(message, msgProperties);
 
         val consumer = new UnmanagedConsumer<>(
-                queueName, actorConfig, connection, objectMapper, new RetryStrategyFactory(),
-                new ExceptionHandlingFactory(),
+                NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig.getPrefetchCount(), actorConfig.getConcurrency(),actorConfig.isSharded(), actorConfig.getShardCount() , actorConfig.getConsumer(), connection,
+                objectMapper, new RetryStrategyFactory().create(actorConfig.getRetryConfig()), new ExceptionHandlingFactory().create(actorConfig.getExceptionHandlerConfig()),
                 Map.class,
                 (msg, metadata) -> {
                     testDataHolder.set(Map.of("MESSAGE", msg, "METADATA", metadata));

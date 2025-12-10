@@ -23,148 +23,175 @@ import io.appform.dropwizard.actors.base.RandomShardIdCalculator;
 import io.appform.dropwizard.actors.base.ShardIdCalculator;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
-import io.appform.dropwizard.actors.common.Constants;
+import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
-import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategy;
-import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategyVisitor;
-import io.appform.dropwizard.actors.connectivity.strategy.DefaultConnectionStrategy;
-import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
+import java.util.Objects;
+import java.util.function.Function;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.lang3.NotImplementedException;
-
-import java.util.function.Function;
-
-import static java.util.Objects.isNull;
-import static java.util.Objects.nonNull;
 
 /**
  * This actor can be derived to directly call start/stop. This is not Managed and will not be automatically started by
  * dropwizard.
  */
 @Data
-@EqualsAndHashCode
-@ToString
 @Slf4j
+@ToString
+@EqualsAndHashCode
 @SuppressWarnings("java:S107")
 public class UnmanagedBaseActor<Message> {
 
     private final UnmanagedPublisher<Message> publishActor;
     private final UnmanagedConsumer<Message> consumeActor;
+    private final UnmanagedConsumer<Message> sidelineProcessorActor;
 
-    public UnmanagedBaseActor(
-            UnmanagedPublisher<Message> publishActor,
-            UnmanagedConsumer<Message> consumeActor) {
+    public UnmanagedBaseActor(final UnmanagedPublisher<Message> publishActor,
+                              final UnmanagedConsumer<Message> consumeActor,
+                              final UnmanagedConsumer<Message> sidelineProcessorActor) {
         this.publishActor = publishActor;
         this.consumeActor = consumeActor;
+        this.sidelineProcessorActor = sidelineProcessorActor;
     }
 
-    public UnmanagedBaseActor(
-            String name,
-            ActorConfig config,
-            RMQConnection connection,
-            ObjectMapper mapper,
-            RetryStrategyFactory retryStrategyFactory,
-            ExceptionHandlingFactory exceptionHandlingFactory,
-            Class<? extends Message> clazz,
-            MessageHandlingFunction<Message, Boolean> handlerFunction,
-            MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
-            Function<Throwable, Boolean> errorCheckFunction) {
-        this(name,
-             config,
-             connection,
-             mapper,
-             new RandomShardIdCalculator<>(config),
-             retryStrategyFactory,
-             exceptionHandlingFactory,
-             clazz,
-             handlerFunction,
-             expiredMessageHandlingFunction,
-             errorCheckFunction);
+    public UnmanagedBaseActor(final String name,
+                              final ActorConfig config,
+                              final RMQConnection connection,
+                              final ObjectMapper mapper,
+                              final RetryStrategyFactory retryStrategyFactory,
+                              final ExceptionHandlingFactory exceptionHandlingFactory,
+                              final Class<? extends Message> clazz,
+                              final MessageHandlingFunction<Message, Boolean> handlerFunction,
+                              final MessageHandlingFunction<Message, Boolean> sidelineProcessorHandleFunction,
+                              final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
+                              final MessageHandlingFunction<Message, Boolean> sidelineProcessorExpiredMessageHandlingFunction,
+                              final Function<Throwable, Boolean> errorCheckFunction) {
+        this(name, config, connection, mapper, new RandomShardIdCalculator<>(config), retryStrategyFactory,
+                exceptionHandlingFactory, clazz, handlerFunction, sidelineProcessorHandleFunction,
+                expiredMessageHandlingFunction, sidelineProcessorExpiredMessageHandlingFunction, errorCheckFunction);
     }
 
-    public UnmanagedBaseActor(
-            String name,
-            ActorConfig config,
-            RMQConnection connection,
-            ObjectMapper mapper,
-            ShardIdCalculator<Message> shardIdCalculator,
-            RetryStrategyFactory retryStrategyFactory,
-            ExceptionHandlingFactory exceptionHandlingFactory,
-            Class<? extends Message> clazz,
-            MessageHandlingFunction<Message, Boolean> handlerFunction,
-            MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
-            Function<Throwable, Boolean> errorCheckFunction) {
-        this(new UnmanagedPublisher<>(name, config, shardIdCalculator, connection, mapper),
-             new UnmanagedConsumer<>(
-                     name, config, connection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
-                     handlerFunction, expiredMessageHandlingFunction, errorCheckFunction));
+    public UnmanagedBaseActor(final String name,
+                              final ActorConfig config,
+                              final RMQConnection connection,
+                              final ObjectMapper mapper,
+                              final ShardIdCalculator<Message> shardIdCalculator,
+                              final RetryStrategyFactory retryStrategyFactory,
+                              final ExceptionHandlingFactory exceptionHandlingFactory,
+                              final Class<? extends Message> clazz,
+                              final MessageHandlingFunction<Message, Boolean> handlerFunction,
+                              final MessageHandlingFunction<Message, Boolean> sidelineProcessorHandleFunction,
+                              final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
+                              final MessageHandlingFunction<Message, Boolean> sidelineProcessorExpiredMessageHandlingFunction,
+                              final Function<Throwable, Boolean> errorCheckFunction) {
+        this(name, config, connection, connection, connection, mapper, shardIdCalculator, retryStrategyFactory,
+                exceptionHandlingFactory, clazz, handlerFunction, sidelineProcessorHandleFunction,
+                expiredMessageHandlingFunction, sidelineProcessorExpiredMessageHandlingFunction, errorCheckFunction);
     }
 
-    public UnmanagedBaseActor(
-            String name,
-            ActorConfig config,
-            ConnectionRegistry connectionRegistry,
-            ObjectMapper mapper,
-            RetryStrategyFactory retryStrategyFactory,
-            ExceptionHandlingFactory exceptionHandlingFactory,
-            Class<? extends Message> clazz,
-            MessageHandlingFunction<Message, Boolean> handlerFunction,
-            MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
-            Function<Throwable, Boolean> errorCheckFunction) {
-        this(name,
-             config,
-             connectionRegistry,
-             mapper,
-             new RandomShardIdCalculator<>(config),
-             retryStrategyFactory,
-             exceptionHandlingFactory,
-             clazz,
-             handlerFunction,
-             expiredMessageHandlingFunction,
-             errorCheckFunction);
+    public UnmanagedBaseActor(final String name,
+                              final ActorConfig config,
+                              final ConnectionRegistry connectionRegistry,
+                              final ObjectMapper mapper,
+                              final RetryStrategyFactory retryStrategyFactory,
+                              final ExceptionHandlingFactory exceptionHandlingFactory,
+                              final Class<? extends Message> clazz,
+                              final MessageHandlingFunction<Message, Boolean> handlerFunction,
+                              final MessageHandlingFunction<Message, Boolean> sidelineProcessorHandleFunction,
+                              final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
+                              final MessageHandlingFunction<Message, Boolean> sidelineProcessorExpiredMessageHandlingFunction,
+                              final Function<Throwable, Boolean> errorCheckFunction) {
+        this(name, config, connectionRegistry, mapper, new RandomShardIdCalculator<>(config), retryStrategyFactory,
+                exceptionHandlingFactory, clazz, handlerFunction, sidelineProcessorHandleFunction,
+                expiredMessageHandlingFunction, sidelineProcessorExpiredMessageHandlingFunction, errorCheckFunction);
     }
 
-    public UnmanagedBaseActor(
-            String name,
-            ActorConfig config,
-            ConnectionRegistry connectionRegistry,
-            ObjectMapper mapper,
-            ShardIdCalculator<Message> shardIdCalculator,
-            RetryStrategyFactory retryStrategyFactory,
-            ExceptionHandlingFactory exceptionHandlingFactory,
-            Class<? extends Message> clazz,
-            MessageHandlingFunction<Message, Boolean> handlerFunction,
-            MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
-            Function<Throwable, Boolean> errorCheckFunction) {
-        val consumerConnection = connectionRegistry.createOrGet(consumerConnectionName(config.getConsumer()));
-        val producerConnection = connectionRegistry.createOrGet(producerConnectionName(config.getProducer()));
-        this.publishActor = new UnmanagedPublisher<>(name, config, shardIdCalculator, producerConnection, mapper);
-        this.consumeActor = new UnmanagedConsumer<>(
-                name, config, consumerConnection, mapper, retryStrategyFactory, exceptionHandlingFactory, clazz,
-                handlerFunction, expiredMessageHandlingFunction, errorCheckFunction);
+    public UnmanagedBaseActor(final String name,
+                              final ActorConfig config,
+                              final ConnectionRegistry connectionRegistry,
+                              final ObjectMapper mapper,
+                              final ShardIdCalculator<Message> shardIdCalculator,
+                              final RetryStrategyFactory retryStrategyFactory,
+                              final ExceptionHandlingFactory exceptionHandlingFactory,
+                              final Class<? extends Message> clazz,
+                              final MessageHandlingFunction<Message, Boolean> handlerFunction,
+                              final MessageHandlingFunction<Message, Boolean> sidelineProcessorHandleFunction,
+                              final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
+                              final MessageHandlingFunction<Message, Boolean> sidelineProcessorExpiredMessageHandlingFunction,
+                              final Function<Throwable, Boolean> errorCheckFunction) {
+
+        this(name, config, connectionRegistry.createOrGet(NamingUtils.producerConnectionName(config.getProducer())),
+                connectionRegistry.createOrGet(NamingUtils.consumerConnectionName(config.getConsumer())),
+                connectionRegistry.createOrGet(NamingUtils.sidelineProcessorConnectionName(
+                        config.getSidelineProcessorConfig())), mapper,
+                shardIdCalculator, retryStrategyFactory, exceptionHandlingFactory, clazz, handlerFunction,
+                sidelineProcessorHandleFunction, expiredMessageHandlingFunction,
+                sidelineProcessorExpiredMessageHandlingFunction, errorCheckFunction);
+    }
+
+    public UnmanagedBaseActor(final String name,
+                              final ActorConfig config,
+                              final RMQConnection producerConnection,
+                              final RMQConnection consumerConnection,
+                              final RMQConnection sidelineProcessorConnection,
+                              final ObjectMapper mapper,
+                              final ShardIdCalculator<Message> shardIdCalculator,
+                              final RetryStrategyFactory retryStrategyFactory,
+                              final ExceptionHandlingFactory exceptionHandlingFactory,
+                              final Class<? extends Message> clazz,
+                              final MessageHandlingFunction<Message, Boolean> handlerFunction,
+                              final MessageHandlingFunction<Message, Boolean> sidelineProcessorHandleFunction,
+                              final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
+                              final MessageHandlingFunction<Message, Boolean> sidelineProcessorExpiredMessageHandlingFunction,
+                              final Function<Throwable, Boolean> errorCheckFunction) {
+
+        this(new UnmanagedPublisher<>(NamingUtils.queueName(config.getPrefix(), name), config, shardIdCalculator,
+                        producerConnection, mapper),
+                new UnmanagedConsumer<>(NamingUtils.queueName(config.getPrefix(), name), config.getPrefetchCount(),
+                        config.getConcurrency(), config.isSharded(), config.getShardCount(), config.getConsumer(),
+                        consumerConnection, mapper, retryStrategyFactory.create(config.getRetryConfig()),
+                        exceptionHandlingFactory.create(config.getExceptionHandlerConfig()), clazz, handlerFunction,
+                        expiredMessageHandlingFunction, errorCheckFunction), config.isSidelineProcessorEnabled()
+                                                                             ? new UnmanagedConsumer<>(
+                        NamingUtils.sidelineProcessorQueueName(config.getPrefix(), name), config.getPrefetchCount(),
+                        config.getSidelineProcessorConfig()
+                                .getConcurrency(), config.isSharded(), config
+                        .getShardCount(), config.getSidelineProcessorConfig()
+                        .getConsumerConfig(),
+                        sidelineProcessorConnection, mapper, retryStrategyFactory.create(
+                        config.getSidelineProcessorConfig()
+                                .getRetryConfig()),
+                        exceptionHandlingFactory.create(config.getExceptionHandlerConfig()), clazz,
+                        sidelineProcessorHandleFunction, sidelineProcessorExpiredMessageHandlingFunction,
+                        errorCheckFunction)
+                                                                             : null);
     }
 
     public void start() throws Exception {
-        if (nonNull(publishActor)) {
+        if (Objects.nonNull(publishActor)) {
             publishActor.start();
         }
-        if (nonNull(consumeActor)) {
+        if (Objects.nonNull(consumeActor)) {
             consumeActor.start();
+        }
+        if (Objects.nonNull(sidelineProcessorActor)) {
+            sidelineProcessorActor.start();
         }
     }
 
     public void stop() throws Exception {
-        if (nonNull(publishActor)) {
+        if (Objects.nonNull(publishActor)) {
             publishActor.stop();
         }
-        if (nonNull(consumeActor)) {
+        if (Objects.nonNull(consumeActor)) {
             consumeActor.stop();
+        }
+        if (Objects.nonNull(sidelineProcessorActor)) {
+            sidelineProcessorActor.stop();
         }
     }
 
@@ -192,47 +219,14 @@ public class UnmanagedBaseActor<Message> {
         return publishActor().pendingSidelineMessagesCount();
     }
 
+    public final long pendingSidelineProcessorMessagesCount() {
+        return publishActor().pendingSidelineProcessorMessagesCount();
+    }
+
     private UnmanagedPublisher<Message> publishActor() {
-        if (isNull(publishActor)) {
+        if (Objects.isNull(publishActor)) {
             throw new NotImplementedException("PublishActor is not initialized");
         }
         return publishActor;
-    }
-
-    private String producerConnectionName(ProducerConfig producerConfig) {
-        if (producerConfig == null) {
-            return Constants.DEFAULT_PRODUCER_CONNECTION_NAME;
-        }
-        return deriveConnectionName(producerConfig.getConnectionIsolationStrategy(),
-                                    Constants.DEFAULT_PRODUCER_CONNECTION_NAME);
-    }
-
-    private String consumerConnectionName(ConsumerConfig consumerConfig) {
-        if (consumerConfig == null) {
-            return Constants.DEFAULT_CONSUMER_CONNECTION_NAME;
-        }
-
-        return deriveConnectionName(consumerConfig.getConnectionIsolationStrategy(),
-                                    Constants.DEFAULT_CONSUMER_CONNECTION_NAME);
-    }
-
-    private String deriveConnectionName(ConnectionIsolationStrategy isolationStrategy, String defaultConnectionName) {
-        if (isolationStrategy == null) {
-            return defaultConnectionName;
-        }
-
-        return isolationStrategy.accept(new ConnectionIsolationStrategyVisitor<>() {
-
-            @Override
-            public String visit(SharedConnectionStrategy strategy) {
-                return strategy.getName();
-            }
-
-            @Override
-            public String visit(DefaultConnectionStrategy strategy) {
-                return defaultConnectionName;
-            }
-
-        });
     }
 }

@@ -24,6 +24,10 @@ public class RabbitMQExtension implements BeforeEachCallback, AfterEachCallback,
                     DockerImageName.parse(RABBITMQ_DOCKER_IMAGE));
             rabbitMQContainer.withEnv(RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS,
                     String.format("-rabbit consumer_timeout %d", CONSUMER_TIMEOUT_MS));
+
+            rabbitMQContainer.withCommand("bash", "-c",
+                    "rabbitmq-plugins enable --offline rabbitmq_shovel rabbitmq_shovel_management && rabbitmq-server");
+
             rabbitMQContainer.start();
             log.info("Started RabbitMQ server on port {}", rabbitMQContainer.getMappedPort(5672));
             return rabbitMQContainer;

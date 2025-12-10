@@ -87,7 +87,7 @@ class RabbitmqActorBundleTest {
         val actorConfig = new ActorConfig();
         actorConfig.setExchange("test-exchange-1");
         val message = ImmutableMap.of("key", "value");
-        val publisher = new UnmanagedPublisher<>(queueName, actorConfig, connection, objectMapper);
+        val publisher = new UnmanagedPublisher<>(NamingUtils.queueName(actorConfig.getPrefix(), queueName), actorConfig, connection, objectMapper);
         Mockito.doReturn(channel).when(connection).channel();
         Mockito.doReturn(null).when(channel).exchangeDeclare(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyBoolean(), ArgumentMatchers.anyBoolean(), ArgumentMatchers.any());
         publisher.start();
@@ -105,7 +105,7 @@ class RabbitmqActorBundleTest {
         delayedActorConfig.setDelayType(DelayType.TTL);
         val message = ImmutableMap.of("key", "value");
         Mockito.doReturn(channel).when(connection).channel();
-        val delayedPublisher = new UnmanagedPublisher<>(delayedQueueName, delayedActorConfig, connection, objectMapper);
+        val delayedPublisher = new UnmanagedPublisher<>(NamingUtils.queueName(delayedActorConfig.getPrefix(), delayedQueueName), delayedActorConfig, connection, objectMapper);
         Mockito.doReturn(null).when(channel).exchangeDeclare(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyBoolean(), ArgumentMatchers.anyBoolean(), ArgumentMatchers.any());
         delayedPublisher.start();
 
