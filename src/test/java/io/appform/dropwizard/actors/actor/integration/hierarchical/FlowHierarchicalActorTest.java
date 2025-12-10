@@ -22,8 +22,8 @@ import java.util.stream.Collectors;
 
 class FlowHierarchicalActorTest {
 
-    private final static RMQIntegrationTestHelper ROUTER_TEST_HELPER = new RMQIntegrationTestHelper();
-    private final static FlowHierarchicalActorConfig<FlowType> RMQ_CONFIG = YamlReader.loadConfig("rmqHierarchical.yaml", new TypeReference<>() {
+    private static final RMQIntegrationTestHelper ROUTER_TEST_HELPER = new RMQIntegrationTestHelper();
+    private static final FlowHierarchicalActorConfig<FlowType> RMQ_CONFIG = YamlReader.loadConfig("rmqHierarchical.yaml", new TypeReference<>() {
     });
     private Map<FlowType, HierarchicalActor<FlowType, ActionMessage>> actorActors;
 

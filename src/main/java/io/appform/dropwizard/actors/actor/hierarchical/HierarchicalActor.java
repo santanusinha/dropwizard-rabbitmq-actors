@@ -33,6 +33,7 @@ public class HierarchicalActor<MessageType extends Enum<MessageType>, Message> i
 
     public static final RoutingKey EMPTY_ROUTING_KEY = RoutingKey.builder().build();
     private final HierarchicalUnmanagedBaseActor<MessageType, Message> actorImpl;
+    private final MessageType messageType;
 
     protected HierarchicalActor(
             MessageType messageType,
@@ -43,6 +44,7 @@ public class HierarchicalActor<MessageType extends Enum<MessageType>, Message> i
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
+        this.messageType = messageType;
         Set<Class<?>> droppedExceptionTypeSet = null == droppedExceptionTypes
                 ? Collections.emptySet() : droppedExceptionTypes;
         actorImpl = new HierarchicalUnmanagedBaseActor<>(messageType, hierarchicalActorConfig, connectionRegistry, mapper, retryStrategyFactory,
