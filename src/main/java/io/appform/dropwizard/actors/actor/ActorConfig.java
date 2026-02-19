@@ -92,6 +92,11 @@ public class ActorConfig {
     @Min(1)
     @Max(100)
     @Builder.Default
+    private int publisherConcurrency = 1;
+
+    @Min(1)
+    @Max(100)
+    @Builder.Default
     private int prefetchCount = 1;
 
     @Valid
@@ -138,6 +143,11 @@ public class ActorConfig {
     public boolean isValidShardingSidelineProcessor() {
         return !isSharded() || !isSidelineProcessorEnabled()
                 || getSidelineProcessorConfig().getConcurrency() % getShardCount() == 0;
+    }
+
+    @ValidationMethod(message = "Publisher Concurrency should be less than or equal to consumer concurrency.")
+    public boolean isValidPublisherConcurrency() {
+        return getPublisherConcurrency() <= getConcurrency();
     }
 
 }

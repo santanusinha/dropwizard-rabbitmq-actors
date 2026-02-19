@@ -21,6 +21,10 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
@@ -32,7 +36,7 @@ public class UnmanagedPublisher<Message> {
     private final ObjectMapper mapper;
     private final ShardIdCalculator<Message> shardIdCalculator;
     private final RMQObserver observer;
-    private Channel publishChannel;
+    private final List<Channel> publishChannels = new CopyOnWriteArrayList<>();
 
     public UnmanagedPublisher(
             String name,
@@ -59,6 +63,33 @@ public class UnmanagedPublisher<Message> {
         this.observer = connection.getRootObserver();
     }
 
+    private Channel getPublishChannel() {
+
+        final var randomInt = ThreadLocalRandom.current().nextInt(publishChannels.size());
+
+        log.debug("Fetching publish channel for queue [{}], total channels: {}, selected channel index: {}",
+                queueName, publishChannels.size(), randomInt);
+
+        return publishChannels.get(randomInt);
+    }
+
+    private void createPublishChannel() {
+        try {
+            val channel = connection.newChannel();
+            channel.addShutdownListener(shutdownSignalException -> {
+                CompletableFuture.runAsync(() -> {
+                    log.error("Publisher channel shutdown for queue {}", queueName, shutdownSignalException);
+                    publishChannels.remove(channel);
+                    createPublishChannel();
+                });
+            });
+            publishChannels.add(channel);
+            log.info("Created publisher channel for queue [{}], total channels: {}", queueName, publishChannels.size());
+        } catch (Exception e) {
+            throw RabbitmqActorException.propagate(e);
+        }
+    }
+
     public final void publishWithDelay(final Message message, final long delayMilliseconds) throws Exception {
         log.info("Publishing message to exchange with delay: {}", delayMilliseconds);
         val properties = getPropertiesWithDelay(delayMilliseconds);
@@ -77,7 +108,7 @@ public class UnmanagedPublisher<Message> {
                     .build();
             observer.executePublish(context, messageDetails -> {
                 try {
-                    publishChannel.basicPublish(ttlExchange(config),
+                    getPublishChannel().basicPublish(ttlExchange(config),
                             routingKey, messageDetails.getMessageProperties(),
                             mapper().writeValueAsBytes(message));
                 } catch (IOException e) {
@@ -120,7 +151,7 @@ public class UnmanagedPublisher<Message> {
         observer.executePublish(context, messageDetails -> {
             val enrichedProperties = getEnrichedProperties(messageDetails.getMessageProperties());
             try {
-                publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
+                getPublishChannel().basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
             } catch (IOException e) {
                 log.error("Error while publishing: {}", e);
                 throw RabbitmqActorException.propagate(e);
@@ -170,12 +201,12 @@ public class UnmanagedPublisher<Message> {
                 long messageCount  = 0 ;
                 for (int i = 0; i < config.getShardCount(); i++) {
                     String shardedQueueName = NamingUtils.getShardedQueueName(queueName, i);
-                    messageCount += publishChannel.messageCount(shardedQueueName);
+                    messageCount += getPublishChannel().messageCount(shardedQueueName);
                 }
                 return messageCount;
             }
             else {
-                return publishChannel.messageCount(queueName);
+                return getPublishChannel().messageCount(queueName);
             }
         } catch (IOException e) {
             log.error("Issue getting message count. Will return max", e);
@@ -185,7 +216,7 @@ public class UnmanagedPublisher<Message> {
 
     public final long pendingSidelineMessagesCount() {
         try {
-            return publishChannel.messageCount(NamingUtils.getSideline(queueName));
+            return getPublishChannel().messageCount(NamingUtils.getSideline(queueName));
         } catch (IOException e) {
             log.error("Issue getting message count. Will return max", e);
         }
@@ -194,7 +225,7 @@ public class UnmanagedPublisher<Message> {
 
     public final long pendingSidelineProcessorMessagesCount() {
         try {
-            return publishChannel.messageCount(NamingUtils.getSidelineProcessor(queueName));
+            return getPublishChannel().messageCount(NamingUtils.getSidelineProcessor(queueName));
         } catch (IOException e) {
             log.error("Issue getting message count. Will return max", e);
         }
@@ -211,7 +242,9 @@ public class UnmanagedPublisher<Message> {
         }
         ensureExchange(dlx);
 
-        this.publishChannel = connection.newChannel();
+        for (int i = 0; i < config.getPublisherConcurrency(); i++) {
+            createPublishChannel();
+        }
         String sidelineQueueName = NamingUtils.getSideline(queueName);
         connection.ensure(sidelineQueueName, queueName, dlx, connection.rmqOpts(config));
         if (config.isSharded()) {
@@ -291,17 +324,20 @@ public class UnmanagedPublisher<Message> {
     }
 
     public void stop() throws Exception {
-        try {
-            if (publishChannel.isOpen()) {
-                publishChannel.close();
-                log.info("Publisher channel closed for queue [{}]", queueName);
-            } else {
-                log.warn("Publisher channel already closed for queue [{}]", queueName);
+        for (Channel channel : publishChannels) {
+            try {
+                if (channel.isOpen()) {
+                    channel.close();
+                    log.info("Publisher channel closed for queue [{}]", queueName);
+                } else {
+                    log.warn("Publisher channel already closed for queue [{}]", queueName);
+                }
+            } catch (Exception e) {
+                log.error(String.format("Error closing publisher channel for queue [%s]", queueName), e);
             }
-        } catch (Exception e) {
-            log.error(String.format("Error closing publisher channel for queue [%s]", queueName), e);
-            throw e;
         }
+        publishChannels.clear();
+        log.info("All publisher channels stopped for queue [{}]", queueName);
     }
 
     protected final RMQConnection connection() {

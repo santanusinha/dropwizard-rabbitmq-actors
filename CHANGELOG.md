@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2.0.28-17
+
+- Added `publisherConcurrency` config in `ActorConfig` to support multiple publisher channels
+  for high-RPS scenarios. Channels are pooled using `CopyOnWriteArrayList` with random selection
+  and auto-recovery via `ShutdownListener`. Default value is 1 (backward compatible).
+
 ## 2.0.28-14
 
 - Introduced shard ID calculator interface, with random shard id as the default implementation.

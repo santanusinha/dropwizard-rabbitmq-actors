@@ -79,4 +79,37 @@ public class AsyncOperationHelper {
                         .build())
                 .build();
     }
+
+    /**
+     * Builds an ActorConfig with a custom publisherConcurrency value.
+     * Useful for testing multi-channel publisher pool behavior.
+     */
+    public static ActorConfig buildActorConfigWithPublisherConcurrency(int publisherConcurrency) {
+        List<String> routingKey = new ArrayList<>();
+        routingKey.add("testsuite");
+        routingKey.add("first");
+        return ActorConfig.builder()
+                .exchange("test.exchange")
+                .prefix("test")
+                .concurrency(2)
+                .prefetchCount(1)
+                .publisherConcurrency(publisherConcurrency)
+                .retryConfig(CountLimitedExponentialWaitRetryConfig.builder()
+                        .maxAttempts(1)
+                        .multipier(50)
+                        .maxTimeBetweenRetries(Duration.seconds(30))
+                        .build())
+                .exceptionHandlerConfig(new DropConfig())
+                .producer(ProducerConfig.builder()
+                        .connectionIsolationStrategy(SharedConnectionStrategy.builder()
+                                .name(String.join("_", "p", String.join("_", routingKey).toLowerCase()))
+                                .build())
+                        .build())
+                .consumer(ConsumerConfig.builder()
+                        .connectionIsolationStrategy(SharedConnectionStrategy.builder()
+                                .name(String.join("_", "c", String.join("_", routingKey).toLowerCase()))
+                                .build())
+                        .build())
+                .build();
+    }
 }
