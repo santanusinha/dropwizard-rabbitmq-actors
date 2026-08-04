@@ -19,12 +19,14 @@ package io.appform.dropwizard.actors.retry.config;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.appform.dropwizard.actors.retry.RetryType;
+import io.appform.dropwizard.actors.retry.waitstrategies.JitterType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import javax.validation.constraints.DecimalMax;
 import javax.validation.constraints.DecimalMin;
+import javax.validation.constraints.NotNull;
 import java.util.Set;
 
 /**
@@ -65,6 +67,12 @@ public abstract class RetryConfig {
     @DecimalMin("0.0")
     @DecimalMax("1.0")
     private double jitterFactor;
+
+    /**
+     * Algorithm used to compute jitter. Only effective when {@link #enableJitter} is true.
+     */
+    @NotNull
+    private JitterType jitterType = JitterType.BOUNDED;
 
     protected RetryConfig(RetryType type) {
         this.type = type;

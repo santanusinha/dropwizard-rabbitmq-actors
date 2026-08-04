@@ -22,13 +22,14 @@ import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategy;
 import com.github.rholder.retry.WaitStrategy;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
+import io.appform.dropwizard.actors.retry.waitstrategies.JitterType;
 import io.appform.dropwizard.actors.retry.waitstrategies.WaitStrategyFactory;
 import io.appform.dropwizard.actors.utils.CommonUtils;
 
 import java.util.concurrent.Callable;
 
 /**
- * Baqse for all retry strategies
+ * Base for all retry strategies
  */
 public abstract class RetryStrategy {
     private final Retryer<Boolean> retryer;
@@ -60,11 +61,20 @@ public abstract class RetryStrategy {
 
     /**
      * Decides which wait strategy to use for the given config. When jitter is enabled the supplied
-     * wait strategy is decorated with a bounded random jitter, otherwise it is used as-is.
+     * wait strategy is decorated based on the configured {@link JitterType}, otherwise it is used
+     * as-is.
      */
     private static WaitStrategy getWaitStrategy(final RetryConfig config, final WaitStrategy waitStrategy) {
-        return config.isEnableJitter()
-                ? WaitStrategyFactory.withJitter(waitStrategy, config.getJitterFactor())
-                : waitStrategy;
+        if (!config.isEnableJitter()) {
+            return waitStrategy;
+        }
+
+        switch (config.getJitterType()) {
+            case FULL:
+                return WaitStrategyFactory.withFullJitter(waitStrategy);
+            case BOUNDED:
+            default:
+                return WaitStrategyFactory.withJitter(waitStrategy, config.getJitterFactor());
+        }
     }
 }
