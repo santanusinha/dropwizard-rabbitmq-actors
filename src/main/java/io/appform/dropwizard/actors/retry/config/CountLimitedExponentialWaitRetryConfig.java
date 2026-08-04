@@ -35,7 +35,7 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class CountLimitedExponentialWaitRetryConfig extends RetryConfig {
+public class CountLimitedExponentialWaitRetryConfig extends RetryConfig implements MaxWaitBounded {
 
     @Min(1)
     private int maxAttempts = 1;

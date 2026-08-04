@@ -30,7 +30,7 @@ class WaitStrategyFactoryTest {
 
     @Test
     void boundedJitterStaysWithinFactorBounds() {
-        final WaitStrategy strategy = WaitStrategyFactory.withJitter(FIXED_WAIT, 0.3);
+        final WaitStrategy strategy = WaitStrategyFactory.withBoundedJitter(FIXED_WAIT, 0.3);
         for (int i = 0; i < 1000; i++) {
             final long wait = strategy.computeSleepTime(null);
             assertTrue(wait >= 700 && wait <= 1300, "wait out of bounds: " + wait);
@@ -39,7 +39,29 @@ class WaitStrategyFactoryTest {
 
     @Test
     void boundedJitterWithZeroFactorReturnsBaseWait() {
-        assertEquals(BASE_WAIT, WaitStrategyFactory.withJitter(FIXED_WAIT, 0.0).computeSleepTime(null));
+        assertEquals(BASE_WAIT, WaitStrategyFactory.withBoundedJitter(FIXED_WAIT, 0.0).computeSleepTime(null));
+    }
+
+    @Test
+    void boundedJitterNeverExceedsMaxWaitMillis() {
+        final long maxWaitMillis = 900L;
+        final WaitStrategy strategy = WaitStrategyFactory.withBoundedJitter(FIXED_WAIT, 0.5, maxWaitMillis);
+        for (int i = 0; i < 1000; i++) {
+            final long wait = strategy.computeSleepTime(null);
+            assertTrue(wait >= 0 && wait <= maxWaitMillis, "wait exceeded maxWaitMillis: " + wait);
+        }
+    }
+
+    @Test
+    void boundedJitterCapsUpwardJitterAtMaxWaitMillis() {
+        // maxWaitMillis is below the lowest possible jittered value (base 1000 - 20% = 800),
+        // so every computed wait must be clamped exactly to the cap.
+        final long maxWaitMillis = 500L;
+        final WaitStrategy strategy = WaitStrategyFactory.withBoundedJitter(FIXED_WAIT, 0.2, maxWaitMillis);
+        for (int i = 0; i < 1000; i++) {
+            assertEquals(maxWaitMillis, strategy.computeSleepTime(null),
+                    "jittered wait should be capped at maxWaitMillis");
+        }
     }
 
     @Test
@@ -54,7 +76,7 @@ class WaitStrategyFactoryTest {
     @Test
     void jitterIsNoOpForNonPositiveBaseWait() {
         final WaitStrategy zeroWait = attempt -> 0L;
-        assertEquals(0L, WaitStrategyFactory.withJitter(zeroWait, 0.5).computeSleepTime(null));
+        assertEquals(0L, WaitStrategyFactory.withBoundedJitter(zeroWait, 0.5).computeSleepTime(null));
         assertEquals(0L, WaitStrategyFactory.withFullJitter(zeroWait).computeSleepTime(null));
     }
 }

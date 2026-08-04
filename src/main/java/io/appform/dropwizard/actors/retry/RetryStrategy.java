@@ -21,6 +21,7 @@ import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategy;
 import com.github.rholder.retry.WaitStrategy;
+import io.appform.dropwizard.actors.retry.config.MaxWaitBounded;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
 import io.appform.dropwizard.actors.retry.waitstrategies.JitterType;
 import io.appform.dropwizard.actors.retry.waitstrategies.WaitStrategyFactory;
@@ -74,7 +75,12 @@ public abstract class RetryStrategy {
                 return WaitStrategyFactory.withFullJitter(waitStrategy);
             case BOUNDED:
             default:
-                return WaitStrategyFactory.withJitter(waitStrategy, config.getJitterFactor());
+                if(config instanceof MaxWaitBounded) {
+                    final long maxWaitMillis = ((MaxWaitBounded)config).getMaxTimeBetweenRetries().toMilliseconds();
+                    return WaitStrategyFactory.withBoundedJitter(waitStrategy, config.getJitterFactor(), maxWaitMillis);
+                }
+
+                return WaitStrategyFactory.withBoundedJitter(waitStrategy, config.getJitterFactor());
         }
     }
 }

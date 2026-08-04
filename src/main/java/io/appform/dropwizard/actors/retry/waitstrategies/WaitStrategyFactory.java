@@ -14,16 +14,12 @@ import java.util.concurrent.ThreadLocalRandom;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class WaitStrategyFactory {
 
-    /**
-     * Wraps the given {@link WaitStrategy} so that a bounded random jitter (in the range
-     * [-jitterFactor, +jitterFactor] of the computed wait) is applied around the wait time.
-     *
-     * @param waitStrategy the delegate wait strategy whose wait time will be jittered
-     * @param jitterFactor fraction (0.0 to 1.0) of the computed wait used as the jitter bound
-     * @return a bounded-jitter-decorated wait strategy
-     */
-    public static WaitStrategy withJitter(final WaitStrategy waitStrategy, final double jitterFactor) {
-        return new BoundedJitterWaitStrategy(waitStrategy, jitterFactor);
+    public static WaitStrategy withBoundedJitter(final WaitStrategy waitStrategy, final double jitterFactor) {
+        return new BoundedJitterWaitStrategy(waitStrategy, jitterFactor, Long.MAX_VALUE);
+    }
+
+    public static WaitStrategy withBoundedJitter(final WaitStrategy waitStrategy, final double jitterFactor, final long maxWaitMillis) {
+        return new BoundedJitterWaitStrategy(waitStrategy, jitterFactor, maxWaitMillis);
     }
 
     /**
@@ -45,13 +41,15 @@ public final class WaitStrategyFactory {
 
         private final WaitStrategy delegate;
         private final double jitterFactor;
+        private final long maxWaitMillis;
 
-        private BoundedJitterWaitStrategy(final WaitStrategy delegate, final double jitterFactor) {
+        private BoundedJitterWaitStrategy(final WaitStrategy delegate, final double jitterFactor, final long maxWaitMillis) {
             Preconditions.checkNotNull(delegate, "delegate wait strategy should not be null");
             Preconditions.checkArgument(jitterFactor >= 0.0 && jitterFactor <= 1.0,
                     "jitterFactor must be between 0.0 and 1.0");
             this.delegate = delegate;
             this.jitterFactor = jitterFactor;
+            this.maxWaitMillis = maxWaitMillis;
         }
 
         @Override
@@ -64,7 +62,13 @@ public final class WaitStrategyFactory {
 
             // range: [-jitterFactor, +jitterFactor]
             final double randomFactor = (ThreadLocalRandom.current().nextDouble() * 2 - 1) * jitterFactor;
-            return (long) (baseSleepTime * (1 + randomFactor)); //  [baseSleepTime - jitterFactor, baseSleepTime + jitterFactor]
+            long result = (long) (baseSleepTime * (1 + randomFactor));
+
+            if (result > this.maxWaitMillis) {
+                result = this.maxWaitMillis;
+            }
+
+            return Math.max(result, 0L);
         }
     }
 
