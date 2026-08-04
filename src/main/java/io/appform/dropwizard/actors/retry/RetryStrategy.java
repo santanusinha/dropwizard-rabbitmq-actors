@@ -16,21 +16,71 @@
 
 package io.appform.dropwizard.actors.retry;
 
+import com.github.rholder.retry.BlockStrategies;
 import com.github.rholder.retry.Retryer;
+import com.github.rholder.retry.RetryerBuilder;
+import com.github.rholder.retry.StopStrategy;
+import com.github.rholder.retry.WaitStrategy;
+import io.appform.dropwizard.actors.retry.config.MaxWaitBounded;
+import io.appform.dropwizard.actors.retry.config.RetryConfig;
+import io.appform.dropwizard.actors.retry.waitstrategies.JitterType;
+import io.appform.dropwizard.actors.retry.waitstrategies.WaitStrategyFactory;
+import io.appform.dropwizard.actors.utils.CommonUtils;
 
 import java.util.concurrent.Callable;
 
 /**
- * Baqse for all retry strategies
+ * Base for all retry strategies
  */
 public abstract class RetryStrategy {
     private final Retryer<Boolean> retryer;
 
-    protected RetryStrategy(Retryer<Boolean> retryer) {
+    /**
+     * Builds a retryer from the supplied stop and wait strategies.
+     * @param config       the retry configuration
+     * @param stopStrategy strategy that decides when to stop retrying
+     * @param waitStrategy the base wait strategy between retries
+     */
+    protected RetryStrategy(final RetryConfig config,
+                            final StopStrategy stopStrategy,
+                            final WaitStrategy waitStrategy) {
+        this.retryer = RetryerBuilder.<Boolean>newBuilder()
+                .retryIfException(exception -> CommonUtils.isRetriable(config.getRetriableExceptions(), exception))
+                .withStopStrategy(stopStrategy)
+                .withBlockStrategy(BlockStrategies.threadSleepStrategy())
+                .withWaitStrategy(getWaitStrategy(config, waitStrategy))
+                .build();
+    }
+
+    protected RetryStrategy(final Retryer<Boolean> retryer) {
         this.retryer = retryer;
     }
 
     public boolean execute(Callable<Boolean> callable) throws Exception {
         return retryer.call(callable);
+    }
+
+    /**
+     * Decides which wait strategy to use for the given config. When jitter is enabled the supplied
+     * wait strategy is decorated based on the configured {@link JitterType}, otherwise it is used
+     * as-is.
+     */
+    private static WaitStrategy getWaitStrategy(final RetryConfig config, final WaitStrategy waitStrategy) {
+        if (!config.isEnableJitter()) {
+            return waitStrategy;
+        }
+
+        switch (config.getJitterType()) {
+            case FULL:
+                return WaitStrategyFactory.withFullJitter(waitStrategy);
+            case BOUNDED:
+            default:
+                if(config instanceof MaxWaitBounded) {
+                    final long maxWaitMillis = ((MaxWaitBounded)config).getMaxTimeBetweenRetries().toMilliseconds();
+                    return WaitStrategyFactory.withBoundedJitter(waitStrategy, config.getJitterFactor(), maxWaitMillis);
+                }
+
+                return WaitStrategyFactory.withBoundedJitter(waitStrategy, config.getJitterFactor());
+        }
     }
 }

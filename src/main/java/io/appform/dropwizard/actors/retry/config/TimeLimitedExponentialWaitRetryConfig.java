@@ -35,7 +35,7 @@ import java.util.Set;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class TimeLimitedExponentialWaitRetryConfig extends RetryConfig {
+public class TimeLimitedExponentialWaitRetryConfig extends RetryConfig implements MaxWaitBounded {
 
     @NotNull
     @Valid
