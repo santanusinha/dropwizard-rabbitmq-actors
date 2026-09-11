@@ -7,7 +7,6 @@ import io.appform.dropwizard.actors.actor.SidelineProcessorConfig;
 import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
 import io.appform.dropwizard.actors.exceptionhandler.config.DropConfig;
 import io.appform.dropwizard.actors.retry.config.CountLimitedExponentialWaitRetryConfig;
-import io.appform.dropwizard.actors.retry.config.CountLimitedFixedWaitRetryConfig;
 import io.dropwizard.util.Duration;
 import lombok.Getter;
 

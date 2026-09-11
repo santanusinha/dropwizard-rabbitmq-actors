@@ -1,11 +1,12 @@
 package io.appform.dropwizard.actors.actor;
 
+import com.google.common.collect.ImmutableMap;
+import lombok.AllArgsConstructor;
+
+import java.util.Map;
+
 import static io.appform.dropwizard.actors.actor.HaMode.ALL;
 import static io.appform.dropwizard.actors.actor.HaMode.EXACTLY;
-
-import com.google.common.collect.ImmutableMap;
-import java.util.Map;
-import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
 public class HaModeVisitorImpl implements HaModeVisitor<Map<String, Object>> {

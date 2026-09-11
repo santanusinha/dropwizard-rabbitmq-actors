@@ -2,12 +2,13 @@ package io.appform.dropwizard.actors.actor.integration.data;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Setter;
 import lombok.ToString;
 
-import javax.validation.constraints.NotNull;
+
 
 @Data
 @EqualsAndHashCode

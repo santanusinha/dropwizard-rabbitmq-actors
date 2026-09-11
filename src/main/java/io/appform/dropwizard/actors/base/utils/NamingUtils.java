@@ -9,7 +9,6 @@ import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStr
 import io.appform.dropwizard.actors.connectivity.strategy.DefaultConnectionStrategy;
 import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
 import io.appform.dropwizard.actors.utils.CommonUtils;
-import javax.validation.Valid;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -33,6 +32,7 @@ public class NamingUtils {
     }
 
     public String prefixWithNamespace(String name) {
+        // Resolved per call: namespace can be set/cleared at runtime (see NamespacedQueuesTest)
         String namespace = System.getenv(NAMESPACE_ENV_NAME);
         namespace = CommonUtils.isEmpty(namespace)
                     ? System.getProperty(NAMESPACE_PROPERTY_NAME, "")

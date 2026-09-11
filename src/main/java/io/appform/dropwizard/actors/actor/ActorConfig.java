@@ -21,30 +21,25 @@ import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConf
 import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
 import io.dropwizard.validation.ValidationMethod;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
+
 import java.util.Objects;
-import javax.validation.Valid;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
 
 /**
  * Configuration for an actor
  */
 @Data
-@Builder
-@ToString
 @EqualsAndHashCode
-@NoArgsConstructor
+@ToString
 @AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class ActorConfig {
-
     @NotNull
     @NotEmpty
     private String exchange;
@@ -94,8 +89,8 @@ public class ActorConfig {
     @Builder.Default
     private int prefetchCount = 1;
 
-    @Valid
     @NotNull
+    @Valid
     @Builder.Default
     private RetryConfig retryConfig = new NoRetryConfig();
 

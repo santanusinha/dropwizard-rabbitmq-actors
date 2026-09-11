@@ -2,12 +2,13 @@ package io.appform.dropwizard.actors.connectivity.actor;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import javax.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.jackson.Jacksonized;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Data
 @Builder

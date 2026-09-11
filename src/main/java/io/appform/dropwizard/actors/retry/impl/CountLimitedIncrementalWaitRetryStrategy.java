@@ -11,36 +11,29 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- *  limitations under the License.
+ * limitations under the License.
  */
 
 package io.appform.dropwizard.actors.retry.impl;
 
-import com.github.rholder.retry.BlockStrategies;
-import com.github.rholder.retry.RetryerBuilder;
-import com.github.rholder.retry.StopStrategies;
-import com.github.rholder.retry.WaitStrategies;
+import dev.failsafe.RetryPolicy;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import io.appform.dropwizard.actors.retry.config.CountLimitedIncrementalWaitRetryConfig;
 import io.appform.dropwizard.actors.utils.CommonUtils;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 /**
  * Limits retry time
  */
 public class CountLimitedIncrementalWaitRetryStrategy extends RetryStrategy {
     public CountLimitedIncrementalWaitRetryStrategy(CountLimitedIncrementalWaitRetryConfig config) {
-        super(RetryerBuilder.<Boolean>newBuilder()
-                .retryIfException(exception -> CommonUtils.isRetriable(config.getRetriableExceptions(),
-                        exception))
-                .withStopStrategy(StopStrategies.stopAfterAttempt(config.getMaxAttempts()))
-                .withBlockStrategy(BlockStrategies.threadSleepStrategy())
-                .withWaitStrategy(
-                        WaitStrategies.incrementingWait(config.getInitialWaitTime().toMilliseconds(),
-                                TimeUnit.MILLISECONDS,
-                                config.getWaitIncrement().toMilliseconds(),
-                                TimeUnit.MILLISECONDS))
+        super(RetryPolicy.<Boolean>builder()
+                .handleIf(exception -> CommonUtils.isRetriable(config.getRetriableExceptions(), exception))
+                .withMaxAttempts(config.getMaxAttempts())
+                .withDelayFn(ctx -> Duration.ofMillis(
+                        config.getInitialWaitTime().toMilliseconds()
+                                + (ctx.getAttemptCount() - 1) * config.getWaitIncrement().toMilliseconds()))
                 .build());
     }
 }

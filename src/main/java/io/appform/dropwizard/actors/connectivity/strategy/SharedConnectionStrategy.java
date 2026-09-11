@@ -3,15 +3,13 @@ package io.appform.dropwizard.actors.connectivity.strategy;
 import io.appform.dropwizard.actors.actor.ConnectionIsolationLevel;
 import io.appform.dropwizard.actors.common.Constants;
 import io.dropwizard.validation.ValidationMethod;
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
 
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
 
-@Data
+@Getter
+@Setter
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 public class SharedConnectionStrategy extends ConnectionIsolationStrategy {
@@ -37,7 +35,6 @@ public class SharedConnectionStrategy extends ConnectionIsolationStrategy {
 
     @ValidationMethod(message = "Custom connection names should be different from default connection names")
     public boolean isCustomConnectionNamesValid() {
-
         return !Constants.DEFAULT_CONNECTIONS.contains(this.name);
     }
 }

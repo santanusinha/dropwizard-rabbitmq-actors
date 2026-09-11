@@ -31,6 +31,6 @@ public class RandomShardIdCalculator<M> implements ShardIdCalculator<M> {
 
     @Override
     public int calculateShardId(M message) {
-        return RandomUtils.nextInt(0, config.getShardCount());
+        return RandomUtils.insecure().randomInt(0, config.getShardCount());
     }
 }

@@ -7,11 +7,11 @@ import io.appform.dropwizard.actors.actor.hierarchical.tree.HierarchicalDataStor
 import lombok.*;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Data
-@EqualsAndHashCode
 @ToString
 @AllArgsConstructor
 @NoArgsConstructor
+@Getter
+@Setter
 public class HierarchicalActorConfig extends ActorConfig {
 
     /**

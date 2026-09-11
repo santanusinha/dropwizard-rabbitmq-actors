@@ -95,6 +95,7 @@ public class UnmanagedConsumer<Message> {
                     log.info("Waiting for handler to complete processing the current message..");
                     while (handler.isRunning()) {
                         // wait for the handler to complete processing the current message
+                        Thread.onSpinWait();
                     }
                     channel.close();
                     log.info("Consumer channel closed for queue [{}]", queueName);

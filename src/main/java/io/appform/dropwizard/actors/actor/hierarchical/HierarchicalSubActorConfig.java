@@ -7,12 +7,12 @@ import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConf
 import io.appform.dropwizard.actors.exceptionhandler.config.SidelineConfig;
 import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
@@ -39,6 +39,7 @@ public class HierarchicalSubActorConfig {
     @Builder.Default
     private RetryConfig retryConfig = new NoRetryConfig();
 
+    @Builder.Default
     private ExceptionHandlerConfig exceptionHandlerConfig = new SidelineConfig();
 
     // ---------- Direct Copy from Main Actor Config if copyFromParent is true other wise need to supplied at sub-actor level ---------------//
