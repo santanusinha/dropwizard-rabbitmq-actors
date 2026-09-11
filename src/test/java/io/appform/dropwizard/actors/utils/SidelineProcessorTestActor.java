@@ -7,9 +7,10 @@ import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import java.util.HashSet;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.HashSet;
 
 @Slf4j
 public class SidelineProcessorTestActor extends Actor<ActorType, TestMessage> {

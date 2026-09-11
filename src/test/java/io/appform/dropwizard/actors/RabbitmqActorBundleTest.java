@@ -14,8 +14,9 @@ import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.connectivity.actor.RabbitMQBundleTestAppConfiguration;
 import io.appform.dropwizard.actors.observers.ObserverTestUtil;
 import io.appform.dropwizard.actors.observers.ThreadLocalObserver;
+import io.dropwizard.core.setup.Environment;
 import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
-import io.dropwizard.setup.Environment;
+
 import lombok.val;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;

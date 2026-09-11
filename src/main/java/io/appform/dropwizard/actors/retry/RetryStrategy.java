@@ -11,26 +11,27 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- *  limitations under the License.
+ * limitations under the License.
  */
 
 package io.appform.dropwizard.actors.retry;
 
-import com.github.rholder.retry.Retryer;
+import dev.failsafe.Failsafe;
+import dev.failsafe.RetryPolicy;
 
 import java.util.concurrent.Callable;
 
 /**
- * Baqse for all retry strategies
+ * Base for all retry strategies
  */
 public abstract class RetryStrategy {
-    private final Retryer<Boolean> retryer;
+    private final RetryPolicy<Boolean> retryPolicy;
 
-    protected RetryStrategy(Retryer<Boolean> retryer) {
-        this.retryer = retryer;
+    protected RetryStrategy(RetryPolicy<Boolean> retryPolicy) {
+        this.retryPolicy = retryPolicy;
     }
 
     public boolean execute(Callable<Boolean> callable) throws Exception {
-        return retryer.call(callable);
+        return Failsafe.with(retryPolicy).get(() -> callable.call());
     }
 }

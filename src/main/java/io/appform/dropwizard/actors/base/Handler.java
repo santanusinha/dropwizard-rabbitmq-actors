@@ -1,9 +1,6 @@
 package io.appform.dropwizard.actors.base;
 
 
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
-import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -16,14 +13,18 @@ import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
-import java.io.IOException;
-import java.time.Instant;
-import java.util.concurrent.Callable;
-import java.util.function.Function;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+
+import java.io.IOException;
+import java.time.Instant;
+import java.util.concurrent.Callable;
+import java.util.function.Function;
+
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_EXPIRY_TEXT;
+import static io.appform.dropwizard.actors.common.Constants.MESSAGE_PUBLISHED_TEXT;
 
 @Slf4j
 public class Handler<Message> extends DefaultConsumer {
@@ -105,6 +106,9 @@ public class Handler<Message> extends DefaultConsumer {
             }
         } catch (Throwable t) {
             log.error("Error processing message...", t);
+            if (!isChannelOpen()) {
+                return;
+            }
             if (errorCheckFunction.apply(t)) {
                 log.warn("Acked message due to exception: ", t);
                 getChannel().basicAck(envelope.getDeliveryTag(), false);
@@ -117,6 +121,10 @@ public class Handler<Message> extends DefaultConsumer {
         }
     }
 
+    private boolean isChannelOpen() {
+        return getChannel() != null && getChannel().isOpen();
+    }
+
     private Callable<Boolean> getHandleCallable(final Envelope envelope,
                                                 final AMQP.BasicProperties properties,
                                                 final byte[] body) throws IOException {
@@ -127,18 +135,16 @@ public class Handler<Message> extends DefaultConsumer {
 
     private long getDelayInMs(final AMQP.BasicProperties properties) {
         if (properties.getHeaders() != null
-                && properties.getHeaders().containsKey(MESSAGE_PUBLISHED_TEXT)) {
-            val publishedAt = (long) properties.getHeaders().get(MESSAGE_PUBLISHED_TEXT);
-            return Math.max(Instant.now().toEpochMilli() - publishedAt, 0);
+                && properties.getHeaders().get(MESSAGE_PUBLISHED_TEXT) instanceof Number publishedAt) {
+            return Math.max(Instant.now().toEpochMilli() - publishedAt.longValue(), 0);
         }
         return -1;
     }
 
     private boolean isExpired(final AMQP.BasicProperties properties) {
         if (properties.getHeaders() != null
-                && properties.getHeaders().containsKey(MESSAGE_EXPIRY_TEXT)) {
-            val expiresAt = (long) properties.getHeaders().get(MESSAGE_EXPIRY_TEXT);
-            return Instant.now().toEpochMilli() >= expiresAt;
+                && properties.getHeaders().get(MESSAGE_EXPIRY_TEXT) instanceof Number expiresAt) {
+            return Instant.now().toEpochMilli() >= expiresAt.longValue();
         }
         return false;
     }

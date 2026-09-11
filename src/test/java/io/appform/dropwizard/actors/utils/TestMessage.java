@@ -14,5 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 public class TestMessage {
     private String name;
     private ActorType actorType;
+    @Builder.Default
     private int sidelineProcessorQueueHandleSuccessCount = 0;
 }

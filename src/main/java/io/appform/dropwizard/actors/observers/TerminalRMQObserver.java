@@ -1,8 +1,5 @@
 package io.appform.dropwizard.actors.observers;
 
-import com.rabbitmq.client.AMQP;
-import io.appform.dropwizard.actors.actor.MessageMetadata;
-
 import java.util.function.Function;
 
 /**

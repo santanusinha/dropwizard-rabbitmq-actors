@@ -1,12 +1,13 @@
 package io.appform.dropwizard.actors.actor;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.connectivity.strategy.SharedConnectionStrategy;
-import java.lang.reflect.InvocationTargetException;
 import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.InvocationTargetException;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CustomConnectionNameTest {
 

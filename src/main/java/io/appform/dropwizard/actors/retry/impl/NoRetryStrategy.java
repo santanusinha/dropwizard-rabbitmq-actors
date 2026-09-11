@@ -11,13 +11,12 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- *  limitations under the License.
+ * limitations under the License.
  */
 
 package io.appform.dropwizard.actors.retry.impl;
 
-import com.github.rholder.retry.RetryerBuilder;
-import com.github.rholder.retry.StopStrategies;
+import dev.failsafe.RetryPolicy;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
 import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 
@@ -27,8 +26,8 @@ import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 public class NoRetryStrategy extends RetryStrategy {
     @SuppressWarnings("unused")
     public NoRetryStrategy(NoRetryConfig config) {
-        super(RetryerBuilder.<Boolean>newBuilder()
-                .withStopStrategy(StopStrategies.stopAfterAttempt(1))
+        super(RetryPolicy.<Boolean>builder()
+                .withMaxAttempts(1)
                 .build());
     }
 }

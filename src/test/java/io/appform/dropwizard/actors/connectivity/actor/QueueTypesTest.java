@@ -17,12 +17,6 @@ import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.utils.RMQTestUtils;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
-
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Stream;
-
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
@@ -31,6 +25,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.containers.RabbitMQContainer;
+
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 @Slf4j
 @ExtendWith(RabbitMQExtension.class)

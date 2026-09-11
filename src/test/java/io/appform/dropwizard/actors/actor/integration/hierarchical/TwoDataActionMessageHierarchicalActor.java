@@ -5,8 +5,8 @@ import io.appform.dropwizard.actors.actor.hierarchical.HierarchicalActor;
 import io.appform.dropwizard.actors.actor.hierarchical.HierarchicalActorConfig;
 import io.appform.dropwizard.actors.actor.integration.RMQIntegrationTestHelper;
 import io.appform.dropwizard.actors.actor.integration.data.ActionMessage;
-import io.appform.dropwizard.actors.actor.integration.data.TwoDataActionMessage;
 import io.appform.dropwizard.actors.actor.integration.data.FlowType;
+import io.appform.dropwizard.actors.actor.integration.data.TwoDataActionMessage;
 import lombok.extern.slf4j.Slf4j;
 
 

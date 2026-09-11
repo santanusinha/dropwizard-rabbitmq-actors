@@ -1,13 +1,12 @@
 package io.appform.dropwizard.actors.actor;
 
-import static io.appform.dropwizard.actors.actor.QueueType.CLASSIC;
-import static io.appform.dropwizard.actors.actor.QueueType.QUORUM;
-import static io.appform.dropwizard.actors.actor.QueueType.X_QUEUE_TYPE;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
-import java.util.Map;
 import lombok.AllArgsConstructor;
+
+import java.util.Map;
+
+import static io.appform.dropwizard.actors.actor.QueueType.*;
 
 @AllArgsConstructor
 public class QueueTypeVisitorImpl implements QueueTypeVisitor<Map<String, Object>> {

@@ -3,8 +3,6 @@ package io.appform.dropwizard.actors.metrics;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Timer;
-import com.rabbitmq.client.AMQP;
-import io.appform.dropwizard.actors.actor.MessageMetadata;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.observers.*;
 import lombok.Getter;
