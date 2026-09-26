@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.base.RandomShardIdCalculator;
+import io.appform.dropwizard.actors.base.RoutingKeyResolver;
 import io.appform.dropwizard.actors.base.ShardIdCalculator;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
@@ -148,9 +149,31 @@ public class UnmanagedBaseActor<Message> {
                               final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
                               final MessageHandlingFunction<Message, Boolean> sidelineProcessorExpiredMessageHandlingFunction,
                               final Function<Throwable, Boolean> errorCheckFunction) {
+        this(name, config, producerConnection, consumerConnection, sidelineProcessorConnection, mapper,
+                shardIdCalculator, null, retryStrategyFactory, exceptionHandlingFactory, clazz, handlerFunction,
+                sidelineProcessorHandleFunction, expiredMessageHandlingFunction,
+                sidelineProcessorExpiredMessageHandlingFunction, errorCheckFunction);
+    }
+
+    public UnmanagedBaseActor(final String name,
+                              final ActorConfig config,
+                              final RMQConnection producerConnection,
+                              final RMQConnection consumerConnection,
+                              final RMQConnection sidelineProcessorConnection,
+                              final ObjectMapper mapper,
+                              final ShardIdCalculator<Message> shardIdCalculator,
+                              final RoutingKeyResolver<Message> routingKeyResolver,
+                              final RetryStrategyFactory retryStrategyFactory,
+                              final ExceptionHandlingFactory exceptionHandlingFactory,
+                              final Class<? extends Message> clazz,
+                              final MessageHandlingFunction<Message, Boolean> handlerFunction,
+                              final MessageHandlingFunction<Message, Boolean> sidelineProcessorHandleFunction,
+                              final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
+                              final MessageHandlingFunction<Message, Boolean> sidelineProcessorExpiredMessageHandlingFunction,
+                              final Function<Throwable, Boolean> errorCheckFunction) {
 
         this(new UnmanagedPublisher<>(NamingUtils.queueName(config.getPrefix(), name), config, shardIdCalculator,
-                        producerConnection, mapper),
+                        routingKeyResolver, producerConnection, mapper),
                 new UnmanagedConsumer<>(NamingUtils.queueName(config.getPrefix(), name), config.getPrefetchCount(),
                         config.getConcurrency(), config.isSharded(), config.getShardCount(), config.getConsumer(),
                         consumerConnection, mapper, retryStrategyFactory.create(config.getRetryConfig()),

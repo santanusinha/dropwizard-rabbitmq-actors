@@ -20,13 +20,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.base.RandomShardIdCalculator;
+import io.appform.dropwizard.actors.base.RoutingKeyResolver;
 import io.appform.dropwizard.actors.base.ShardIdCalculator;
 import io.appform.dropwizard.actors.base.UnmanagedConsumer;
 import io.appform.dropwizard.actors.base.UnmanagedPublisher;
+import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
-import io.dropwizard.lifecycle.Managed;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Set;
@@ -145,14 +146,32 @@ public abstract class BaseActor<Message> implements IBaseActor<Message> {
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
+        this(name, config, connectionRegistry, mapper, shardIdCalculator, null, retryStrategyFactory,
+                exceptionHandlingFactory, clazz, droppedExceptionTypes);
+    }
+
+    protected BaseActor(
+            String name,
+            ActorConfig config,
+            ConnectionRegistry connectionRegistry,
+            ObjectMapper mapper,
+            ShardIdCalculator<Message> shardIdCalculator,
+            RoutingKeyResolver<Message> routingKeyResolver,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            Set<Class<?>> droppedExceptionTypes) {
         this.droppedExceptionTypes
                 = null == droppedExceptionTypes
                 ? Collections.emptySet() : droppedExceptionTypes;
         actorImpl = new UnmanagedBaseActor<>(name,
                                              config,
-                                             connectionRegistry,
+                                             connectionRegistry.createOrGet(NamingUtils.producerConnectionName(config.getProducer())),
+                                             connectionRegistry.createOrGet(NamingUtils.consumerConnectionName(config.getConsumer())),
+                                             connectionRegistry.createOrGet(NamingUtils.sidelineProcessorConnectionName(config.getSidelineProcessorConfig())),
                                              mapper,
                                              shardIdCalculator,
+                                             routingKeyResolver,
                                              retryStrategyFactory,
                                              exceptionHandlingFactory,
                                              clazz,

@@ -21,6 +21,7 @@ import io.appform.dropwizard.actors.exceptionhandler.config.ExceptionHandlerConf
 import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
 import io.dropwizard.validation.ValidationMethod;
+import java.util.List;
 import java.util.Objects;
 import javax.validation.Valid;
 import javax.validation.constraints.Max;
@@ -48,6 +49,18 @@ public class ActorConfig {
     @NotNull
     @NotEmpty
     private String exchange;
+
+    @Builder.Default
+    private ExchangeType exchangeType = ExchangeType.DIRECT;
+
+    /**
+     * Binding keys used to bind queues to a TOPIC exchange. Ignored for DIRECT and FANOUT exchanges.
+     * When not provided for a TOPIC exchange, the queue name (or the sharded queue name, for sharded
+     * actors) is used as the binding key. Note that this default only matches routing keys that are
+     * exactly equal to the queue name, so an explicit set of binding key patterns should normally be
+     * configured to make use of topic-style pattern routing.
+     */
+    private List<String> bindingKeys;
 
     @Builder.Default
     private boolean delayed = false;
@@ -138,6 +151,49 @@ public class ActorConfig {
     public boolean isValidShardingSidelineProcessor() {
         return !isSharded() || !isSidelineProcessorEnabled()
                 || getSidelineProcessorConfig().getConcurrency() % getShardCount() == 0;
+    }
+
+    /**
+     * bindingKeys only drive routing for a TOPIC exchange. For DIRECT the queue name is the binding key and for
+     * FANOUT the routing key is ignored, so configuring bindingKeys there would be silently useless - reject it.
+     */
+    @ValidationMethod(message = "bindingKeys can only be configured for a TOPIC exchange.")
+    public boolean isValidBindingKeys() {
+        return exchangeType == ExchangeType.TOPIC
+                || bindingKeys == null || bindingKeys.isEmpty();
+    }
+
+    /**
+     * FANOUT broadcasts to every bound queue and ignores the routing key. Sharding, however, computes a shard id
+     * from each message and publishes it with a shard-specific routing key ({@code <queue>_<shardId>}) so that the
+     * exchange delivers it to exactly one shard queue. FANOUT cannot honour that per-shard routing (it would copy
+     * every message to all shard queues), so the combination is invalid.
+     */
+    @ValidationMethod(message = "FANOUT exchange cannot be used with sharding. Sharding is only supported with DIRECT.")
+    public boolean isValidFanoutSharding() {
+        return exchangeType != ExchangeType.FANOUT || !isSharded();
+    }
+
+    /**
+     * TOPIC exchanges route by the message-derived key, but the publisher does not incorporate the shard id into
+     * that key, nor are per-shard binding keys generated. So a sharded TOPIC actor would either broadcast every
+     * message to all shard queues (when the bindingKeys match) or drop them all (when they don't) - never the
+     * "one message -> one shard" semantics sharding promises. Reject the combination.
+     */
+    @ValidationMethod(message = "TOPIC exchange cannot be used with sharding. Sharding is only supported with DIRECT.")
+    public boolean isValidTopicSharding() {
+        return exchangeType != ExchangeType.TOPIC || !isSharded();
+    }
+
+    /**
+     * TTL based delay re-routes the message through a TTL queue back to the main exchange using the queue name as
+     * the routing key, which only resolves correctly on a DIRECT exchange. TOPIC/FANOUT should use the
+     * delayed-message plugin (DelayType.DELAYED) instead.
+     */
+    @ValidationMethod(message = "TTL based delay is only supported for a DIRECT exchange. "
+            + "Use DelayType.DELAYED (delayed-message plugin) for TOPIC/FANOUT exchanges.")
+    public boolean isValidTtlDelayExchangeType() {
+        return !delayed || delayType != DelayType.TTL || exchangeType == ExchangeType.DIRECT;
     }
 
 }

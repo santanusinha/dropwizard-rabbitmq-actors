@@ -19,6 +19,7 @@ package io.appform.dropwizard.actors.actor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.appform.dropwizard.actors.ConnectionRegistry;
 import io.appform.dropwizard.actors.base.RandomShardIdCalculator;
+import io.appform.dropwizard.actors.base.RoutingKeyResolver;
 import io.appform.dropwizard.actors.base.ShardIdCalculator;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
@@ -110,11 +111,27 @@ public abstract class Actor<MessageType extends Enum<MessageType>, Message> exte
             ExceptionHandlingFactory exceptionHandlingFactory,
             Class<? extends Message> clazz,
             Set<Class<?>> droppedExceptionTypes) {
+        this(type, config, connectionRegistry, mapper, shardIdCalculator, null, retryStrategyFactory,
+                exceptionHandlingFactory, clazz, droppedExceptionTypes);
+    }
+
+    protected Actor(
+            MessageType type,
+            ActorConfig config,
+            ConnectionRegistry connectionRegistry,
+            ObjectMapper mapper,
+            ShardIdCalculator<Message> shardIdCalculator,
+            RoutingKeyResolver<Message> routingKeyResolver,
+            RetryStrategyFactory retryStrategyFactory,
+            ExceptionHandlingFactory exceptionHandlingFactory,
+            Class<? extends Message> clazz,
+            Set<Class<?>> droppedExceptionTypes) {
         super(type.name(),
               config,
               connectionRegistry,
               mapper,
               shardIdCalculator,
+              routingKeyResolver,
               retryStrategyFactory,
               exceptionHandlingFactory,
               clazz,

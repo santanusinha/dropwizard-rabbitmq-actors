@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.security.KeyStore;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -159,11 +160,38 @@ public class RMQConnection implements Managed {
         log.info("Created queue: {} bound to {}", queueName, exchange);
     }
 
+    public void ensureWithBindingKeys(final String queueName,
+                                      final String exchange,
+                                      final List<String> bindingKeys,
+                                      final Map<String, Object> rmqOpts) throws Exception {
+        channel.queueDeclare(queueName, true, false, false, rmqOpts);
+        for (final String bindingKey : bindingKeys) {
+            channel.queueBind(queueName, exchange, bindingKey);
+            log.info("Created queue: {} bound to {} with binding key {}", queueName, exchange, bindingKey);
+        }
+    }
+
+    /**
+     * Declares a queue (idempotent) without creating or modifying any bindings. Used when the immutable
+     * bindingKeys check has confirmed the existing bindings already match the desired set, so we must not
+     * add or remove bindings.
+     */
+    public void ensureQueueOnly(final String queueName,
+                                final Map<String, Object> rmqOpts) throws Exception {
+        channel.queueDeclare(queueName, true, false, false, rmqOpts);
+        log.info("Ensured queue (no binding changes): {}", queueName);
+    }
+
     public void addBinding(String queueName, String exchange, String routingKey) throws Exception {
         channel.queueBind(queueName, exchange, routingKey);
         log.info("Created binding for queue : {} bound to {} routing Key {}", queueName, exchange, routingKey);
     }
 
+    /**
+     * Builds queue-declare arguments (TTL, priority, queue-type) WITHOUT any dead-lettering.
+     * Used for queues that are themselves dead-letter targets, e.g. the sideline queue, which should not
+     * dead-letter further.
+     */
     public Map<String, Object> rmqOpts(final ActorConfig actorConfig) {
         final Map<String, Object> ttlOpts = getActorTTLOpts(actorConfig.getTtlConfig());
         final Map<String, Object> priorityOpts = getPriorityOpts(actorConfig);
@@ -175,6 +203,13 @@ public class RMQConnection implements Managed {
         return builder.build();
     }
 
+    /**
+     * Builds queue-declare arguments with dead-lettering to {@code deadLetterExchange} but NO explicit
+     * dead-letter routing key. On dead-letter RabbitMQ reuses the message's original routing key.
+     * Used for DIRECT-exchange queues, where the original routing key already equals the queue name and thus
+     * matches the sideline binding. Avoids setting {@code x-dead-letter-routing-key} to keep queue arguments
+     * backward compatible with pre-existing queues (prevents PRECONDITION_FAILED on redeclare).
+     */
     public Map<String, Object> rmqOpts(final String deadLetterExchange,
                                        final ActorConfig actorConfig) {
         final Map<String, Object> ttlOpts = getActorTTLOpts(actorConfig.getTtlConfig());
@@ -183,6 +218,27 @@ public class RMQConnection implements Managed {
                 .putAll(ttlOpts)
                 .putAll(priorityOpts)
                 .put("x-dead-letter-exchange", deadLetterExchange);
+        builder.putAll(actorConfig.getQueueType()
+                .handleConfig(new QueueTypeVisitorImpl(actorConfig)));
+        return builder.build();
+    }
+
+    /**
+     * Builds queue-declare arguments with dead-lettering to {@code deadLetterExchange} AND a pinned
+     * {@code x-dead-letter-routing-key}. Used for TOPIC/FANOUT-exchange queues: their original routing key
+     * (a topic pattern, or empty for fanout) would not match the DIRECT sideline binding, so the dead-letter
+     * routing key is pinned to the queue name to guarantee the message reaches the correct sideline queue.
+     */
+    public Map<String, Object> rmqOpts(final String deadLetterExchange,
+                                       final String deadLetterRoutingKey,
+                                       final ActorConfig actorConfig) {
+        final Map<String, Object> ttlOpts = getActorTTLOpts(actorConfig.getTtlConfig());
+        final Map<String, Object> priorityOpts = getPriorityOpts(actorConfig);
+        Builder<String, Object> builder = ImmutableMap.<String, Object>builder()
+                .putAll(ttlOpts)
+                .putAll(priorityOpts)
+                .put("x-dead-letter-exchange", deadLetterExchange)
+                .put("x-dead-letter-routing-key", deadLetterRoutingKey);
         builder.putAll(actorConfig.getQueueType()
                 .handleConfig(new QueueTypeVisitorImpl(actorConfig)));
         return builder.build();

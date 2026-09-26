@@ -3,6 +3,7 @@ package io.appform.dropwizard.actors.actor.hierarchical;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.ConsumerConfig;
+import io.appform.dropwizard.actors.actor.ExchangeType;
 import io.appform.dropwizard.actors.actor.ProducerConfig;
 import io.appform.dropwizard.actors.connectivity.strategy.ConnectionIsolationStrategy;
 import io.appform.dropwizard.actors.actor.hierarchical.tree.key.RoutingKey;
@@ -55,9 +56,17 @@ public class HierarchicalRouterHelper {
 
     @SneakyThrows
     public <MessageType extends Enum<MessageType>> ActorConfig toActorConfig(final MessageType messageType,
-                                                                             final RoutingKey routingKeyData,
-                                                                             final HierarchicalSubActorConfig subActorConfig,
-                                                                             final HierarchicalActorConfig mainActorConfig) {
+                                                                              final RoutingKey routingKeyData,
+                                                                              final HierarchicalSubActorConfig subActorConfig,
+                                                                              final HierarchicalActorConfig mainActorConfig) {
+        // Safety net (config-load validation on HierarchicalActorConfig covers the config path): a child
+        // ActorConfig is built without a RoutingKeyResolver or per-child bindingKeys, so a non-DIRECT child
+        // would silently stay DIRECT or fail at start. Reject non-DIRECT hierarchical configs outright.
+        if (mainActorConfig.getExchangeType() != ExchangeType.DIRECT) {
+            throw new IllegalArgumentException(
+                    "Hierarchical actors currently support only DIRECT exchanges. Got exchangeType="
+                            + mainActorConfig.getExchangeType());
+        }
         val useParentConfigInWorker = mainActorConfig.isUseParentConfigInWorker();
         return ActorConfig.builder()
                 // Custom fields
