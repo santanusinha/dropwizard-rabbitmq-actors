@@ -37,22 +37,20 @@ import io.appform.dropwizard.actors.retry.impl.TimeLimitedIncrementalWaitRetrySt
  */
 public class RetryStrategyFactory {
     public RetryStrategy create(RetryConfig config) {
-        switch (config.getType()) {
-            case NO_RETRY:
-                return new NoRetryStrategy(NoRetryConfig.class.cast(config));
-            case TIME_LIMITED_EXPONENTIAL_BACKOFF:
-                return new TimeLimitedExponentialWaitRetryStrategy(TimeLimitedExponentialWaitRetryConfig.class.cast(config));
-            case TIME_LIMITED_INCREMENTAL_WAIT:
-                return new TimeLimitedIncrementalWaitRetryStrategy(TimeLimitedIncrementalWaitRetryConfig.class.cast(config));
-            case TIME_LIMITED_FIXED_WAIT:
-                return new TimeLimitedFixedWaitRetryStrategy(TimeLimitedFixedWaitRetryConfig.class.cast(config));
-            case COUNT_LIMITED_EXPONENTIAL_BACKOFF:
-                return new CountLimitedExponentialWaitRetryStrategy(CountLimitedExponentialWaitRetryConfig.class.cast(config));
-            case COUNT_LIMITED_INCREMENTAL_WAIT:
-                return new CountLimitedIncrementalWaitRetryStrategy(CountLimitedIncrementalWaitRetryConfig.class.cast(config));
-            case COUNT_LIMITED_FIXED_WAIT:
-                return new CountLimitedFixedWaitRetryStrategy(CountLimitedFixedWaitRetryConfig.class.cast(config));
-        }
-        return null;
+        return switch (config.getType()) {
+            case NO_RETRY -> new NoRetryStrategy((NoRetryConfig) config);
+            case TIME_LIMITED_EXPONENTIAL_BACKOFF ->
+                    new TimeLimitedExponentialWaitRetryStrategy((TimeLimitedExponentialWaitRetryConfig) config);
+            case TIME_LIMITED_INCREMENTAL_WAIT ->
+                    new TimeLimitedIncrementalWaitRetryStrategy((TimeLimitedIncrementalWaitRetryConfig) config);
+            case TIME_LIMITED_FIXED_WAIT ->
+                    new TimeLimitedFixedWaitRetryStrategy((TimeLimitedFixedWaitRetryConfig) config);
+            case COUNT_LIMITED_EXPONENTIAL_BACKOFF ->
+                    new CountLimitedExponentialWaitRetryStrategy((CountLimitedExponentialWaitRetryConfig) config);
+            case COUNT_LIMITED_INCREMENTAL_WAIT ->
+                    new CountLimitedIncrementalWaitRetryStrategy((CountLimitedIncrementalWaitRetryConfig) config);
+            case COUNT_LIMITED_FIXED_WAIT ->
+                    new CountLimitedFixedWaitRetryStrategy((CountLimitedFixedWaitRetryConfig) config);
+        };
     }
 }

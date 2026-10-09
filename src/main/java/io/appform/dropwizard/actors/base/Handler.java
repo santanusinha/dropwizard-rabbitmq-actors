@@ -96,16 +96,18 @@ public class Handler<Message> extends DefaultConsumer {
                                final AMQP.BasicProperties properties,
                                final byte[] body) throws IOException {
         try {
-            val handleCallable = getHandleCallable(envelope, properties, body);
+            val expired = isExpired(properties);
+            val message = mapper.readValue(body, clazz);
+            Callable<Boolean> handleCallable = () -> handle(message, populateMessageMeta(envelope, properties), expired);
 
-            if (retryStrategy.execute(handleCallable)) {
+            if (retryStrategy.execute(handleCallable, message, properties)) {
                 getChannel().basicAck(envelope.getDeliveryTag(), false);
             } else {
                 getChannel().basicReject(envelope.getDeliveryTag(), false);
             }
         } catch (Throwable t) {
             log.error("Error processing message...", t);
-            if (errorCheckFunction.apply(t)) {
+            if (Boolean.TRUE.equals(errorCheckFunction.apply(t))) {
                 log.warn("Acked message due to exception: ", t);
                 getChannel().basicAck(envelope.getDeliveryTag(), false);
             } else if (exceptionHandler.handle()) {
@@ -115,14 +117,6 @@ public class Handler<Message> extends DefaultConsumer {
                 getChannel().basicReject(envelope.getDeliveryTag(), false);
             }
         }
-    }
-
-    private Callable<Boolean> getHandleCallable(final Envelope envelope,
-                                                final AMQP.BasicProperties properties,
-                                                final byte[] body) throws IOException {
-        val expired = isExpired(properties);
-        val message = mapper.readValue(body, clazz);
-        return () -> handle(message, populateMessageMeta(envelope, properties), expired);
     }
 
     private long getDelayInMs(final AMQP.BasicProperties properties) {
