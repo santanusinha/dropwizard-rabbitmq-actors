@@ -292,7 +292,7 @@ public class UnmanagedPublisher<Message> {
 
     public void stop() throws Exception {
         try {
-            if (publishChannel.isOpen()) {
+            if (publishChannel != null && publishChannel.isOpen()) {
                 publishChannel.close();
                 log.info("Publisher channel closed for queue [{}]", queueName);
             } else {

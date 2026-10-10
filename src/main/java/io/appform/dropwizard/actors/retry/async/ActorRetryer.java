@@ -6,6 +6,13 @@ import java.util.concurrent.Callable;
 
 public interface ActorRetryer {
 
-    <T> boolean call(Callable<Boolean> callable, T body, AMQP.BasicProperties properties) throws Exception;
+    default void start() throws Exception {
+    }
+
+    default void stop() throws Exception {
+    }
+
+    boolean call(Callable<Boolean> callable, String queueName, byte[] body,
+                 AMQP.BasicProperties properties) throws Exception;
 
 }

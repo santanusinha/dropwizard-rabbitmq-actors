@@ -31,12 +31,66 @@ import io.appform.dropwizard.actors.retry.impl.NoRetryStrategy;
 import io.appform.dropwizard.actors.retry.impl.TimeLimitedExponentialWaitRetryStrategy;
 import io.appform.dropwizard.actors.retry.impl.TimeLimitedFixedWaitRetryStrategy;
 import io.appform.dropwizard.actors.retry.impl.TimeLimitedIncrementalWaitRetryStrategy;
+import io.appform.dropwizard.actors.retry.async.AsyncRetryScheduler;
+import io.appform.dropwizard.actors.retry.async.ActorRetryer;
+import io.appform.dropwizard.actors.retry.async.AsyncRetryer;
+import io.appform.dropwizard.actors.retry.async.TtlRequeueRetryScheduler;
+import io.appform.dropwizard.actors.actor.ActorConfig;
+import io.appform.dropwizard.actors.base.utils.NamingUtils;
+import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Creates strategy based on config
  */
 public class RetryStrategyFactory {
+
     public RetryStrategy create(RetryConfig config) {
+        return create(config, null);
+    }
+
+    public RetryStrategy create(RetryConfig config, AsyncRetryScheduler scheduler) {
+        Objects.requireNonNull(config, "config");
+        var strategy = createStrategy(config);
+        strategy.setActorRetryer(createActorRetryer(config, strategy.getPolicy(), scheduler));
+        return strategy;
+    }
+
+    public RetryStrategy create(RetryConfig config, ActorConfig actorConfig, RMQConnection connection,
+                                String exchange, String queueName) {
+        Objects.requireNonNull(config, "config");
+        var mode = Objects.requireNonNull(config.getRetryMode(), "retryMode");
+        var scheduler = mode == RetryMode.ASYNC
+                ? createScheduler(config, actorConfig, connection, exchange, queueName) : null;
+        return create(config, scheduler);
+    }
+
+    protected AsyncRetryScheduler createScheduler(RetryConfig config, ActorConfig actorConfig,
+                                                   RMQConnection connection, String exchange, String queueName) {
+        Set<String> queues = actorConfig.isSharded()
+                ? IntStream.range(0, actorConfig.getShardCount())
+                        .mapToObj(shard -> NamingUtils.getShardedQueueName(queueName, shard))
+                        .collect(Collectors.toSet())
+                : Set.of(queueName);
+        return new TtlRequeueRetryScheduler(
+                new TtlRequeueRetryScheduler.Context(connection, actorConfig, exchange, queueName, queues), 5000);
+    }
+
+    protected ActorRetryer createActorRetryer(RetryConfig config,
+                                              ActorRetryerBuilder.Policy<Boolean> policy,
+                                              AsyncRetryScheduler scheduler) {
+        var mode = Objects.requireNonNull(config.getRetryMode(), "retryMode");
+        if (mode == RetryMode.ASYNC) {
+            return new AsyncRetryer(policy, Objects.requireNonNull(scheduler, "Async retry scheduler is required"));
+        }
+        var retryer = policy.buildSyncRetryer();
+        return (callable, queueName, body, properties) -> retryer.call(callable);
+    }
+
+    protected RetryStrategy createStrategy(RetryConfig config) {
         return switch (config.getType()) {
             case NO_RETRY -> new NoRetryStrategy((NoRetryConfig) config);
             case TIME_LIMITED_EXPONENTIAL_BACKOFF ->

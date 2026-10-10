@@ -16,6 +16,7 @@ import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
+import io.appform.dropwizard.actors.retry.async.RetrySchedulingException;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.concurrent.Callable;
@@ -50,7 +51,7 @@ public class Handler<Message> extends DefaultConsumer {
                    final Class<? extends Message> clazz,
                    final int prefetchCount,
                    final Function<Throwable, Boolean> errorCheckFunction,
-                   final RetryStrategy retryStrategy,
+                    final RetryStrategy retryStrategy,
                    final ExceptionHandler exceptionHandler,
                    final MessageHandlingFunction<Message, Boolean> messageHandlingFunction,
                    final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
@@ -70,7 +71,6 @@ public class Handler<Message> extends DefaultConsumer {
     }
 
     private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) {
-        running = true;
         val context = ConsumeObserverContext.builder()
                 .queueName(queueName)
                 .redelivered(messageMetadata.isRedelivered())
@@ -84,8 +84,6 @@ public class Handler<Message> extends DefaultConsumer {
             } catch (Exception e) {
                 log.error("Error while handling message: ", e);
                 throw RabbitmqActorException.propagate(e);
-            } finally {
-                running = false;
             }
         });
     }
@@ -95,16 +93,21 @@ public class Handler<Message> extends DefaultConsumer {
                                final Envelope envelope,
                                final AMQP.BasicProperties properties,
                                final byte[] body) throws IOException {
+        running = true;
         try {
             val expired = isExpired(properties);
             val message = mapper.readValue(body, clazz);
             Callable<Boolean> handleCallable = () -> handle(message, populateMessageMeta(envelope, properties), expired);
 
-            if (retryStrategy.execute(handleCallable, message, properties)) {
+            if (retryStrategy.execute(handleCallable, queueName, body, properties)) {
                 getChannel().basicAck(envelope.getDeliveryTag(), false);
             } else {
                 getChannel().basicReject(envelope.getDeliveryTag(), false);
             }
+        } catch (RetrySchedulingException t) {
+            log.error("Retry handoff failed; closing consumer channel for recovery", t);
+            // Closing leaves the original unsettled so recovery can redeliver it without using business DROP rules.
+            getChannel().abort();
         } catch (Throwable t) {
             log.error("Error processing message...", t);
             if (Boolean.TRUE.equals(errorCheckFunction.apply(t))) {
@@ -116,6 +119,17 @@ public class Handler<Message> extends DefaultConsumer {
             } else {
                 getChannel().basicReject(envelope.getDeliveryTag(), false);
             }
+        } finally {
+            synchronized (this) {
+                running = false;
+                notifyAll();
+            }
+        }
+    }
+
+    public synchronized void awaitCompletion() throws InterruptedException {
+        while (running) {
+            wait();
         }
     }
 

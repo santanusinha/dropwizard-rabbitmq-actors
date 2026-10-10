@@ -25,6 +25,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.Set;
+import javax.validation.constraints.NotNull;
 
 /**
  * Configure a retry strategy
@@ -48,6 +49,7 @@ public abstract class RetryConfig {
 
     private Set<String> retriableExceptions;
 
+    @NotNull
     private RetryMode retryMode = RetryMode.SYNC;
 
     protected RetryConfig(RetryType type) {
