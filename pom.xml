@@ -6,7 +6,7 @@
 
     <groupId>io.appform.dropwizard.actors</groupId>
     <artifactId>dropwizard-rabbitmq-actors</artifactId>
-    <version>2.0.28-17</version>
+    <version>5.0.2-RC0</version>
     <name>Dropwizard RabbitMQ Bundle</name>
     <url>https://github.com/santanusinha/dropwizard-rabbitmq-actors</url>
     <description>Provides actor abstraction on RabbitMQ for dropwizard based projects.</description>
@@ -95,12 +95,16 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <dropwizard.version>2.0.28</dropwizard.version>
+        <dropwizard.version>5.0.2</dropwizard.version>
         <lombok.version>1.18.36</lombok.version>
         <guava.version>31.0.1-jre</guava.version>
         <okhttp.version>4.9.3</okhttp.version>
         <amqp-client.version>5.20.0</amqp-client.version>
-        <mockito.version>4.4.0</mockito.version>
+        <mockito.version>5.23.0</mockito.version>
+        <httpclient5.version>5.5</httpclient5.version>
+        <jackson.version>2.21</jackson.version>
+        <jakarta.validation.version>3.1.0</jakarta.validation.version>
+        <junit5.version>5.14.4</junit5.version>
         <nexus-staging-maven-plugin.version>1.7.0</nexus-staging-maven-plugin.version>
     </properties>
 
@@ -164,9 +168,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.5.13</version>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <version>${httpclient5.version}</version>
         </dependency>
         <dependency>
             <groupId>io.dropwizard</groupId>
@@ -187,7 +191,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>2.10.5</version>
+            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
@@ -220,14 +224,20 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <version>${jakarta.validation.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
-            <version>5.8.1</version>
+            <version>${junit5.version}</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
-            <version>5.8.1</version>
+            <version>${junit5.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

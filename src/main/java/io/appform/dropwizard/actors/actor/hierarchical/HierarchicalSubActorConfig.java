@@ -9,10 +9,10 @@ import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import io.appform.dropwizard.actors.retry.config.RetryConfig;
 import lombok.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
