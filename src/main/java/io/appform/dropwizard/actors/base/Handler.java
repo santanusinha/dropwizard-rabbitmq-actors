@@ -16,6 +16,7 @@ import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
+import io.appform.dropwizard.actors.retry.async.RetrySchedulingException;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.concurrent.Callable;
@@ -70,7 +71,6 @@ public class Handler<Message> extends DefaultConsumer {
     }
 
     private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) {
-        running = true;
         val context = ConsumeObserverContext.builder()
                 .queueName(queueName)
                 .redelivered(messageMetadata.isRedelivered())
@@ -84,8 +84,6 @@ public class Handler<Message> extends DefaultConsumer {
             } catch (Exception e) {
                 log.error("Error while handling message: ", e);
                 throw RabbitmqActorException.propagate(e);
-            } finally {
-                running = false;
             }
         });
     }
@@ -95,17 +93,23 @@ public class Handler<Message> extends DefaultConsumer {
                                final Envelope envelope,
                                final AMQP.BasicProperties properties,
                                final byte[] body) throws IOException {
+        running = true;
         try {
-            val handleCallable = getHandleCallable(envelope, properties, body);
+            val expired = isExpired(properties);
+            val message = mapper.readValue(body, clazz);
+            Callable<Boolean> handleCallable = () -> handle(message, populateMessageMeta(envelope, properties), expired);
 
-            if (retryStrategy.execute(handleCallable)) {
+            if (retryStrategy.execute(handleCallable, queueName, body, properties)) {
                 getChannel().basicAck(envelope.getDeliveryTag(), false);
             } else {
                 getChannel().basicReject(envelope.getDeliveryTag(), false);
             }
+        } catch (RetrySchedulingException t) {
+            log.error("Retry handoff failed; re-queuing delivery", t);
+            getChannel().basicNack(envelope.getDeliveryTag(), false, true);
         } catch (Throwable t) {
             log.error("Error processing message...", t);
-            if (errorCheckFunction.apply(t)) {
+            if (Boolean.TRUE.equals(errorCheckFunction.apply(t))) {
                 log.warn("Acked message due to exception: ", t);
                 getChannel().basicAck(envelope.getDeliveryTag(), false);
             } else if (exceptionHandler.handle()) {
@@ -114,15 +118,18 @@ public class Handler<Message> extends DefaultConsumer {
             } else {
                 getChannel().basicReject(envelope.getDeliveryTag(), false);
             }
+        } finally {
+            synchronized (this) {
+                running = false;
+                notifyAll();
+            }
         }
     }
 
-    private Callable<Boolean> getHandleCallable(final Envelope envelope,
-                                                final AMQP.BasicProperties properties,
-                                                final byte[] body) throws IOException {
-        val expired = isExpired(properties);
-        val message = mapper.readValue(body, clazz);
-        return () -> handle(message, populateMessageMeta(envelope, properties), expired);
+    public synchronized void awaitCompletion() throws InterruptedException {
+        while (running) {
+            wait();
+        }
     }
 
     private long getDelayInMs(final AMQP.BasicProperties properties) {

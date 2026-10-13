@@ -153,7 +153,8 @@ public class UnmanagedBaseActor<Message> {
                         producerConnection, mapper),
                 new UnmanagedConsumer<>(NamingUtils.queueName(config.getPrefix(), name), config.getPrefetchCount(),
                         config.getConcurrency(), config.isSharded(), config.getShardCount(), config.getConsumer(),
-                        consumerConnection, mapper, retryStrategyFactory.create(config.getRetryConfig()),
+                         consumerConnection, mapper, retryStrategyFactory.create(config.getRetryConfig(), config,
+                         producerConnection, config.getExchange(), NamingUtils.queueName(config.getPrefix(), name)),
                         exceptionHandlingFactory.create(config.getExceptionHandlerConfig()), clazz, handlerFunction,
                         expiredMessageHandlingFunction, errorCheckFunction), config.isSidelineProcessorEnabled()
                                                                              ? new UnmanagedConsumer<>(
@@ -162,9 +163,10 @@ public class UnmanagedBaseActor<Message> {
                                 .getConcurrency(), config.isSharded(), config
                         .getShardCount(), config.getSidelineProcessorConfig()
                         .getConsumerConfig(),
-                        sidelineProcessorConnection, mapper, retryStrategyFactory.create(
-                        config.getSidelineProcessorConfig()
-                                .getRetryConfig()),
+                         sidelineProcessorConnection, mapper, retryStrategyFactory.create(
+                         config.getSidelineProcessorConfig().getRetryConfig(), config, producerConnection,
+                         NamingUtils.getSidelineProcessor(config.getExchange()),
+                         NamingUtils.sidelineProcessorQueueName(config.getPrefix(), name)),
                         exceptionHandlingFactory.create(config.getExceptionHandlerConfig()), clazz,
                         sidelineProcessorHandleFunction, sidelineProcessorExpiredMessageHandlingFunction,
                         errorCheckFunction)
@@ -184,14 +186,14 @@ public class UnmanagedBaseActor<Message> {
     }
 
     public void stop() throws Exception {
-        if (Objects.nonNull(publishActor)) {
-            publishActor.stop();
-        }
         if (Objects.nonNull(consumeActor)) {
             consumeActor.stop();
         }
         if (Objects.nonNull(sidelineProcessorActor)) {
             sidelineProcessorActor.stop();
+        }
+        if (Objects.nonNull(publishActor)) {
+            publishActor.stop();
         }
     }
 

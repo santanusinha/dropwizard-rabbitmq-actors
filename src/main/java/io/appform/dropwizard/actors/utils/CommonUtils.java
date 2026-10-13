@@ -44,4 +44,23 @@ public class CommonUtils {
                 || (null != exception
                 && retriableExceptions.contains(exception.getClass().getSimpleName()));
     }
+
+    public static int parseInt(Object o, int fallback) {
+        if(o == null) return fallback;
+        try {
+            return Integer.parseInt(String.valueOf(o));
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    public static long parseLong(Object o, long fallback) {
+        if(o == null) return fallback;
+        try {
+            return Long.parseLong(String.valueOf(o));
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
 }

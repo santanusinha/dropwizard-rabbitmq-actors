@@ -16,21 +16,53 @@
 
 package io.appform.dropwizard.actors.retry;
 
-import com.github.rholder.retry.Retryer;
 
+import lombok.Getter;
+import com.rabbitmq.client.AMQP;
+import io.appform.dropwizard.actors.retry.async.ActorRetryer;
+
+import java.util.Objects;
 import java.util.concurrent.Callable;
 
 /**
- * Baqse for all retry strategies
+ * Defines retry policy and delegates execution to the executor bound by the factory.
  */
 public abstract class RetryStrategy {
-    private final Retryer<Boolean> retryer;
 
-    protected RetryStrategy(Retryer<Boolean> retryer) {
-        this.retryer = retryer;
+    @Getter
+    private final ActorRetryerBuilder.Policy<Boolean> policy;
+    private ActorRetryer actorRetryer;
+
+    protected RetryStrategy(ActorRetryerBuilder.Policy<Boolean> policy) {
+        this.policy = Objects.requireNonNull(policy, "policy");
     }
 
-    public boolean execute(Callable<Boolean> callable) throws Exception {
-        return retryer.call(callable);
+    final void setActorRetryer(ActorRetryer actorRetryer) {
+        Objects.requireNonNull(actorRetryer, "actorRetryer");
+        if (this.actorRetryer != null) {
+            throw new IllegalStateException("Retry executor has already been bound");
+        }
+        this.actorRetryer = actorRetryer;
     }
+
+    public boolean execute(Callable<Boolean> callable, String queueName, byte[] body,
+                           AMQP.BasicProperties properties) throws Exception {
+        return retryer().call(callable, queueName, body, properties);
+    }
+
+    public void start() throws Exception {
+        retryer().start();
+    }
+
+    public void stop() throws Exception {
+        retryer().stop();
+    }
+
+    private ActorRetryer retryer() {
+        if (actorRetryer == null) {
+            throw new IllegalStateException("Retry executor must be bound by RetryStrategyFactory");
+        }
+        return actorRetryer;
+    }
+
 }

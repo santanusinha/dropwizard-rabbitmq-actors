@@ -16,8 +16,7 @@
 
 package io.appform.dropwizard.actors.retry.impl;
 
-import com.github.rholder.retry.BlockStrategies;
-import com.github.rholder.retry.RetryerBuilder;
+import io.appform.dropwizard.actors.retry.ActorRetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
@@ -31,14 +30,12 @@ import java.util.concurrent.TimeUnit;
  */
 public class TimeLimitedFixedWaitRetryStrategy extends RetryStrategy {
     public TimeLimitedFixedWaitRetryStrategy(TimeLimitedFixedWaitRetryConfig config) {
-        super(RetryerBuilder.<Boolean>newBuilder()
+        super(ActorRetryerBuilder.<Boolean>newBuilder()
                 .retryIfException(exception -> CommonUtils.isRetriable(config.getRetriableExceptions(),
                         exception))
                 .withStopStrategy(
                         StopStrategies.stopAfterDelay(config.getMaxTime().toMilliseconds(), TimeUnit.MILLISECONDS))
-                .withBlockStrategy(BlockStrategies.threadSleepStrategy())
                 .withWaitStrategy(
-                        WaitStrategies.fixedWait(config.getWaitTime().toMilliseconds(), TimeUnit.MILLISECONDS))
-                .build());
+                        WaitStrategies.fixedWait(config.getWaitTime().toMilliseconds(), TimeUnit.MILLISECONDS)).build());
     }
 }

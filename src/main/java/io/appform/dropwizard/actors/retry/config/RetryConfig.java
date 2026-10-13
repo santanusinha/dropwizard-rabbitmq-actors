@@ -18,12 +18,15 @@ package io.appform.dropwizard.actors.retry.config;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.appform.dropwizard.actors.retry.RetryMode;
 import io.appform.dropwizard.actors.retry.RetryType;
+import io.dropwizard.util.Duration;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.Set;
+import javax.validation.constraints.NotNull;
 
 /**
  * Configure a retry strategy
@@ -45,9 +48,19 @@ import java.util.Set;
 @EqualsAndHashCode
 @ToString
 public abstract class RetryConfig {
+
     private final RetryType type;
 
     private Set<String> retriableExceptions;
+
+    @NotNull
+    private RetryMode retryMode = RetryMode.SYNC;
+
+    /**
+     * How long an ASYNC retry scheduler waits for scheduling a retry before.
+     */
+    @NotNull
+    private Duration asyncConfirmTimeout = Duration.seconds(5);
 
     protected RetryConfig(RetryType type) {
         this.type = type;
