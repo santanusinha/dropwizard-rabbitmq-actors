@@ -116,6 +116,17 @@ class AsyncRetryWiringTest {
             topologyChannel.queueBind(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2));
             return null;
         }).when(connection).addBinding(anyString(), anyString(), anyString());
+        lenient().doAnswer(invocation -> {
+            var topology = invocation.<Channel>getArgument(0);
+            topology.queueDeclare(invocation.getArgument(1), true, false, false, invocation.getArgument(4));
+            topology.queueBind(invocation.getArgument(1), invocation.getArgument(3), invocation.getArgument(2));
+            return null;
+        }).when(connection).ensure(any(Channel.class), anyString(), anyString(), anyString(), any(Map.class));
+        lenient().doAnswer(invocation -> {
+            var topology = invocation.<Channel>getArgument(0);
+            topology.queueBind(invocation.getArgument(1), invocation.getArgument(2), invocation.getArgument(3));
+            return null;
+        }).when(connection).addBinding(any(Channel.class), anyString(), anyString(), anyString());
         body = mapper.writeValueAsBytes(new TestMessage());
     }
 

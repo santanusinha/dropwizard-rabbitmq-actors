@@ -7,6 +7,11 @@ import com.rabbitmq.client.impl.LongStringHelper;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.QueueType;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
+import io.appform.dropwizard.actors.observers.PublishObserverContext;
+import io.appform.dropwizard.actors.observers.RMQObserver;
+import io.appform.dropwizard.actors.observers.PublishMessageDetails;
+import io.appform.dropwizard.actors.common.Constants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -41,13 +46,58 @@ class TtlRequeueRetrySchedulerTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        when(connection.channel()).thenReturn(topology);
+        when(connection.getRootObserver()).thenReturn(new TerminalRMQObserver());
         when(connection.newChannel()).thenReturn(topology, publisher);
         when(publisher.isOpen()).thenReturn(true);
+        doAnswer(invocation -> {
+            var topologyChannel = invocation.<Channel>getArgument(0);
+            topologyChannel.queueDeclare(invocation.getArgument(1), true, false, false, invocation.getArgument(4));
+            topologyChannel.queueBind(invocation.getArgument(1), invocation.getArgument(3), invocation.getArgument(2));
+            return null;
+        }).when(connection).ensure(any(Channel.class), anyString(), anyString(), anyString(), any());
+        doAnswer(invocation -> {
+            invocation.<Channel>getArgument(0)
+                    .queueBind(invocation.getArgument(1), invocation.getArgument(2), invocation.getArgument(3));
+            return null;
+        }).when(connection).addBinding(any(Channel.class), anyString(), anyString(), anyString());
         scheduler = new TtlRequeueRetryScheduler(new TtlRequeueRetryScheduler.Context(connection,
                 ActorConfig.builder().exchange("exchange").queueType(QueueType.QUORUM)
                         .priorityQueue(true).build(),
                 "exchange", "queue", Set.of("queue_0", "queue_1")), 5000);
+    }
+
+    @Test
+    void observesRetryDestinationAndPreservesOriginalAgeAndExpiry() throws Exception {
+        var observer = mock(RMQObserver.class);
+        doAnswer(invocation -> {
+            var context = invocation.<PublishObserverContext>getArgument(0);
+            var publish = invocation.<java.util.function.Function<PublishMessageDetails, Object>>getArgument(1);
+            return publish.apply(PublishMessageDetails.builder()
+                    .messageProperties(context.getMessageProperties()).build());
+        }).when(observer).executePublish(any(), any());
+        when(connection.getRootObserver()).thenReturn(observer);
+        scheduler = new TtlRequeueRetryScheduler(new TtlRequeueRetryScheduler.Context(connection,
+                new ActorConfig(), "exchange", "queue", Set.of(QUEUE)), 1234);
+        var original = properties(Map.of(Constants.MESSAGE_PUBLISHED_TEXT, 800L,
+                Constants.MESSAGE_EXPIRY_TEXT, 2000L));
+        when(connection.newChannel()).thenReturn(topology, publisher, topology, publisher);
+        scheduler.start();
+        scheduler.schedule(QUEUE, body, original, new RetryState(2, STARTED_AT), 100);
+
+        var context = ArgumentCaptor.forClass(PublishObserverContext.class);
+        verify(observer).executePublish(context.capture(), any());
+        assertEquals("queue_RETRY_100", context.getValue().getQueueName());
+        var published = ArgumentCaptor.forClass(AMQP.BasicProperties.class);
+        verify(publisher).basicPublish(eq("exchange_RETRY_100"), eq(QUEUE), eq(true),
+                published.capture(), same(body));
+        assertEquals(800L, published.getValue().getHeaders().get(Constants.MESSAGE_PUBLISHED_TEXT));
+        assertEquals(2000L, published.getValue().getHeaders().get(Constants.MESSAGE_EXPIRY_TEXT));
+        verify(publisher).waitForConfirmsOrDie(1234);
+        scheduler.stop();
+        scheduler.start();
+        scheduler.schedule(QUEUE, body, original, new RetryState(3, STARTED_AT), 100);
+        verify(connection, times(4)).newChannel();
+        verify(topology, times(2)).exchangeDeclare("exchange_RETRY_100", "direct", true);
     }
 
     private AMQP.BasicProperties properties(Map<String, Object> headers) {
@@ -71,7 +121,7 @@ class TtlRequeueRetrySchedulerTest {
         scheduler.start();
 
         for (long delay : Set.of(100L, 1000L)) {
-            when(connection.newChannel()).thenReturn(topology, publisher);
+            when(connection.newChannel()).thenReturn(topology, publisher, topology);
             scheduler.schedule("queue_0", body, properties,
                     new RetryState(2, STARTED_AT), delay);
             verify(topology).exchangeDeclare("exchange_RETRY_" + delay, "direct", true);
@@ -81,6 +131,7 @@ class TtlRequeueRetrySchedulerTest {
             verify(topology).queueBind("queue_RETRY_" + delay, "exchange_RETRY_" + delay, "queue_0");
             verify(topology).queueBind("queue_RETRY_" + delay, "exchange_RETRY_" + delay, "queue_1");
         }
+        verify(topology, times(2)).close();
     }
 
     @Test
@@ -198,6 +249,7 @@ class TtlRequeueRetrySchedulerTest {
     void reusesChannelAndRejectsSchedulingOutsideLifecycle() throws Exception {
         assertThrows(IllegalStateException.class,
                 () -> scheduler.schedule("queue_0", body, properties, new RetryState(2, STARTED_AT), 100));
+        when(connection.newChannel()).thenReturn(topology, publisher, topology);
         scheduler.start();
         scheduler.schedule("queue_0", body, properties, new RetryState(2, STARTED_AT), 100);
         scheduler.schedule("queue_1", body, properties, new RetryState(2, STARTED_AT), 100);

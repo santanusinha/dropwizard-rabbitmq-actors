@@ -51,7 +51,7 @@ public class Handler<Message> extends DefaultConsumer {
                    final Class<? extends Message> clazz,
                    final int prefetchCount,
                    final Function<Throwable, Boolean> errorCheckFunction,
-                    final RetryStrategy retryStrategy,
+                   final RetryStrategy retryStrategy,
                    final ExceptionHandler exceptionHandler,
                    final MessageHandlingFunction<Message, Boolean> messageHandlingFunction,
                    final MessageHandlingFunction<Message, Boolean> expiredMessageHandlingFunction,
@@ -105,9 +105,8 @@ public class Handler<Message> extends DefaultConsumer {
                 getChannel().basicReject(envelope.getDeliveryTag(), false);
             }
         } catch (RetrySchedulingException t) {
-            log.error("Retry handoff failed; closing consumer channel for recovery", t);
-            // Closing leaves the original unsettled so recovery can redeliver it without using business DROP rules.
-            getChannel().abort();
+            log.error("Retry handoff failed; re-queuing delivery", t);
+            getChannel().basicNack(envelope.getDeliveryTag(), false, true);
         } catch (Throwable t) {
             log.error("Error processing message...", t);
             if (Boolean.TRUE.equals(errorCheckFunction.apply(t))) {

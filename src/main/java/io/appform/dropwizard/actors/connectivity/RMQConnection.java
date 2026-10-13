@@ -154,13 +154,25 @@ public class RMQConnection implements Managed {
                        final String routingQueue,
                        final String exchange,
                        final Map<String, Object> rmqOpts) throws Exception {
+        ensure(channel, queueName, routingQueue, exchange, rmqOpts);
+    }
+
+    public void ensure(final Channel channel,
+                       final String queueName,
+                       final String routingQueue,
+                       final String exchange,
+                       final Map<String, Object> rmqOpts) throws Exception {
         channel.queueDeclare(queueName, true, false, false, rmqOpts);
         channel.queueBind(queueName, exchange, routingQueue);
         log.info("Created queue: {} bound to {}", queueName, exchange);
     }
 
     public void addBinding(String queueName, String exchange, String routingKey) throws Exception {
-        channel.queueBind(queueName, exchange, routingKey);
+        addBinding(channel, queueName, exchange, routingKey);
+    }
+
+    public void addBinding(Channel topology, String queueName, String exchange, String routingKey) throws Exception {
+        topology.queueBind(queueName, exchange, routingKey);
         log.info("Created binding for queue : {} bound to {} routing Key {}", queueName, exchange, routingKey);
     }
 

@@ -38,6 +38,7 @@ import io.appform.dropwizard.actors.retry.async.TtlRequeueRetryScheduler;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.connectivity.PublishingChannel;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -50,6 +51,24 @@ public class RetryStrategyFactory {
 
     public RetryStrategy create(RetryConfig config) {
         return create(config, null);
+    }
+
+    protected RetryStrategy createStrategy(RetryConfig config) {
+        return switch (config.getType()) {
+            case NO_RETRY -> new NoRetryStrategy((NoRetryConfig) config);
+            case TIME_LIMITED_EXPONENTIAL_BACKOFF ->
+                    new TimeLimitedExponentialWaitRetryStrategy((TimeLimitedExponentialWaitRetryConfig) config);
+            case TIME_LIMITED_INCREMENTAL_WAIT ->
+                    new TimeLimitedIncrementalWaitRetryStrategy((TimeLimitedIncrementalWaitRetryConfig) config);
+            case TIME_LIMITED_FIXED_WAIT ->
+                    new TimeLimitedFixedWaitRetryStrategy((TimeLimitedFixedWaitRetryConfig) config);
+            case COUNT_LIMITED_EXPONENTIAL_BACKOFF ->
+                    new CountLimitedExponentialWaitRetryStrategy((CountLimitedExponentialWaitRetryConfig) config);
+            case COUNT_LIMITED_INCREMENTAL_WAIT ->
+                    new CountLimitedIncrementalWaitRetryStrategy((CountLimitedIncrementalWaitRetryConfig) config);
+            case COUNT_LIMITED_FIXED_WAIT ->
+                    new CountLimitedFixedWaitRetryStrategy((CountLimitedFixedWaitRetryConfig) config);
+        };
     }
 
     public RetryStrategy create(RetryConfig config, AsyncRetryScheduler scheduler) {
@@ -76,7 +95,13 @@ public class RetryStrategyFactory {
                         .collect(Collectors.toSet())
                 : Set.of(queueName);
         return new TtlRequeueRetryScheduler(
-                new TtlRequeueRetryScheduler.Context(connection, actorConfig, exchange, queueName, queues), 5000);
+                new TtlRequeueRetryScheduler.Context(connection, actorConfig, exchange, queueName, queues),
+                createRetryPublisher(config, connection), 32);
+    }
+
+    protected PublishingChannel createRetryPublisher(RetryConfig config, RMQConnection connection) {
+        return new PublishingChannel(connection,
+                Objects.requireNonNull(config.getAsyncConfirmTimeout(), "asyncConfirmTimeout").toMilliseconds());
     }
 
     protected ActorRetryer createActorRetryer(RetryConfig config,
@@ -90,21 +115,4 @@ public class RetryStrategyFactory {
         return (callable, queueName, body, properties) -> retryer.call(callable);
     }
 
-    protected RetryStrategy createStrategy(RetryConfig config) {
-        return switch (config.getType()) {
-            case NO_RETRY -> new NoRetryStrategy((NoRetryConfig) config);
-            case TIME_LIMITED_EXPONENTIAL_BACKOFF ->
-                    new TimeLimitedExponentialWaitRetryStrategy((TimeLimitedExponentialWaitRetryConfig) config);
-            case TIME_LIMITED_INCREMENTAL_WAIT ->
-                    new TimeLimitedIncrementalWaitRetryStrategy((TimeLimitedIncrementalWaitRetryConfig) config);
-            case TIME_LIMITED_FIXED_WAIT ->
-                    new TimeLimitedFixedWaitRetryStrategy((TimeLimitedFixedWaitRetryConfig) config);
-            case COUNT_LIMITED_EXPONENTIAL_BACKOFF ->
-                    new CountLimitedExponentialWaitRetryStrategy((CountLimitedExponentialWaitRetryConfig) config);
-            case COUNT_LIMITED_INCREMENTAL_WAIT ->
-                    new CountLimitedIncrementalWaitRetryStrategy((CountLimitedIncrementalWaitRetryConfig) config);
-            case COUNT_LIMITED_FIXED_WAIT ->
-                    new CountLimitedFixedWaitRetryStrategy((CountLimitedFixedWaitRetryConfig) config);
-        };
-    }
 }

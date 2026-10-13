@@ -115,7 +115,7 @@ class HandlerAsyncRetryTest {
     }
 
     @Test
-    void retrySchedulingFailureAbortsChannelDespiteErrorCheckAndDropHandler() throws Exception {
+    void retrySchedulingFailureRequeuesDeliveryDespiteErrorCheckAndDropHandler() throws Exception {
         var errorCheckInvoked = new AtomicBoolean(false);
         var dropHandler = spy(new MessageDropHandler(new DropConfig()));
         var dropPolicyHandler = handler(error -> {
@@ -132,7 +132,8 @@ class HandlerAsyncRetryTest {
 
         assertFalse(errorCheckInvoked.get());
         verify(dropHandler, never()).handle();
-        verify(channel).abort();
+        verify(channel).basicNack(DELIVERY_TAG, false, true);
+        verify(channel, never()).abort();
         verify(channel, never()).basicAck(anyLong(), anyBoolean());
         verify(channel, never()).basicReject(anyLong(), anyBoolean());
         verify(channel, never()).basicCancel(anyString());

@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.appform.dropwizard.actors.retry.RetryMode;
 import io.appform.dropwizard.actors.retry.RetryType;
+import io.dropwizard.util.Duration;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -30,19 +31,22 @@ import javax.validation.constraints.NotNull;
 /**
  * Configure a retry strategy
  */
-@Data
-@ToString
-@EqualsAndHashCode
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(name = "NO_RETRY", value = NoRetryConfig.class),
-        @JsonSubTypes.Type(name = "TIME_LIMITED_FIXED_WAIT", value = TimeLimitedFixedWaitRetryConfig.class),
+        @JsonSubTypes.Type(name = "COUNT_LIMITED_EXPONENTIAL_BACKOFF", value =
+                CountLimitedExponentialWaitRetryConfig.class),
         @JsonSubTypes.Type(name = "COUNT_LIMITED_FIXED_WAIT", value = CountLimitedFixedWaitRetryConfig.class),
-        @JsonSubTypes.Type(name = "TIME_LIMITED_INCREMENTAL_WAIT", value = TimeLimitedIncrementalWaitRetryConfig.class),
-        @JsonSubTypes.Type(name = "COUNT_LIMITED_INCREMENTAL_WAIT", value = CountLimitedIncrementalWaitRetryConfig.class),
-        @JsonSubTypes.Type(name = "TIME_LIMITED_EXPONENTIAL_BACKOFF", value = TimeLimitedExponentialWaitRetryConfig.class),
-        @JsonSubTypes.Type(name = "COUNT_LIMITED_EXPONENTIAL_BACKOFF", value = CountLimitedExponentialWaitRetryConfig.class),
+        @JsonSubTypes.Type(name = "COUNT_LIMITED_INCREMENTAL_WAIT", value =
+                CountLimitedIncrementalWaitRetryConfig.class),
+        @JsonSubTypes.Type(name = "NO_RETRY", value = NoRetryConfig.class),
+        @JsonSubTypes.Type(name = "TIME_LIMITED_EXPONENTIAL_BACKOFF", value =
+                TimeLimitedExponentialWaitRetryConfig.class),
+        @JsonSubTypes.Type(name = "TIME_LIMITED_FIXED_WAIT", value = TimeLimitedFixedWaitRetryConfig.class),
+        @JsonSubTypes.Type(name = "TIME_LIMITED_INCREMENTAL_WAIT", value = TimeLimitedIncrementalWaitRetryConfig.class)
 })
+@Data
+@EqualsAndHashCode
+@ToString
 public abstract class RetryConfig {
 
     private final RetryType type;
@@ -52,11 +56,18 @@ public abstract class RetryConfig {
     @NotNull
     private RetryMode retryMode = RetryMode.SYNC;
 
+    /**
+     * How long an ASYNC retry scheduler waits for scheduling a retry before.
+     */
+    @NotNull
+    private Duration asyncConfirmTimeout = Duration.seconds(5);
+
     protected RetryConfig(RetryType type) {
         this.type = type;
     }
 
-    protected RetryConfig(RetryType type, Set<String> retriableExceptions) {
+    protected RetryConfig(RetryType type,
+                          Set<String> retriableExceptions) {
         this.type = type;
         this.retriableExceptions = retriableExceptions;
     }
