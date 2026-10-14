@@ -20,11 +20,13 @@ import io.dropwizard.testing.junit5.DropwizardAppExtension;
 
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -145,9 +147,11 @@ public class QueueTypesTest {
         }, (x, y) -> true, (x) -> true);
         consumer.start();
 
-        Thread.sleep(1000);
+        Awaitility.await()
+                .atMost(10, TimeUnit.SECONDS)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> Assertions.assertNotNull(testDataHolder.get()));
 
-        Assertions.assertNotNull(testDataHolder.get());
         Object objMsg = testDataHolder.get()
                 .get("MESSAGE");
         Assertions.assertNotNull(objMsg);

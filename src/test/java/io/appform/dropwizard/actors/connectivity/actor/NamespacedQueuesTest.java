@@ -42,6 +42,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -222,6 +223,31 @@ public class NamespacedQueuesTest {
         return null;
     }
 
+    private boolean queueHasMessages(final String queueName, final int mappedManagementPort) {
+        Response response = null;
+        try {
+            response = sendRequest("/api/queues", mappedManagementPort);
+            if (response == null) {
+                return false;
+            }
+            JsonNode jsonNode = new ObjectMapper().readTree(response.body().string());
+            if (jsonNode.isArray()) {
+                for (JsonNode json : jsonNode) {
+                    if (queueName.equals(json.get("name").asText())) {
+                        return json.get("messages").asInt() >= 1;
+                    }
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+    }
+
     private Response sendPostRequest(String endpoint,
                                      String body,
                                      int mappedManagementPort) {
@@ -296,8 +322,11 @@ public class NamespacedQueuesTest {
                 .build();
         actor.publish(message);
 
-        Thread.sleep(10000);
         String sidelineQueue = NAMESPACE_VALUE + ".test.ALWAYS_FAIL_ACTOR_SIDELINE";
+        Awaitility.await()
+                .atMost(10, TimeUnit.SECONDS)
+                .pollInterval(500, TimeUnit.MILLISECONDS)
+                .until(() -> queueHasMessages(sidelineQueue, mappedManagementPort));
         String endpoint = "/api/queues/%2F/" + sidelineQueue + "/get";
 
         Response response = sendPostRequest(endpoint, objectMapper.writeValueAsString(getBody()), mappedManagementPort);

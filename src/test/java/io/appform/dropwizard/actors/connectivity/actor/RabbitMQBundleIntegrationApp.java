@@ -7,14 +7,16 @@ import io.dropwizard.core.Application;
 import io.dropwizard.core.setup.Environment;
 import lombok.Getter;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 /**
  * Test application that registers {@link RabbitmqActorBundle} so that the whole
  * bundle lifecycle runs inside a real dropwizard application.
  */
 public class RabbitMQBundleIntegrationApp extends Application<RabbitMQBundleTestAppConfiguration> {
 
-    private static final java.util.concurrent.atomic.AtomicReference<RMQConfig> RMQ_CONFIG_HOLDER =
-            new java.util.concurrent.atomic.AtomicReference<>();
+    private static final AtomicReference<RMQConfig> RMQ_CONFIG_HOLDER =
+            new AtomicReference<>();
 
     @Getter
     private RabbitmqActorBundle<RabbitMQBundleTestAppConfiguration> actorBundle;

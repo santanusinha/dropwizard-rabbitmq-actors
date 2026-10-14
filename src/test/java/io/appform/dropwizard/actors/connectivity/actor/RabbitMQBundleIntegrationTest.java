@@ -1,6 +1,7 @@
 package io.appform.dropwizard.actors.connectivity.actor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.appform.dropwizard.actors.RabbitmqActorBundle;
 import io.appform.dropwizard.actors.actor.Actor;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.MessageMetadata;
@@ -28,7 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.awaitility.Awaitility;
 
 /**
- * Brings up a whole dropwizard application with {@link io.appform.dropwizard.actors.RabbitmqActorBundle}
+ * Brings up a whole dropwizard application with {@link RabbitmqActorBundle}
  * registered and verifies real publish/consume against a live RabbitMQ broker through a bundle-managed actor.
  */
 @Slf4j
@@ -112,6 +113,5 @@ public class RabbitMQBundleIntegrationTest {
                 });
 
         actor.stop();
-        actorBundle.getConnectionRegistry().stop();
     }
 }
