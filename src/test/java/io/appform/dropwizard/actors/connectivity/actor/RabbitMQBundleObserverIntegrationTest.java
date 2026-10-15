@@ -11,14 +11,12 @@ import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.utils.RMQTestUtils;
+import io.dropwizard.testing.ConfigOverride;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,21 +37,7 @@ public class RabbitMQBundleObserverIntegrationTest {
     private static final String TEST_EXCHANGE = "test-observer-exchange";
 
     public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app =
-            new DropwizardAppExtension<>(RabbitMQBundleObserverTestApp.class);
-
-    @BeforeAll
-    @SneakyThrows
-    public static void beforeAll() {
-        System.setProperty("dw.server.applicationConnectors[0].port", "0");
-        System.setProperty("dw.server.adminConnectors[0].port", "0");
-    }
-
-    @AfterAll
-    @SneakyThrows
-    public static void afterAll() {
-        System.clearProperty("dw.server.applicationConnectors[0].port");
-        System.clearProperty("dw.server.adminConnectors[0].port");
-    }
+            new DropwizardAppExtension<>(RabbitMQBundleObserverTestApp.class, null, ConfigOverride.randomPorts());
 
     @BeforeEach
     void setUp(final RabbitMQContainer rabbitMQContainer) throws Exception {

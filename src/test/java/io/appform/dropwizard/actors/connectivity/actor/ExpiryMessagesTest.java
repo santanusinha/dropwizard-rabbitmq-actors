@@ -17,6 +17,7 @@ import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.retry.config.CountLimitedFixedWaitRetryConfig;
 import io.appform.dropwizard.actors.utils.RMQTestUtils;
+import io.dropwizard.testing.ConfigOverride;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -37,15 +38,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ExpiryMessagesTest {
 
     public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app =
-            new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class);
+            new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class, null, ConfigOverride.randomPorts());
     private static RMQConnection connection;
     private static final MetricRegistry metricRegistry = new MetricRegistry();
 
     @BeforeAll
     @SneakyThrows
     public static void beforeMethod() {
-        System.setProperty("dw." + "server.applicationConnectors[0].port", "0");
-        System.setProperty("dw." + "server.adminConnectors[0].port", "0");
         app.before();
     }
 

@@ -16,6 +16,7 @@ import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
 import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.utils.RMQTestUtils;
+import io.dropwizard.testing.ConfigOverride;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 
 import java.util.HashMap;
@@ -36,8 +37,7 @@ import org.testcontainers.containers.RabbitMQContainer;
 @ExtendWith(RabbitMQExtension.class)
 public class UnmanagedConsumerTimeoutTest {
 
-    public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app = new DropwizardAppExtension<>(
-            RabbitMQBundleTestApplication.class);
+    public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app = new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class, null, ConfigOverride.randomPorts());
     public static final String TEST_EXCHANGE = "test-exchange";
     private static RMQConnection connection;
 

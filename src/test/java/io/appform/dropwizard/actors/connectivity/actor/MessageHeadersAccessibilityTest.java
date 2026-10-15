@@ -16,6 +16,7 @@ import io.appform.dropwizard.actors.junit.extension.RabbitMQExtension;
 import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
 import io.appform.dropwizard.actors.utils.RMQTestUtils;
+import io.dropwizard.testing.ConfigOverride;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 
 import java.util.Map;
@@ -35,14 +36,12 @@ import org.testcontainers.containers.RabbitMQContainer;
 public class MessageHeadersAccessibilityTest {
 
     public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app =
-            new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class);
+            new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class, null, ConfigOverride.randomPorts());
     private static RMQConnection connection;
 
     @BeforeEach
     @SneakyThrows
     public void beforeMethod(final RabbitMQContainer rabbitMQContainer) {
-        System.setProperty("dw." + "server.applicationConnectors[0].port", "0");
-        System.setProperty("dw." + "server.adminConnectors[0].port", "0");
 
         app.before();
 

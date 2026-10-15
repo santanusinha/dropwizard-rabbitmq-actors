@@ -25,6 +25,7 @@ import io.appform.dropwizard.actors.utils.*;
 import io.dropwizard.core.Configuration;
 import io.dropwizard.jackson.Jackson;
 import io.dropwizard.core.setup.Environment;
+import io.dropwizard.testing.ConfigOverride;
 import io.dropwizard.testing.junit5.DropwizardAppExtension;
 
 import java.io.IOException;
@@ -66,7 +67,7 @@ public class NamespacedQueuesTest {
     private static final String NAMESPACE_VALUE = "namespace1";
 
     public static final DropwizardAppExtension<RabbitMQBundleTestAppConfiguration> app =
-            new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class);
+            new DropwizardAppExtension<>(RabbitMQBundleTestApplication.class, null, ConfigOverride.randomPorts());
     private final MetricRegistry metricRegistry = new MetricRegistry();
 
     @BeforeAll
