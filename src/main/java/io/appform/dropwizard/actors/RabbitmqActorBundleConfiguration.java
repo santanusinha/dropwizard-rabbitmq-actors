@@ -19,8 +19,8 @@ package io.appform.dropwizard.actors;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import lombok.Data;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * Created by santanu on 13/10/16.

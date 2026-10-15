@@ -21,6 +21,7 @@ import io.dropwizard.testing.junit5.DropwizardAppExtension;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +29,7 @@ import org.testcontainers.containers.RabbitMQContainer;
 
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
@@ -97,9 +99,10 @@ public class ExpiryMessagesTest {
                 Map.class, this::handleForNoExpectedMsg, handleExpiredMessage(expiredDeliveryCount), (x) -> true);
         consumer.start();
 
-        Thread.sleep(1000);
-
-        Assertions.assertEquals(1, expiredDeliveryCount.getAndIncrement());
+        Awaitility.await()
+                .atMost(10, TimeUnit.SECONDS)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> Assertions.assertEquals(1, expiredDeliveryCount.get()));
     }
 
     /**
@@ -138,9 +141,10 @@ public class ExpiryMessagesTest {
                 Map.class, this::handleForNoExpectedMsg, handleExpectedMessageForReDelivery(expiredDeliveryCount), (x) -> true);
         consumer.start();
 
-        Thread.sleep(1000);
-
-        Assertions.assertEquals(2, expiredDeliveryCount.getAndIncrement());
+        Awaitility.await()
+                .atMost(10, TimeUnit.SECONDS)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> Assertions.assertEquals(2, expiredDeliveryCount.get()));
     }
 
     /**
@@ -173,9 +177,10 @@ public class ExpiryMessagesTest {
                 Map.class, handleDelayedMessageConsumption(normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
         consumer.start();
 
-        Thread.sleep(500);
-
-        Assertions.assertEquals(1, normalDeliveryCount.get());
+        Awaitility.await()
+                .atMost(10, TimeUnit.SECONDS)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> Assertions.assertEquals(1, normalDeliveryCount.get()));
     }
 
     /**
@@ -206,9 +211,10 @@ public class ExpiryMessagesTest {
                 Map.class, handleExpectedMessage(1500, normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
         consumer.start();
 
-        Thread.sleep(500);
-
-        Assertions.assertEquals(1, normalDeliveryCount.get());
+        Awaitility.await()
+                .atMost(10, TimeUnit.SECONDS)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> Assertions.assertEquals(1, normalDeliveryCount.get()));
     }
 
     /**
@@ -238,9 +244,11 @@ public class ExpiryMessagesTest {
         consumer.start();
 
         publisher.publishWithExpiry(message, 1500);
-        Thread.sleep(1000);
 
-        Assertions.assertEquals(1, normalDeliveryCount.get());
+        Awaitility.await()
+                .atMost(10, TimeUnit.SECONDS)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> Assertions.assertEquals(1, normalDeliveryCount.get()));
     }
 
     /**
@@ -271,8 +279,10 @@ public class ExpiryMessagesTest {
                 Map.class, handleExpectedMessageWithDelay(1000, normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
         consumer.start();
 
-
-        Assertions.assertEquals(1, normalDeliveryCount.get());
+        Awaitility.await()
+                .atMost(10, TimeUnit.SECONDS)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> Assertions.assertEquals(1, normalDeliveryCount.get()));
     }
 
     /**
@@ -301,9 +311,11 @@ public class ExpiryMessagesTest {
                 objectMapper, new RetryStrategyFactory().create(actorConfig.getRetryConfig()), new ExceptionHandlingFactory().create(actorConfig.getExceptionHandlerConfig()),
                 Map.class, handleExpectedMessageWithDelay(0, normalDeliveryCount), this::handleForNoExpectedMsg, (x) -> true);
         consumer.start();
-        Thread.sleep(500);
 
-        Assertions.assertEquals(1, normalDeliveryCount.get());
+        Awaitility.await()
+                .atMost(10, TimeUnit.SECONDS)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> Assertions.assertEquals(1, normalDeliveryCount.get()));
     }
     @NotNull
     private MessageHandlingFunction<Map, Boolean> handleExpectedMessage(int maxDelay, AtomicInteger normalDeliveryCount) {

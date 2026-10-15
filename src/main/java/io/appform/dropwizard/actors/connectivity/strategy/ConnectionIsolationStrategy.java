@@ -6,7 +6,7 @@ import io.appform.dropwizard.actors.actor.ConnectionIsolationLevel;
 import lombok.Data;
 import lombok.ToString;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
