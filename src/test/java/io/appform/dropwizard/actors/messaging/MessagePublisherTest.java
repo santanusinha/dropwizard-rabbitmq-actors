@@ -171,6 +171,21 @@ class MessagePublisherTest {
     }
 
     @Test
+    void unroutableMessageDoesNotFailPublishWithoutConfirms() throws Exception {
+        final MessagePublisher<String> publisher = started(spec(ExchangeType.DIRECT, false, false), m -> "k");
+        doAnswer(inv -> {
+            final AMQP.BasicProperties props = inv.getArgument(3);
+            returnCallback.get().handle(new Return(312, "NO_ROUTE", "ns.ex", "k", props, new byte[0]));
+            return null;
+        }).when(channel).basicPublish(anyString(), anyString(), anyBoolean(), any(), any());
+
+        publisher.publish("a");  // only logged: the caller is not told
+
+        verify(channel).basicPublish(eq("ns.ex"), eq("k"), eq(true), any(), any());
+        verify(channel, never()).waitForConfirmsOrDie(anyLong());
+    }
+
+    @Test
     void staleReturnForAnotherMessageIsIgnored() throws Exception {
         final MessagePublisher<String> publisher = started(spec(ExchangeType.DIRECT, true, false), m -> "k");
         doAnswer(inv -> {

@@ -280,9 +280,12 @@ class MessagingIntegrationTest {
     }
 
     @Test
-    void unmatchedRoutingKeyFailsThePublish() throws Exception {
-        final Messaging messaging = messaging(Map.of("it_direct",
-                exchange(ExchangeType.DIRECT, Map.of("D1", queue("a")))));
+    void unmatchedRoutingKeyFailsThePublishWithConfirms() throws Exception {
+        final Messaging messaging = messaging(Map.of("it_direct", ExchangeSpec.builder()
+                .type(ExchangeType.DIRECT)
+                .publisherConfirms(true)
+                .queues(new LinkedHashMap<>(Map.of("D1", queue("a"))))
+                .build()));
         final MessagePublisher<TestMessage> direct = messaging.publisher("it_direct", TestMessage::getKey);
         consumeAll(messaging, "it_direct", "D1");
         start(messaging);
@@ -292,6 +295,24 @@ class MessagingIntegrationTest {
         assertTrue(e.getMessage().contains("nobody"), e.getMessage());
         direct.publish(new TestMessage("m2", "a"));  // the publisher keeps working
         await().atMost(WAIT).until(() -> receivedBy("D1").size() == 1);
+    }
+
+    @Test
+    void unmatchedRoutingKeyIsOnlyLoggedWithoutConfirms() throws Exception {
+        final Messaging messaging = messaging(Map.of("it_direct", ExchangeSpec.builder()
+                .type(ExchangeType.DIRECT)
+                .publisherConfirms(false)
+                .queues(new LinkedHashMap<>(Map.of("D1", queue("a"))))
+                .build()));
+        final MessagePublisher<TestMessage> direct = messaging.publisher("it_direct", TestMessage::getKey);
+        consumeAll(messaging, "it_direct", "D1");
+        start(messaging);
+
+        direct.publish(new TestMessage("m1", "nobody"));  // returned by the broker, but the publish does not fail
+        direct.publish(new TestMessage("m2", "a"));
+        await().atMost(WAIT).until(() -> receivedBy("D1").size() == 1);
+        quietPeriod();
+        assertEquals(List.of("m2"), receivedBy("D1"));
     }
 
     @Test
