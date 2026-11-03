@@ -2,6 +2,7 @@ package io.appform.dropwizard.actors.base;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ShutdownSignalException;
 import io.appform.dropwizard.actors.actor.ConsumerConfig;
 import io.appform.dropwizard.actors.actor.MessageHandlingFunction;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
@@ -41,6 +42,10 @@ public class UnmanagedConsumer<Message> {
     private final RMQObserver observer;
     private final List<Handler<Message>> handlers = new CopyOnWriteArrayList<>();
     private int consumerIndex = 1;
+    /**
+     * Set by {@link #stop()}: closed consumer channels are no longer re-created.
+     */
+    private volatile boolean stopping;
 
     public UnmanagedConsumer(final String queueName,
                              final int prefetchCount,
@@ -86,6 +91,9 @@ public class UnmanagedConsumer<Message> {
     }
 
     public void stop() {
+        // Set before closing anything: closing a consumer channel fires its shutdown listener, which must not
+        // subscribe again.
+        stopping = true;
         handlers.forEach(handler -> {
             try {
                 final Channel channel = handler.getChannel();
@@ -128,10 +136,16 @@ public class UnmanagedConsumer<Message> {
     private void createChannel(String queueName) throws Exception {
         Channel consumeChannel = connection.newChannel();
         consumeChannel.addShutdownListener(shutdownSignalException -> {
+            if (!shouldRecreate(shutdownSignalException)) {
+                return;
+            }
             // This needs to be run in a separate thread to avoid deadlock
             CompletableFuture.runAsync(() -> {
                 log.error("Channel shutdown signal exception received for queue {}", queueName,
                         shutdownSignalException);
+                if (stopping) {
+                    return;
+                }
                 channelClosedHandler(queueName);
             });
         });
@@ -140,7 +154,49 @@ public class UnmanagedConsumer<Message> {
         final String tag = consumeChannel.basicConsume(queueName, false, getConsumerTag(consumerIndex++), handler);
         handler.setTag(tag);
         handlers.add(handler);
+        if (stopping) {
+            // stop() ran while this channel was being created and did not see it: cancel it here.
+            log.info("Consumer for queue {} started while stopping; cancelling it", queueName);
+            closeQuietly(consumeChannel, tag);
+            return;
+        }
         log.info("Started consumer for queue {} with tag {}", queueName, tag);
+    }
+
+    /**
+     * A closed consumer channel is re-created only when the broker closed that channel alone (a channel-level error).
+     * Not when:
+     * <ul>
+     *   <li>the consumer is stopping, or the application closed the channel itself;</li>
+     *   <li>the whole connection failed: automatic connection recovery restores this channel and its consumer, so a
+     *       new channel would leave an extra consumer behind once the connection recovers.</li>
+     * </ul>
+     */
+    private boolean shouldRecreate(final ShutdownSignalException cause) {
+        if (stopping) {
+            return false;
+        }
+        if (cause.isInitiatedByApplication()) {
+            log.info("Consumer channel for queue {} closed by the application; not re-creating it", queueName);
+            return false;
+        }
+        if (cause.isHardError()) {
+            log.warn("Consumer channel for queue {} closed by a connection failure; automatic recovery will restore "
+                    + "it: {}", queueName, cause.getMessage());
+            return false;
+        }
+        return true;
+    }
+
+    private static void closeQuietly(final Channel channel, final String tag) {
+        try {
+            if (channel.isOpen()) {
+                channel.basicCancel(tag);
+                channel.close();
+            }
+        } catch (Exception e) {
+            log.warn("Error closing consumer channel {}", tag, e);
+        }
     }
 
 }
