@@ -44,6 +44,22 @@ public class MessagingConfig {
     private String prefix = "rabbitmq.messaging";
 
     /**
+     * Skips the binding drift checks (default {@code false}: the checks run). An opt-out, so a missing or empty value
+     * keeps the checks on; only an explicit {@code true} turns them off.
+     *
+     * <p>The checks: at startup each queue's bindings are read through the RabbitMQ Management API, and startup fails on
+     * drift (changed binding keys, a binding to another exchange, or a concurrent creator with a different config).
+     * They require the {@code rabbitmq_management} plugin, network access to its port and a RabbitMQ user with a
+     * management tag (e.g. {@code monitoring}); startup fails if the API can't be read. Connection settings are in
+     * {@code RMQConfig}'s {@code managementConfig}.
+     *
+     * <p>Set to {@code true} only when the Management API is not available: RabbitMQ never removes a binding by
+     * itself, so a changed {@code bindingKeys} or a queue moved to another exchange then keeps its old bindings, and
+     * the queue keeps receiving messages it should not, without any error.
+     */
+    private boolean skipBindingDriftCheck;
+
+    /**
      * Exchanges, keyed by the name your code uses, e.g. {@code messaging.publisher("order_events", ...)}.
      *
      * <p>The exchange created on RabbitMQ usually has the same name. Only when a namespace is set

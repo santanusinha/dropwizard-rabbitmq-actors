@@ -73,9 +73,24 @@ class TopologyDeclarer {
     }
 
     /**
-     * Closes the channels kept open for topology recovery. Called when messaging stops.
+     * Called once every exchange is declared (or declaration failed): releases the binding guard's Management API
+     * client, which is only needed while declaring. The declaration channels stay open until {@link #close()}.
+     * Idempotent.
+     */
+    void declarationFinished() {
+        try {
+            bindingGuard.close();
+        } catch (Exception e) {
+            log.warn("Error closing the binding drift guard", e);
+        }
+    }
+
+    /**
+     * Closes the channels kept open for topology recovery (and the binding guard, if still open). Called when
+     * messaging stops.
      */
     synchronized void close() {
+        declarationFinished();
         declarationChannels.forEach(TopologyDeclarer::closeQuietly);
         declarationChannels.clear();
     }
@@ -132,7 +147,10 @@ class TopologyDeclarer {
         mainArgs.put("x-dead-letter-routing-key", brokerQueue);
         final List<String> bindingKeys = spec.getType().usesRoutingKey() ? queueSpec.getBindingKeys() : List.of("");
         final String retryExchange = MessagingNames.retryExchange(brokerQueue);
-        final Set<String> allowedOtherExchanges = queueSpec.isRetryLaterEnabled() ? Set.of(retryExchange) : Set.of();
+        // The queue's own retry exchange is always allowed, whatever retryLaterEnabled says: the library never removes
+        // the binding, so after the flag is turned off it stays behind. It is harmless (nothing publishes to that
+        // exchange any more) and only this library creates that name.
+        final Set<String> allowedOtherExchanges = Set.of(retryExchange);
         bindingGuard.ensureBindings(brokerQueue, names.broker(), bindingKeys, allowedOtherExchanges,
                 () -> channel.queueDeclare(brokerQueue, true, false, false, mainArgs),
                 key -> channel.queueBind(brokerQueue, names.broker(), key));

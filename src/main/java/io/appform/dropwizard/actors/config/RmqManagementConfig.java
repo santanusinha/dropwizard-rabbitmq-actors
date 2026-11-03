@@ -10,22 +10,21 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 
 /**
- * Configuration for talking to the RabbitMQ Management HTTP API.
+ * Connection settings for the RabbitMQ Management HTTP API. Optional: without it, the defaults below are used.
  *
- * <p>AMQP has no operation to list a queue's bindings, so features that must read the current binding
- * set (the messaging binding drift checks) depend on the Management API
- * (default port 15672, requires the {@code rabbitmq_management} plugin).
- *
- * <p>This is opt-in: when {@link #enabled} is {@code false} (the default) or the config is absent, no
- * Management API calls are made and behaviour is unchanged.
+ * <p>AMQP has no operation to list a queue's bindings, so the messaging binding drift checks (on by default, see
+ * {@code MessagingConfig.skipBindingDriftCheck}) read them through the Management API (requires the
+ * {@code rabbitmq_management} plugin). Whether the API is called at all is decided by that messaging setting, not by
+ * this config.
  *
  * <p>Connection details:
  * <ul>
- *   <li>host: the <b>first</b> broker in {@link RMQConfig}{@code .brokers};</li>
+ *   <li>host: {@link #host} if set (e.g. a load balancer in front of the management API); otherwise each broker in
+ *       {@link RMQConfig}{@code .brokers}, tried in order until one answers;</li>
  *   <li>credentials: the AMQP username/password. The user needs a management tag (e.g. {@code monitoring}) to
  *       read bindings;</li>
- *   <li>{@link #secure}: switches to https using the JVM's default trust store (custom AMQP cert stores are not
- *       applied).</li>
+ *   <li>{@link #secure}: switches to https. The server certificate is verified against
+ *       {@link RMQConfig}{@code .serverCertStorePath} when set, otherwise against the JVM's default trust store.</li>
  * </ul>
  */
 @Data
@@ -33,13 +32,10 @@ import javax.validation.constraints.Min;
 @NoArgsConstructor
 @Builder
 public class RmqManagementConfig {
-
     /**
-     * Master switch. When false (default), the Management API is never contacted.
+     * Management API host. When not set, the brokers' hosts are tried in order.
      */
-    @Default
-    private boolean enabled = false;
-
+    private String host;
     /**
      * Management API port (RabbitMQ default is 15672).
      */
@@ -47,7 +43,6 @@ public class RmqManagementConfig {
     @Min(1)
     @Max(65535)
     private int port = 15672;
-
     /**
      * Use https for the Management API endpoint.
      */

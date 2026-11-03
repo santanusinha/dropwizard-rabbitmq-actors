@@ -1,14 +1,18 @@
 package io.appform.dropwizard.actors.messaging;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.appform.dropwizard.actors.config.RMQConfig;
+import io.appform.dropwizard.actors.messaging.config.MessagingConfig;
 import io.appform.dropwizard.actors.connectivity.RmqManagementClient;
 import io.appform.dropwizard.actors.connectivity.RmqManagementClient.Binding;
 import java.util.ArrayList;
@@ -76,6 +80,15 @@ class BindingGuardTest {
     }
 
     @Test
+    void leftoverOwnRetryBindingIsNotStale() throws Exception {
+        // retryLater was turned off: the queue is still bound to its own retry exchange, which is always allowed.
+        when(client.fetchBindings("vh", QUEUE)).thenReturn(bindings(
+                new Binding(EXCHANGE, "a"), new Binding("ns.p.Q_RETRY", QUEUE)));
+        ensure(List.of("a"));
+        assertEquals(List.of("declare"), events);
+    }
+
+    @Test
     void staleExchangeFailsBeforeAnythingIsDeclared() {
         when(client.fetchBindings("vh", QUEUE)).thenReturn(bindings(new Binding("ns.other", "a")));
         final IllegalStateException e = assertThrows(IllegalStateException.class, () -> ensure(List.of("a")));
@@ -121,5 +134,37 @@ class BindingGuardTest {
         when(client.fetchBindings("/", QUEUE)).thenReturn(bindings(new Binding(EXCHANGE, "a")));
         ensure(List.of("a"));
         assertEquals(List.of("declare"), events);
+    }
+
+    @Test
+    void closeReleasesTheClient() {
+        guard.close();
+        verify(client).close();
+    }
+
+    @Test
+    void closeWithoutClientIsNoOp() {
+        new BindingGuard(RMQConfig.builder().build(), (RmqManagementClient) null).close();
+    }
+
+    @Test
+    void disabledDriftCheckMakesNoManagementCalls() throws Exception {
+        guard = new BindingGuard(RMQConfig.builder().build(), new ObjectMapper(), false);
+        ensure(List.of("a"));
+        assertEquals(List.of("declare", "bind:a"), events);
+    }
+
+    @Test
+    void driftCheckIsOnByDefault() {
+        assertFalse(MessagingConfig.builder().build().isSkipBindingDriftCheck());
+        assertFalse(new MessagingConfig().isSkipBindingDriftCheck());
+    }
+
+    @Test
+    void unreadableManagementApiExplainsHowToFixOrOptOut() {
+        when(client.fetchBindings(anyString(), eq(QUEUE))).thenThrow(new RuntimeException("connection refused"));
+        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> ensure(List.of("a")));
+        assertTrue(e.getMessage().contains("skipBindingDriftCheck: true"), e.getMessage());
+        assertTrue(e.getMessage().contains("connection refused"), e.getMessage());
     }
 }

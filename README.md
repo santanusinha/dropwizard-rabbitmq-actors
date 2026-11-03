@@ -54,18 +54,32 @@ messaging:                             # anywhere in your app config; returned f
           retryLaterEnabled: true      # MessageContext.retryLater redelivers to this queue only
 ```
 
-Optionally enable the binding drift checks through the Management API, inside your RabbitMQ (`RMQConfig`) section:
+#### Binding drift checks (on by default)
+RabbitMQ never removes a binding by itself, and AMQP can't list a queue's bindings. So at startup messaging reads each
+queue's bindings through the **Management API** and fails if they drifted from the config: changed `bindingKeys`, a
+binding to another exchange, or another instance creating the same queue with a different config. Without the checks,
+such a queue silently keeps its old bindings and receives messages it should not.
+
+The checks need the `rabbitmq_management` plugin, network access to its port, and a RabbitMQ user (the AMQP
+credentials) with a management tag such as `monitoring`. If the API can't be read, startup fails with a message
+explaining what is missing. Connection settings are optional, inside your RabbitMQ (`RMQConfig`) section:
 
 ```yaml
 rabbit:                                # your RMQConfig section
   managementConfig:
-    enabled: true
-    port: 15672
-    secure: false                      # https uses the JVM's default trust store
+    host: rmq-mgmt.internal            # optional; default: each broker host, tried in order until one answers
+    port: 15672                        # default
+    secure: false                      # https; verified against serverCertStorePath if set, else the JVM trust store
 ```
 
-The Management API is called on the **first** broker, with the AMQP credentials. That user needs a management tag
-(e.g. `monitoring`). If the API can't be read while the checks are enabled, startup fails.
+If the Management API is not available to your service, opt out explicitly (changed bindings then go undetected):
+
+```yaml
+messaging:
+  skipBindingDriftCheck: true         # default: false
+```
+
+The Management API is only called while messaging starts; its HTTP client is released right after.
 
 ### Usage
 
@@ -178,12 +192,14 @@ broker's confirm before the next one. To publish faster:
 
 ### Changing topology
 * Adding queues or exchanges is always safe.
-* A queue's binding keys and exchange are fixed once it exists. With `managementConfig.enabled`, changing them
-  fails startup; without it, old bindings silently remain. Use a new queue instead.
+* A queue's binding keys and exchange are fixed once it exists. Changing them fails startup (binding drift checks);
+  with `skipBindingDriftCheck: true`, old bindings silently remain. Use a new queue instead.
 * Queue arguments (queue type, lazy mode, TTL) and exchange settings (`type`, `delayed`)
   can't be changed on an existing queue/exchange (the broker rejects the redeclare with `406 PRECONDITION_FAILED`).
 * Removing a queue from the config does not delete it on the broker; it stays bound and keeps collecting messages.
   Delete or unbind it manually.
+* Turning `retryLaterEnabled` off on an existing queue is safe: its binding to `<queue>_RETRY` stays behind (the
+  library never unbinds) but nothing publishes to that exchange any more, and the drift check allows it.
 
 ### Not supported (yet)
 These actor features have no messaging equivalent; use an actor if you need them.
@@ -197,8 +213,9 @@ These actor features have no messaging equivalent; use an actor if you need them
 * **Publishing to an exchange without consuming from it** in the same service.
 
 ### Requirements
-`delayed` and `retryLaterEnabled` need the `rabbitmq_delayed_message_exchange` plugin. The drift checks need the
-`rabbitmq_management` plugin.
+`delayed` and `retryLaterEnabled` need the `rabbitmq_delayed_message_exchange` plugin. The binding drift checks (on by
+default) need the `rabbitmq_management` plugin, network access to it and a user with a management tag; see
+[Binding drift checks](#binding-drift-checks-on-by-default).
 
 # NOTE
 Package and group id has changed from `io.dropwizard.actors` to `io.appfrom.dropwizard.actors` from 1.3.12-1.

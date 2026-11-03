@@ -93,9 +93,9 @@ public class RMQConfig {
     private MetricConfig metricConfig;
 
     /**
-     * Optional configuration for the RabbitMQ Management HTTP API. Required (with {@code enabled=true})
-     * only for features that must read the current binding set, e.g. the immutable {@code bindingKeys}
-     * check of messaging queues. When null or disabled, no Management API calls are made.
+     * Optional connection settings for the RabbitMQ Management HTTP API, used by the messaging binding drift checks
+     * (on by default; see {@code MessagingConfig.skipBindingDriftCheck}). When null, the defaults of
+     * {@link RmqManagementConfig} apply. Actors never call the Management API.
      */
     @Valid
     private RmqManagementConfig managementConfig;

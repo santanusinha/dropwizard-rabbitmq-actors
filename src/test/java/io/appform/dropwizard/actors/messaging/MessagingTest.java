@@ -125,6 +125,8 @@ class MessagingTest {
 
         final InOrder order = inOrder(declarer, channel);
         order.verify(declarer, times(2)).declare(any(), any(), eq(connection));
+        // The Management API client is released once the topology is declared, before anything else starts.
+        order.verify(declarer).declarationFinished();
         order.verify(channel, times(2)).confirmSelect();
         verify(channel, never()).basicConsume(anyString(), anyBoolean(), anyString(), any(Consumer.class));
         // Messaging never uses the connection's shared channel, which actors use.
@@ -189,6 +191,7 @@ class MessagingTest {
 
         assertThrows(IOException.class, messaging::start);
 
+        verify(declarer).declarationFinished();
         verify(channel, never()).confirmSelect();
         verify(declarer).close();
         verify(connection, never()).channel();

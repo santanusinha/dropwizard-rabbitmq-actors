@@ -83,7 +83,8 @@ public class Messaging implements Managed {
                      final ConnectionRegistry connectionRegistry,
                      final ObjectMapper mapper) {
         this(config, connectionRegistry, mapper, new RetryStrategyFactory(), new ExceptionHandlingFactory(),
-                new TopologyDeclarer(config.getPrefix(), new BindingGuard(rmqConfig, mapper)));
+                new TopologyDeclarer(config.getPrefix(),
+                        new BindingGuard(rmqConfig, mapper, !config.isSkipBindingDriftCheck())));
     }
 
     Messaging(final MessagingConfig config,
@@ -182,8 +183,14 @@ public class Messaging implements Managed {
         final List<QueueConsumer<?>> consumersWithRetryPublisher = new ArrayList<>();
         try {
             // 2. The whole topology, so every binding exists before the first publish or consume.
-            for (final Map.Entry<String, ExchangeSpec> entry : config.getExchanges().entrySet()) {
-                topologyDeclarer.declare(names(entry.getKey()), entry.getValue(), producerConnection(entry.getValue()));
+            try {
+                for (final Map.Entry<String, ExchangeSpec> entry : config.getExchanges().entrySet()) {
+                    topologyDeclarer.declare(names(entry.getKey()), entry.getValue(),
+                            producerConnection(entry.getValue()));
+                }
+            } finally {
+                // The Management API (binding drift checks) is only needed while declaring.
+                topologyDeclarer.declarationFinished();
             }
             // 3. Publishers, including retryLater publishers, so the application can publish while it starts.
             for (final MessagePublisher<?> publisher : publishers) {

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -79,5 +80,51 @@ class TopologyDeclarerTest {
         // The library never unbinds, so the sideline queue must not be declared or bound before the guard passes.
         verify(channel, never()).queueDeclare(anyString(), anyBoolean(), anyBoolean(), anyBoolean(), any());
         verify(channel, never()).queueBind(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void ownRetryExchangeIsAllowedEvenWithRetryLaterDisabled() throws Exception {
+        final Channel channel = mock(Channel.class);
+        when(channel.isOpen()).thenReturn(true);
+        final RMQConnection connection = mock(RMQConnection.class);
+        when(connection.newChannel()).thenReturn(channel);
+        when(connection.rmqOpts(any())).thenReturn(new java.util.HashMap<>());
+        final BindingGuard guard = mock(BindingGuard.class);
+        final ExchangeSpec spec = ExchangeSpec.builder()
+                .type(ExchangeType.DIRECT)
+                .queues(new java.util.LinkedHashMap<>(java.util.Map.of("Q",
+                        io.appform.dropwizard.actors.messaging.config.QueueSpec.builder()
+                                .bindingKeys(java.util.List.of("k"))
+                                .retryLaterEnabled(false)
+                                .build())))
+                .build();
+
+        new TopologyDeclarer("p", guard).declare(NAMES, spec, connection);
+
+        final String brokerQueue = MessagingNames.queue("p", "Q");
+        // A queue that had retryLater enabled before keeps its retry binding: it must not fail the drift check.
+        verify(guard).ensureBindings(eq(brokerQueue), eq("ex"), eq(java.util.List.of("k")),
+                eq(java.util.Set.of(MessagingNames.retryExchange(brokerQueue))), any(), any());
+        verify(channel, never()).exchangeDeclare(eq(MessagingNames.retryExchange(brokerQueue)), anyString(),
+                anyBoolean(), anyBoolean(), any());
+    }
+
+    @Test
+    void declarationFinishedReleasesGuardButKeepsChannelsOpen() throws Exception {
+        final Channel channel = mock(Channel.class);
+        when(channel.isOpen()).thenReturn(true);
+        final RMQConnection connection = mock(RMQConnection.class);
+        when(connection.newChannel()).thenReturn(channel);
+        final BindingGuard guard = mock(BindingGuard.class);
+        final TopologyDeclarer declarer = new TopologyDeclarer("p", guard);
+        declarer.declare(NAMES, SPEC, connection);
+
+        declarer.declarationFinished();
+
+        verify(guard).close();
+        verify(channel, never()).close();
+
+        declarer.close();
+        verify(channel).close();
     }
 }

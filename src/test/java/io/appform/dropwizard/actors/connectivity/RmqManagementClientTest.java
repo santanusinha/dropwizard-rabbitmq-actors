@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.appform.dropwizard.actors.common.RabbitmqActorException;
 import io.appform.dropwizard.actors.config.Broker;
 import io.appform.dropwizard.actors.config.RMQConfig;
+import io.appform.dropwizard.actors.config.RmqManagementConfig;
 import io.appform.dropwizard.actors.connectivity.RmqManagementClient.Binding;
 import java.util.ArrayList;
 import java.util.List;
@@ -95,5 +96,158 @@ class RmqManagementClientTest {
         server.enqueue(new MockResponse().setResponseCode(200).setBody(
                 "[{\"source\":\"fan\",\"destination_type\":\"queue\"}]"));
         Assertions.assertEquals(Optional.of(List.of(new Binding("fan", ""))), client.fetchBindings("/", "q"));
+    }
+
+    private RMQConfig config(final RmqManagementConfig management, final String... brokerHosts) {
+        final RMQConfig rmqConfig = new RMQConfig();
+        final List<Broker> brokers = new ArrayList<>();
+        for (final String host : brokerHosts) {
+            brokers.add(new Broker(host, 5672));
+        }
+        rmqConfig.setBrokers(brokers);
+        rmqConfig.setUserName("guest");
+        rmqConfig.setPassword("guest");
+        rmqConfig.setManagementConfig(management);
+        return rmqConfig;
+    }
+
+    @Test
+    void testTriesNextEndpointWhenOneIsUnreachable() throws Exception {
+        final MockWebServer down = new MockWebServer();
+        down.start();
+        final String downUrl = down.url("/").toString();
+        down.shutdown();
+        server.enqueue(new MockResponse().setResponseCode(200).setBody("[]"));
+        final RmqManagementClient fallback = new RmqManagementClient(config(null, "localhost"), new ObjectMapper(),
+                downUrl, server.url("/").toString());
+
+        Assertions.assertEquals(Optional.of(List.of()), fallback.fetchBindings("/", "q"));
+    }
+
+    @Test
+    void testTriesNextEndpointOnServerError() {
+        final MockWebServer second = new MockWebServer();
+        try {
+            second.start();
+            server.enqueue(new MockResponse().setResponseCode(503));
+            second.enqueue(new MockResponse().setResponseCode(200).setBody("[]"));
+            final RmqManagementClient fallback = new RmqManagementClient(config(null, "localhost"),
+                    new ObjectMapper(), server.url("/").toString(), second.url("/").toString());
+
+            Assertions.assertEquals(Optional.of(List.of()), fallback.fetchBindings("/", "q"));
+            second.shutdown();
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    @Test
+    void testAuthenticationErrorFailsWithoutTryingOtherEndpoints() throws Exception {
+        final MockWebServer second = new MockWebServer();
+        second.start();
+        server.enqueue(new MockResponse().setResponseCode(401));
+        final RmqManagementClient twoEndpoints = new RmqManagementClient(config(null, "localhost"),
+                new ObjectMapper(), server.url("/").toString(), second.url("/").toString());
+
+        final RabbitmqActorException e = Assertions.assertThrows(RabbitmqActorException.class,
+                () -> twoEndpoints.fetchBindings("/", "q"));
+        Assertions.assertTrue(e.getMessage().contains("management tag"), e.getMessage());
+        Assertions.assertEquals(0, second.getRequestCount());
+        second.shutdown();
+    }
+
+    @Test
+    void testAllEndpointsDownFails() throws Exception {
+        server.enqueue(new MockResponse().setResponseCode(500));
+        final RabbitmqActorException e = Assertions.assertThrows(RabbitmqActorException.class,
+                () -> client.fetchBindings("/", "q"));
+        Assertions.assertTrue(e.getMessage().contains("No RabbitMQ Management API endpoint answered"), e.getMessage());
+    }
+
+    @Test
+    void testConfiguredHostIsUsedInsteadOfBrokers() throws Exception {
+        server.enqueue(new MockResponse().setResponseCode(200).setBody("[]"));
+        final RmqManagementConfig management = RmqManagementConfig.builder()
+                .host(server.getHostName())
+                .port(server.getPort())
+                .build();
+        final RmqManagementClient configured = new RmqManagementClient(config(management, "broker.invalid"),
+                new ObjectMapper());
+
+        Assertions.assertEquals(Optional.of(List.of()), configured.fetchBindings("/", "q"));
+        Assertions.assertEquals(1, server.getRequestCount());
+    }
+
+    @Test
+    void testBrokersAreTriedInOrder() throws Exception {
+        server.enqueue(new MockResponse().setResponseCode(200).setBody("[]"));
+        final RmqManagementConfig management = RmqManagementConfig.builder().port(server.getPort()).build();
+        final RmqManagementClient brokers = new RmqManagementClient(
+                config(management, "broker.invalid", server.getHostName()), new ObjectMapper());
+
+        Assertions.assertEquals(Optional.of(List.of()), brokers.fetchBindings("/", "q"));
+    }
+
+    @Test
+    void testCloseReleasesTheClient() {
+        client.close();
+        client.close();
+
+        Assertions.assertTrue(client.isClosed());
+        Assertions.assertThrows(IllegalStateException.class, () -> client.fetchBindings("/", "q"));
+    }
+
+    @Test
+    void testNoEndpointFailsConstruction() {
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new RmqManagementClient(config(null), new ObjectMapper()));
+    }
+
+    @Test
+    void testSecureUsesServerCertStoreAsTrustStore(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir)
+            throws Exception {
+        final java.nio.file.Path trustStore = dir.resolve("server.jks");
+        final java.security.KeyStore keyStore = java.security.KeyStore.getInstance("JKS");
+        keyStore.load(null, null);
+        try (java.io.OutputStream out = java.nio.file.Files.newOutputStream(trustStore)) {
+            keyStore.store(out, "secret".toCharArray());
+        }
+        final RMQConfig rmqConfig = config(RmqManagementConfig.builder().secure(true).build(), "localhost");
+        rmqConfig.setServerCertStorePath(trustStore.toString());
+        rmqConfig.setServerCertPassword("secret");
+
+        new RmqManagementClient(rmqConfig, new ObjectMapper()).close();
+
+        rmqConfig.setServerCertStorePath(dir.resolve("missing.jks").toString());
+        final RabbitmqActorException e = Assertions.assertThrows(RabbitmqActorException.class,
+                () -> new RmqManagementClient(rmqConfig, new ObjectMapper()));
+        Assertions.assertTrue(e.getMessage().contains("trust store"), e.getMessage());
+    }
+
+    @Test
+    void testStartsWithTheEndpointThatAnsweredLast() throws Exception {
+        final MockWebServer first = new MockWebServer();
+        first.start();
+        first.enqueue(new MockResponse().setResponseCode(503));
+        server.enqueue(new MockResponse().setResponseCode(200).setBody("[]"));
+        server.enqueue(new MockResponse().setResponseCode(200).setBody("[]"));
+        final RmqManagementClient sticky = new RmqManagementClient(config(null, "localhost"), new ObjectMapper(),
+                first.url("/").toString(), server.url("/").toString());
+
+        sticky.fetchBindings("/", "q1");
+        sticky.fetchBindings("/", "q2");
+
+        // The failing endpoint is tried once; the second lookup goes straight to the one that answered.
+        Assertions.assertEquals(1, first.getRequestCount());
+        Assertions.assertEquals(2, server.getRequestCount());
+        first.shutdown();
+    }
+
+    @Test
+    void testTimeouts() {
+        final okhttp3.OkHttpClient http = client.httpClient();
+        Assertions.assertEquals(5_000, http.connectTimeoutMillis());
+        Assertions.assertEquals(10_000, http.readTimeoutMillis());
+        Assertions.assertEquals(15_000, http.callTimeoutMillis());
     }
 }
