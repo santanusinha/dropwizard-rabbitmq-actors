@@ -200,7 +200,8 @@ class HandlerAsyncRetryTest {
         config.setWaitMode(WaitMode.ASYNC);
         config.setMaxAttempts(4);
         var strategy = new RetryStrategyFactory().create(config, new ActorConfig(), connection, "exchange", QUEUE);
-        doThrow(new IOException("broker unavailable")).when(publisher).waitForConfirmsOrDie(2000);
+        doThrow(new IOException("broker unavailable")).when(publisher)
+                .waitForConfirmsOrDie(RetryStrategyFactory.DEFAULT_CONFIRM_TIMEOUT_MS);
         var realHandler = new Handler<>(channel, mapper, TestMessage.class, 1, error -> false, strategy,
                 new MessageSidelineHandler(new SidelineConfig()), (message, metadata) -> {
                     throw new IOException("business failure");

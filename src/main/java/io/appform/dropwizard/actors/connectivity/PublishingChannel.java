@@ -4,7 +4,6 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import io.appform.dropwizard.actors.observers.PublishObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -140,9 +139,7 @@ public final class PublishingChannel implements AutoCloseable {
                 throw new IOException("Message to exchange [" + exchange + "] was returned as unroutable");
             }
         } else {
-            try(var openChannel = requireOpenChannel()) {
-                openChannel.basicPublish(exchange, routingKey, properties, body);
-            }
+            requireOpenChannel().basicPublish(exchange, routingKey, properties, body);
         }
     }
 

@@ -55,7 +55,7 @@ class AsyncRetryWiringTest {
     private static final String PREFIX = "test.prefix";
     private static final String EXCHANGE = "wiring.exchange";
     private static final long WAIT_MS = 100L;
-    private static final long CONFIRM_TIMEOUT_MS = 2000L;
+    private static final long CONFIRM_TIMEOUT_MS = RetryStrategyFactory.DEFAULT_CONFIRM_TIMEOUT_MS;
 
     private static final String QUEUE = NamingUtils.queueName(PREFIX, NAME);
     private static final String QUEUE_0 = NamingUtils.getShardedQueueName(QUEUE, 0);

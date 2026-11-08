@@ -81,7 +81,7 @@ class RetryStrategyFactoryTest {
             verify(publisher).basicPublish(eq(waiting), eq("queue"), eq(true), properties.capture(), same(body));
             assertEquals(2L, properties.getValue().getHeaders().get("x-actor-retry-attempt"));
             verify(publisher).confirmSelect();
-            verify(publisher).waitForConfirmsOrDie(2000);
+            verify(publisher).waitForConfirmsOrDie(RetryStrategyFactory.DEFAULT_CONFIRM_TIMEOUT_MS);
         } finally {
             strategy.stop();
         }
