@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 import lombok.NonNull;
@@ -23,9 +24,9 @@ public class TtlRequeueRetryScheduler implements AsyncRetryScheduler {
 
     static final String DELAY_HEADER = "x-delay";
 
-    private int maxRetryQueues = 20;
-    private int maxPlannedAttempts = 20;
-    private IsolationScope queueScope = IsolationScope.EXCHANGE;
+    private int maxRetryQueues = 10;
+    private int maxPlannedAttempts = 10;
+    private IsolationScope isolationScope = IsolationScope.EXCHANGE;
 
     private final String exchange;
     private final String queuePrefix;
@@ -43,14 +44,13 @@ public class TtlRequeueRetryScheduler implements AsyncRetryScheduler {
         this.connection = connection;
         this.retryPolicy = retryPolicy;
         this.actorConfig = actorConfig;
-        if(config!=null) {
-            this.queueScope = config.getQueueScope();
-            this.maxRetryQueues = config.getMaxRetryQueues();
-            this.maxPlannedAttempts = config.getMaxPlannedAttempts();
+        if (config != null) {
+            this.isolationScope = Objects.requireNonNullElse(config.getIsolationScope(), isolationScope);
+            this.maxRetryQueues = Objects.requireNonNullElse(config.getMaxRetryQueues(), maxRetryQueues);
+            this.maxPlannedAttempts = Objects.requireNonNullElse(config.getMaxPlannedAttempts(), maxPlannedAttempts);
         }
         var queueType = actorConfig.getQueueType().name().toLowerCase(Locale.ROOT);
-        String identifier = queueScope == IsolationScope.QUEUE ? queueName : exchange;
-        this.queuePrefix = getQueuePrefix(identifier, queueType);
+        this.queuePrefix = getQueuePrefix(isolationScope == IsolationScope.QUEUE ? queueName : exchange, queueType);
     }
 
     @Override
@@ -93,7 +93,7 @@ public class TtlRequeueRetryScheduler implements AsyncRetryScheduler {
     protected String waitingQueue(long delayMs) {
         var name = queuePrefix + "_" + delayMs;
         // actor queue names already carry the namespace
-        return queueScope == IsolationScope.QUEUE ? name : NamingUtils.prefixWithNamespace(name);
+        return isolationScope == IsolationScope.QUEUE ? name : NamingUtils.prefixWithNamespace(name);
     }
 
     private void declareTopology(Collection<Long> delays) throws Exception {

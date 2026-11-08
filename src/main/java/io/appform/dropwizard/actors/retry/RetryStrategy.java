@@ -47,10 +47,12 @@ public abstract class RetryStrategy {
 
     /**
      * @deprecated
-     * Use the other execute instead
+     * For {@link WaitMode:ASYNC} additional origin details are required for scheduling. Use the other execute.
      */
-    @Deprecated
+    @Deprecated(since = "2.1.0", forRemoval = true)
     public boolean execute(Callable<Boolean> callable) throws Exception {
+        if(WaitMode.ASYNC.equals(actorRetryer.getRetryMode()))
+            throw new UnsupportedOperationException("execute(callable) is not supported in ASYNC mode; use execute(callable, queueName, body, properties)");
         return actorRetryer.call(callable, null, null, null);
     }
 

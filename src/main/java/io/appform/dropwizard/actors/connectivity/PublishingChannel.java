@@ -70,7 +70,7 @@ public final class PublishingChannel implements AutoCloseable {
                         final AMQP.BasicProperties properties,
                         final UnaryOperator<AMQP.BasicProperties> propertiesTransform,
                         final CheckedSupplier<byte[]> body) throws Exception {
-        val context = PublishObserverContext.builder()
+        var context = PublishObserverContext.builder()
                 .queueName(queueName)
                 .messageProperties(properties)
                 .build();
@@ -140,7 +140,9 @@ public final class PublishingChannel implements AutoCloseable {
                 throw new IOException("Message to exchange [" + exchange + "] was returned as unroutable");
             }
         } else {
-            requireOpenChannel().basicPublish(exchange, routingKey, properties, body);
+            try(var openChannel = requireOpenChannel()) {
+                openChannel.basicPublish(exchange, routingKey, properties, body);
+            }
         }
     }
 
@@ -152,7 +154,7 @@ public final class PublishingChannel implements AutoCloseable {
     }
 
     private void openConfirmedChannel() throws IOException {
-        val channelReturnedState = new AtomicBoolean();
+        var channelReturnedState = new AtomicBoolean();
         this.channel = connection.newChannel();
         this.returned = channelReturnedState;
         channel.confirmSelect();
@@ -168,7 +170,7 @@ public final class PublishingChannel implements AutoCloseable {
     }
 
     private void closeChannel() throws Exception {
-        val openChannel = channel;
+        var openChannel = channel;
         channel = null;
         returned = null;
         if (null != openChannel && openChannel.isOpen()) {

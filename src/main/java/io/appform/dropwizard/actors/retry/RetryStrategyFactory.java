@@ -30,7 +30,6 @@ import io.appform.dropwizard.actors.retry.config.RetryConfig;
 import io.appform.dropwizard.actors.retry.config.TimeLimitedExponentialWaitRetryConfig;
 import io.appform.dropwizard.actors.retry.config.TimeLimitedFixedWaitRetryConfig;
 import io.appform.dropwizard.actors.retry.config.TimeLimitedIncrementalWaitRetryConfig;
-import io.appform.dropwizard.actors.retry.config.TtlRequeueConfig;
 import io.appform.dropwizard.actors.retry.impl.CountLimitedExponentialWaitRetryStrategy;
 import io.appform.dropwizard.actors.retry.impl.CountLimitedFixedWaitRetryStrategy;
 import io.appform.dropwizard.actors.retry.impl.CountLimitedIncrementalWaitRetryStrategy;
@@ -45,6 +44,8 @@ import java.util.Objects;
  */
 public class RetryStrategyFactory {
 
+    public static final long DEFAULT_CONFIRM_TIMEOUT_MS = 500;
+
     /**
      * @deprecated
      * Use the other {@link RetryStrategyFactory::create}
@@ -58,19 +59,23 @@ public class RetryStrategyFactory {
         return create(actorConfig.getRetryConfig(), actorConfig, connection, actorConfig.getExchange(), queueName);
     }
 
-    public RetryStrategy create(RetryConfig retryConfig, ActorConfig actorConfig, RMQConnection connection,
-                                String exchange, String queueName) {
+    public RetryStrategy create(
+        RetryConfig retryConfig, ActorConfig actorConfig, RMQConnection connection, String exchange, String queueName) {
         var retryMode = retryConfig.getWaitMode();
         var strategy = createStrategy(retryConfig);
         if (retryMode == null || retryMode == WaitMode.SYNC) {
             return strategy;
         }
         var retryPolicy = Objects.requireNonNull(strategy.getRetryPolicy(), "retryPolicy");
-        var actorRetryer = new AsyncRetryer(retryPolicy,
-            new TtlRequeueRetryScheduler(connection, retryPolicy, actorConfig, exchange, queueName, actorConfig.getRetryConfig().getTtlRequeue(),
-                    new PublishingChannel(connection, 2000))
+        var ttlRequeue = retryConfig.getTtlRequeue();
+        var confirmTimeoutMs = ttlRequeue == null || ttlRequeue.getConfirmTimeout() == null
+                ? DEFAULT_CONFIRM_TIMEOUT_MS
+                : ttlRequeue.getConfirmTimeout().toMilliseconds();
+        var asyncRetryer = new AsyncRetryer(retryPolicy,
+            new TtlRequeueRetryScheduler(connection, retryPolicy, actorConfig, exchange, queueName, ttlRequeue,
+                    new PublishingChannel(connection, confirmTimeoutMs))
         );
-        return strategy.setActorRetryer(actorRetryer);
+        return strategy.setActorRetryer(asyncRetryer);
     }
 
     protected RetryStrategy createStrategy(RetryConfig config) {
