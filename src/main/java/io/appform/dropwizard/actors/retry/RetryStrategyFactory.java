@@ -48,7 +48,7 @@ public class RetryStrategyFactory {
 
     /**
      * @deprecated
-     * Use the other {@link RetryStrategyFactory::create}
+     * Use the other {@link #create(RetryConfig, ActorConfig, RMQConnection, String, String)}
      */
     @Deprecated(forRemoval = true)
     public RetryStrategy create(RetryConfig config) {

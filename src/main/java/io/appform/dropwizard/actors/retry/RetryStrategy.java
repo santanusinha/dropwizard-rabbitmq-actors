@@ -47,7 +47,7 @@ public abstract class RetryStrategy {
 
     /**
      * @deprecated
-     * For {@link WaitMode:ASYNC} additional origin details are required for scheduling. Use the other execute.
+     * For {@link WaitMode#ASYNC} additional origin details are required for scheduling. Use the other execute.
      */
     @Deprecated(since = "2.1.0", forRemoval = true)
     public boolean execute(Callable<Boolean> callable) throws Exception {
