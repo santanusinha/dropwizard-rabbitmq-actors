@@ -41,6 +41,7 @@ public class UnmanagedConsumer<Message> {
     private final RMQObserver observer;
     private final List<Handler<Message>> handlers = new CopyOnWriteArrayList<>();
     private int consumerIndex = 1;
+    private volatile boolean stopping;
 
     public UnmanagedConsumer(final String queueName,
                              final int prefetchCount,
@@ -50,7 +51,7 @@ public class UnmanagedConsumer<Message> {
                              final ConsumerConfig consumerConfig,
                              final RMQConnection connection,
                              final ObjectMapper mapper,
-                             final RetryStrategy retryStrategy,
+                              final RetryStrategy retryStrategy,
                              final ExceptionHandler exceptionHandler,
                              final Class<? extends Message> clazz,
                              final MessageHandlingFunction<Message, Boolean> handlerFunction,
@@ -74,6 +75,8 @@ public class UnmanagedConsumer<Message> {
     }
 
     public void start() throws Exception {
+        stopping = false;
+        retryStrategy.start();
         for (int i = 1; i <= concurrency; i++) {
             String queueNameForConsumption;
             if (isSharded) {
@@ -86,6 +89,7 @@ public class UnmanagedConsumer<Message> {
     }
 
     public void stop() {
+        stopping = true;
         handlers.forEach(handler -> {
             try {
                 final Channel channel = handler.getChannel();
@@ -93,9 +97,7 @@ public class UnmanagedConsumer<Message> {
                     channel.basicCancel(handler.getTag());
                     //Wait till the handler completes consuming and ack'ing the current message.
                     log.info("Waiting for handler to complete processing the current message..");
-                    while (handler.isRunning()) {
-                        // wait for the handler to complete processing the current message
-                    }
+                    handler.awaitCompletion();
                     channel.close();
                     log.info("Consumer channel closed for queue [{}]", queueName);
                 } else {
@@ -106,6 +108,11 @@ public class UnmanagedConsumer<Message> {
                         queueName), e);
             }
         });
+        try {
+            retryStrategy.stop();
+        } catch (Exception e) {
+            log.error("Error stopping retry scheduler for queue {}", queueName, e);
+        }
     }
 
     private String getConsumerTag(int consumerIndex) {
@@ -126,8 +133,14 @@ public class UnmanagedConsumer<Message> {
     }
 
     private void createChannel(String queueName) throws Exception {
+        if (stopping) {
+            return;
+        }
         Channel consumeChannel = connection.newChannel();
         consumeChannel.addShutdownListener(shutdownSignalException -> {
+            if (stopping) {
+                return;
+            }
             // This needs to be run in a separate thread to avoid deadlock
             CompletableFuture.runAsync(() -> {
                 log.error("Channel shutdown signal exception received for queue {}", queueName,

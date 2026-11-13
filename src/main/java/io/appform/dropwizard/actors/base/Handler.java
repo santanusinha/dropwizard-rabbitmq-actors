@@ -16,9 +16,9 @@ import io.appform.dropwizard.actors.exceptionhandler.handlers.ExceptionHandler;
 import io.appform.dropwizard.actors.observers.ConsumeObserverContext;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategy;
+import io.appform.dropwizard.actors.retry.async.RetrySchedulingException;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.concurrent.Callable;
 import java.util.function.Function;
 import lombok.Getter;
 import lombok.Setter;
@@ -70,7 +70,6 @@ public class Handler<Message> extends DefaultConsumer {
     }
 
     private boolean handle(final Message message, final MessageMetadata messageMetadata, final boolean expired) {
-        running = true;
         val context = ConsumeObserverContext.builder()
                 .queueName(queueName)
                 .redelivered(messageMetadata.isRedelivered())
@@ -84,8 +83,6 @@ public class Handler<Message> extends DefaultConsumer {
             } catch (Exception e) {
                 log.error("Error while handling message: ", e);
                 throw RabbitmqActorException.propagate(e);
-            } finally {
-                running = false;
             }
         });
     }
@@ -95,34 +92,54 @@ public class Handler<Message> extends DefaultConsumer {
                                final Envelope envelope,
                                final AMQP.BasicProperties properties,
                                final byte[] body) throws IOException {
+        running = true;
         try {
-            val handleCallable = getHandleCallable(envelope, properties, body);
-
-            if (retryStrategy.execute(handleCallable)) {
-                getChannel().basicAck(envelope.getDeliveryTag(), false);
-            } else {
-                getChannel().basicReject(envelope.getDeliveryTag(), false);
-            }
-        } catch (Throwable t) {
-            log.error("Error processing message...", t);
-            if (errorCheckFunction.apply(t)) {
-                log.warn("Acked message due to exception: ", t);
-                getChannel().basicAck(envelope.getDeliveryTag(), false);
-            } else if (exceptionHandler.handle()) {
-                log.warn("Acked message due to exception handling strategy: ", t);
-                getChannel().basicAck(envelope.getDeliveryTag(), false);
-            } else {
-                getChannel().basicReject(envelope.getDeliveryTag(), false);
+            final long deliveryTag = envelope.getDeliveryTag();
+          if (processDelivery(envelope, properties, body)) {
+              getChannel().basicAck(deliveryTag, false);
+          } else {
+              getChannel().basicReject(deliveryTag, false);
+          }
+        } finally {
+            synchronized (this) {
+                running = false;
+                notifyAll();
             }
         }
     }
 
-    private Callable<Boolean> getHandleCallable(final Envelope envelope,
-                                                final AMQP.BasicProperties properties,
-                                                final byte[] body) throws IOException {
-        val expired = isExpired(properties);
-        val message = mapper.readValue(body, clazz);
-        return () -> handle(message, populateMessageMeta(envelope, properties), expired);
+    protected boolean processDelivery(final Envelope envelope,
+                                    final AMQP.BasicProperties properties,
+                                    final byte[] body) throws RetrySchedulingException {
+        try {
+            var message = mapper.readValue(body, clazz);
+            return retryStrategy.execute(
+                () -> handle(message, populateMessageMeta(envelope, properties), isExpired(properties)),
+                queueName, body, properties);
+        } catch (RetrySchedulingException failure) {
+            throw failure;
+        } catch (Throwable failure) {
+            return handleProcessingFailure(failure);
+        }
+    }
+
+    private boolean handleProcessingFailure(final Throwable failure) {
+        log.error("Error processing message...", failure);
+        if (Boolean.TRUE.equals(errorCheckFunction.apply(failure))) {
+            log.warn("Acknowledging message due to exception: ", failure);
+            return true;
+        }
+        if (exceptionHandler.handle()) {
+            log.warn("Acknowledging message due to exception handling strategy: ", failure);
+            return true;
+        }
+        return false;
+    }
+
+    public synchronized void awaitCompletion() throws InterruptedException {
+        while (running) {
+            wait();
+        }
     }
 
     private long getDelayInMs(final AMQP.BasicProperties properties) {

@@ -3,16 +3,14 @@ package io.appform.dropwizard.actors.base;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.MessageProperties;
 import io.appform.dropwizard.actors.actor.ActorConfig;
 import io.appform.dropwizard.actors.actor.DelayType;
 import io.appform.dropwizard.actors.base.utils.NamingUtils;
 import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.common.RabbitmqActorException;
+import io.appform.dropwizard.actors.connectivity.PublishingChannel;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
-import io.appform.dropwizard.actors.observers.PublishObserverContext;
-import io.appform.dropwizard.actors.observers.RMQObserver;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -21,6 +19,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.function.UnaryOperator;
 
 @Slf4j
 public class UnmanagedPublisher<Message> {
@@ -31,8 +30,7 @@ public class UnmanagedPublisher<Message> {
     private final RMQConnection connection;
     private final ObjectMapper mapper;
     private final ShardIdCalculator<Message> shardIdCalculator;
-    private final RMQObserver observer;
-    private Channel publishChannel;
+    private final PublishingChannel publishChannel;
 
     public UnmanagedPublisher(
             String name,
@@ -56,7 +54,7 @@ public class UnmanagedPublisher<Message> {
         this.shardIdCalculator = shardIdCalculator;
         this.connection = connection;
         this.mapper = mapper;
-        this.observer = connection.getRootObserver();
+        this.publishChannel = new PublishingChannel(connection);
     }
 
     public final void publishWithDelay(final Message message, final long delayMilliseconds) throws Exception {
@@ -71,21 +69,12 @@ public class UnmanagedPublisher<Message> {
         }
         if (config.getDelayType() == DelayType.TTL) {
             val routingKey = getRoutingKey(message);
-            val context = PublishObserverContext.builder()
-                    .queueName(queueName)
-                    .messageProperties(properties)
-                    .build();
-            observer.executePublish(context, messageDetails -> {
-                try {
-                    publishChannel.basicPublish(ttlExchange(config),
-                            routingKey, messageDetails.getMessageProperties(),
-                            mapper().writeValueAsBytes(message));
-                } catch (IOException e) {
-                    log.error("Error while publishing: {}", e);
-                    throw RabbitmqActorException.propagate(e);
-                }
-                return null;
-            });
+            try {
+                publishChannel.publish(queueName, ttlExchange(config), routingKey, properties,
+                        UnaryOperator.identity(), () -> mapper().writeValueAsBytes(message));
+            } catch (IOException error) {
+                throw RabbitmqActorException.propagate(error);
+            }
         } else {
             publish(message, properties);
         }
@@ -113,20 +102,12 @@ public class UnmanagedPublisher<Message> {
 
     public final void publish(final Message message, final AMQP.BasicProperties properties) throws Exception {
         val routingKey = getRoutingKey(message);
-        val context = PublishObserverContext.builder()
-                .queueName(queueName)
-                .messageProperties(properties)
-                .build();
-        observer.executePublish(context, messageDetails -> {
-            val enrichedProperties = getEnrichedProperties(messageDetails.getMessageProperties());
-            try {
-                publishChannel.basicPublish(config.getExchange(), routingKey, enrichedProperties, mapper().writeValueAsBytes(message));
-            } catch (IOException e) {
-                log.error("Error while publishing: {}", e);
-                throw RabbitmqActorException.propagate(e);
-            }
-            return null;
-        });
+        try {
+            publishChannel.publish(queueName, config.getExchange(), routingKey, properties,
+                    this::getEnrichedProperties, () -> mapper().writeValueAsBytes(message));
+        } catch (IOException error) {
+            throw RabbitmqActorException.propagate(error);
+        }
     }
 
     private AMQP.BasicProperties getEnrichedProperties(AMQP.BasicProperties properties) {
@@ -211,7 +192,6 @@ public class UnmanagedPublisher<Message> {
         }
         ensureExchange(dlx);
 
-        this.publishChannel = connection.newChannel();
         String sidelineQueueName = NamingUtils.getSideline(queueName);
         connection.ensure(sidelineQueueName, queueName, dlx, connection.rmqOpts(config));
         if (config.isSharded()) {
@@ -255,6 +235,7 @@ public class UnmanagedPublisher<Message> {
                 connection.addBinding(sidelineQueueName, dlx, sidelineProcessorQueue);
             }
         }
+        publishChannel.start();
     }
 
     private void ensureExchange(String exchange) throws IOException {
@@ -292,12 +273,8 @@ public class UnmanagedPublisher<Message> {
 
     public void stop() throws Exception {
         try {
-            if (publishChannel.isOpen()) {
-                publishChannel.close();
-                log.info("Publisher channel closed for queue [{}]", queueName);
-            } else {
-                log.warn("Publisher channel already closed for queue [{}]", queueName);
-            }
+            this.publishChannel.close();
+            log.info("Publisher channel closed for queue [{}]", queueName);
         } catch (Exception e) {
             log.error(String.format("Error closing publisher channel for queue [%s]", queueName), e);
             throw e;
