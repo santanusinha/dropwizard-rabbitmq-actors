@@ -110,7 +110,7 @@ class BindingGuard implements AutoCloseable {
                         final List<String> bindingKeys,
                         final Set<String> allowedOtherExchanges,
                         final QueueDeclarer declareQueue,
-                        final QueueBinder bindQueue) throws Exception {
+                        final QueueBinder bindQueue) throws IOException {
         if (client == null) {
             // Drift checks disabled: bindings are additive, so changed keys or exchanges leave old bindings behind.
             declareAndBind(declareQueue, bindingKeys, bindQueue);
@@ -202,12 +202,12 @@ class BindingGuard implements AutoCloseable {
 
     private static void declareAndBind(final QueueDeclarer declareQueue,
                                        final List<String> bindingKeys,
-                                       final QueueBinder bindQueue) throws Exception {
+                                       final QueueBinder bindQueue) throws IOException {
         declareQueue.declare();
         bindAll(bindingKeys, bindQueue);
     }
 
-    private static void bindAll(final List<String> keys, final QueueBinder bindQueue) throws Exception {
+    private static void bindAll(final List<String> keys, final QueueBinder bindQueue) throws IOException {
         for (final String key : keys) {
             bindQueue.bind(key);
         }

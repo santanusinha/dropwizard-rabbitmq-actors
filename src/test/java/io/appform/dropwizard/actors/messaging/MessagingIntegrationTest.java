@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.AllArgsConstructor;
@@ -99,7 +98,7 @@ class MessagingIntegrationTest {
         adminConnection = factory.newConnection();
     }
 
-    private static String buildImage() throws InterruptedException, ExecutionException {
+    private static String buildImage() {
         return new ImageFromDockerfile("dropwizard-rabbitmq-actors-messaging-it", false)
                 .withDockerfileFromBuilder(builder -> builder
                         .from(RABBITMQ_IMAGE)
