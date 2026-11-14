@@ -21,16 +21,21 @@ import com.google.common.base.Preconditions;
 import io.appform.dropwizard.actors.common.Constants;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
+import io.appform.dropwizard.actors.messaging.Messaging;
+import io.appform.dropwizard.actors.messaging.config.MessagingConfig;
 import io.appform.dropwizard.actors.metrics.RMQMetricObserver;
 import io.appform.dropwizard.actors.observers.RMQObserver;
 import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
+import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.util.component.LifeCycle;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +49,7 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
 
     @Getter
     private ConnectionRegistry connectionRegistry;
+    private Messaging messaging;
     private final List<RMQObserver> observers = new ArrayList<>();
     private RMQConfig rmqConfig;
 
@@ -62,6 +68,54 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
         this.connectionRegistry = new ConnectionRegistry(environment, executorServiceProvider, rmqConfig,
                 ttlConfig == null ? TtlConfig.builder().build(): ttlConfig, rootObserver);
         environment.lifecycle().manage(connectionRegistry);
+        val messagingConfig = getMessagingConfig(t);
+        if (null != messagingConfig) {
+            this.messaging = new Messaging(messagingConfig, rmqConfig, connectionRegistry,
+                    environment.getObjectMapper());
+            manageMessaging(environment.lifecycle(), messaging);
+        }
+    }
+
+    /**
+     * Ties messaging to the server lifecycle:
+     * <ul>
+     *   <li>managed right after the connection registry: topology and publishers start before any application managed
+     *       object, so the application can publish while it starts, and stop after them, before connections close;</li>
+     *   <li>consumers start when the server has started, i.e. after every managed object, so handlers never receive
+     *       messages before the resources they use are ready. A failure fails server startup;</li>
+     *   <li>consumers stop when the server begins stopping, before any managed object stops, so handlers never run
+     *       against resources that are already shut down.</li>
+     * </ul>
+     */
+    static void manageMessaging(final LifecycleEnvironment lifecycle, final Messaging messaging) {
+        lifecycle.manage(messaging);
+        lifecycle.addServerLifecycleListener(server -> {
+            try {
+                messaging.startConsumers();
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new IllegalStateException("Unable to start messaging consumers", e);
+            }
+        });
+        lifecycle.addLifeCycleListener(new AbstractLifeCycle.AbstractLifeCycleListener() {
+            @Override
+            public void lifeCycleStopping(final LifeCycle event) {
+                try {
+                    messaging.stopConsumers();
+                } catch (RuntimeException e) {
+                    // Never block shutdown; Messaging.stop() stops whatever is left.
+                    log.error("Error stopping messaging consumers", e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Override to enable exchange-centric messaging ({@link Messaging}). Returns null (disabled) by default.
+     */
+    protected MessagingConfig getMessagingConfig(T t) {
+        return null;
     }
 
     protected abstract TtlConfig ttlConfig();
@@ -69,6 +123,21 @@ public abstract class RabbitmqActorBundle<T extends Configuration> implements Co
     @Override
     public void initialize(Bootstrap<?> bootstrap) {
 
+    }
+
+    /**
+     * Exchange-centric messaging.
+     *
+     * <p>Register publishers and handlers in {@code Application.run}: registering from a managed object's
+     * {@code start()} is too late, because messaging is managed by this bundle and starts first.
+     *
+     * @throws IllegalStateException when messaging is not configured
+     */
+    public Messaging getMessaging() {
+        if (null == messaging) {
+            throw new IllegalStateException("Messaging is not configured; override getMessagingConfig");
+        }
+        return messaging;
     }
 
     public RMQConnection getDefaultProducerConnection() {

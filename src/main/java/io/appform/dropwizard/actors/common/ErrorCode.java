@@ -23,5 +23,10 @@ public enum ErrorCode {
 
     CONNECTION_NAME_RESERVED_FOR_INTERNAL_USE,
 
-    INTERNAL_ERROR
+    INTERNAL_ERROR,
+
+    /**
+     * A published message was returned by the broker because no queue binding matched its routing key.
+     */
+    UNROUTABLE_MESSAGE
 }

@@ -91,4 +91,12 @@ public class RMQConfig {
 
     @Valid
     private MetricConfig metricConfig;
+
+    /**
+     * Optional connection settings for the RabbitMQ Management HTTP API, used by the messaging binding drift checks
+     * (on by default; see {@code MessagingConfig.skipBindingDriftCheck}). When null, the defaults of
+     * {@link RmqManagementConfig} apply. Actors never call the Management API.
+     */
+    @Valid
+    private RmqManagementConfig managementConfig;
 }
