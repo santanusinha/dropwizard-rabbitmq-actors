@@ -155,8 +155,8 @@ public class Messaging implements Managed {
                 queue, exchange);
         Preconditions.checkArgument(!consumers.containsKey(queue), "A handler is already registered for queue '%s'",
                 queue);
-        consumers.put(queue, new QueueConsumer<>(config.getPrefix(), queue, exchangeSpec, queueSpec, messageType,
-                handler,
+        consumers.put(queue, new QueueConsumer<>(config.getPrefix(), names(exchange).broker(), queue, exchangeSpec,
+                queueSpec, messageType, handler,
                 connectionRegistry.createOrGet(NamingUtils.consumerConnectionName(queueSpec.getConsumer())),
                 producerConnection(exchangeSpec), mapper, retryStrategyFactory, exceptionHandlingFactory));
     }

@@ -1,9 +1,10 @@
 package io.appform.dropwizard.actors.connectivity;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 class BindingKeyMatcherTest {
 
@@ -14,10 +15,10 @@ class BindingKeyMatcherTest {
 
     @Test
     void testNormalizeDedupsAndDropsNullsWithoutTrimming() {
-        final List<String> keys = new java.util.ArrayList<>(List.of(" order.* ", "order.*", "order.*",
+        final List<String> keys = new ArrayList<>(List.of(" order.* ", "order.*", "order.*",
                 "payment.created"));
         keys.add(null);
-        Assertions.assertEquals(java.util.Set.of(" order.* ", "order.*", "payment.created"),
+        Assertions.assertEquals(Set.of(" order.* ", "order.*", "payment.created"),
                 BindingKeyMatcher.normalize(keys));
     }
 

@@ -1,5 +1,6 @@
 package io.appform.dropwizard.actors.messaging;
 
+import static io.dropwizard.util.Duration.milliseconds;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -22,16 +23,19 @@ import io.appform.dropwizard.actors.messaging.config.ExchangeSpec;
 import io.appform.dropwizard.actors.messaging.config.MessagingConfig;
 import io.appform.dropwizard.actors.messaging.config.QueueSpec;
 import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
+import io.appform.dropwizard.actors.retry.config.CountLimitedFixedWaitRetryConfig;
 import io.dropwizard.setup.Environment;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -75,16 +79,16 @@ class MessagingIntegrationTest {
         private String key;
     }
 
+    /**
+     * Optional prebuilt broker image (e.g. one built by an earlier run), for environments where the image build can't
+     * download the plugin. Unset: the image is built from {@link #RABBITMQ_IMAGE} plus the plugin.
+     */
+    private static final String PREBUILT_IMAGE_PROPERTY = "messaging.it.image";
+
     @BeforeAll
     static void startBroker() throws Exception {
-        final String image = new ImageFromDockerfile("dropwizard-rabbitmq-actors-messaging-it", false)
-                .withDockerfileFromBuilder(builder -> builder
-                        .from(RABBITMQ_IMAGE)
-                        .add(DELAYED_PLUGIN_URL, "/opt/rabbitmq/plugins/")
-                        .run("chmod 644 /opt/rabbitmq/plugins/rabbitmq_delayed_message_exchange-3.12.0.ez "
-                                + "&& rabbitmq-plugins enable --offline rabbitmq_delayed_message_exchange")
-                        .build())
-                .get();
+        final String prebuilt = System.getProperty(PREBUILT_IMAGE_PROPERTY);
+        final String image = prebuilt != null && !prebuilt.isBlank() ? prebuilt : buildImage();
         rabbitMQ = new RabbitMQContainer(DockerImageName.parse(image).asCompatibleSubstituteFor("rabbitmq"));
         rabbitMQ.start();
         final ConnectionFactory factory = new ConnectionFactory();
@@ -93,6 +97,17 @@ class MessagingIntegrationTest {
         factory.setUsername(rabbitMQ.getAdminUsername());
         factory.setPassword(rabbitMQ.getAdminPassword());
         adminConnection = factory.newConnection();
+    }
+
+    private static String buildImage() throws Exception {
+        return new ImageFromDockerfile("dropwizard-rabbitmq-actors-messaging-it", false)
+                .withDockerfileFromBuilder(builder -> builder
+                        .from(RABBITMQ_IMAGE)
+                        .add(DELAYED_PLUGIN_URL, "/opt/rabbitmq/plugins/")
+                        .run("chmod 644 /opt/rabbitmq/plugins/rabbitmq_delayed_message_exchange-3.12.0.ez "
+                                + "&& rabbitmq-plugins enable --offline rabbitmq_delayed_message_exchange")
+                        .build())
+                .get();
     }
 
     @AfterAll
@@ -367,4 +382,93 @@ class MessagingIntegrationTest {
             assertEquals(0, channel.consumerCount(brokerQueue("F1")));
         }
     }
+
+    // --- SYNC retries through the (async-capable) retry machinery ---------------------------------------------------
+
+    private static CountLimitedFixedWaitRetryConfig syncRetry(
+            final int maxAttempts) {
+        final CountLimitedFixedWaitRetryConfig retry =
+                new CountLimitedFixedWaitRetryConfig();
+        retry.setMaxAttempts(maxAttempts);
+        retry.setWaitTime(milliseconds(100));
+        return retry;
+    }
+
+    private Messaging retryingFanout(final QueueHandler<TestMessage> handler) {
+        final Messaging messaging = messaging(Map.of("it_fanout", exchange(ExchangeType.FANOUT,
+                Map.of("RETRIES", QueueSpec.builder().concurrency(1).retryConfig(syncRetry(3)).build(),
+                        "OTHER", QueueSpec.builder().concurrency(1).build()))));
+        messaging.consumer("it_fanout", "RETRIES", TestMessage.class, handler);
+        messaging.consumer("it_fanout", "OTHER", TestMessage.class, recording("OTHER"));
+        return messaging;
+    }
+
+    @Test
+    void syncRetryRecoversWithinTheAttemptBudget() throws Exception {
+        final AtomicInteger attempts = new AtomicInteger();
+        final Messaging messaging = retryingFanout((message, context) -> {
+            if (attempts.incrementAndGet() < 3) {
+                throw new IllegalStateException("transient failure " + attempts.get());
+            }
+            return true;
+        });
+        final MessagePublisher<TestMessage> fanout = messaging.publisher("it_fanout");
+        start(messaging);
+
+        fanout.publish(new TestMessage("m1", null));
+
+        await().atMost(WAIT).until(() -> attempts.get() == 3);
+        quietPeriod();
+        assertEquals(3, attempts.get());   // retried in-process, then acked
+        assertEquals(0, messageCount(brokerQueue("RETRIES")));
+        assertEquals(0, messageCount(MessagingNames.sidelineQueue(brokerQueue("RETRIES"))));
+        assertEquals(List.of("m1"), receivedBy("OTHER"));   // retries never reach the other queue
+    }
+
+    @Test
+    void syncRetryExhaustionSidelinesToTheQueuesOwnSideline() throws Exception {
+        final AtomicInteger attempts = new AtomicInteger();
+        final Messaging messaging = retryingFanout((message, context) -> {
+            attempts.incrementAndGet();
+            throw new IllegalStateException("permanent failure");
+        });
+        final MessagePublisher<TestMessage> fanout = messaging.publisher("it_fanout");
+        start(messaging);
+
+        fanout.publish(new TestMessage("m1", null));
+
+        await().atMost(WAIT).until(() -> messageCount(MessagingNames.sidelineQueue(brokerQueue("RETRIES"))) == 1);
+        quietPeriod();
+        assertEquals(3, attempts.get());
+        assertEquals(0, messageCount(MessagingNames.sidelineQueue(brokerQueue("OTHER"))));
+        assertEquals(List.of("m1"), receivedBy("OTHER"));
+    }
+
+    @Test
+    void droppedExceptionIsAckedInsteadOfSidelinedOnceRetriesAreExhausted() throws Exception {
+        final AtomicInteger attempts = new AtomicInteger();
+        final Messaging messaging = retryingFanout(new QueueHandler<>() {
+            @Override
+            public boolean handle(final TestMessage message, final MessageContext<TestMessage> context) {
+                attempts.incrementAndGet();
+                throw new UnsupportedOperationException("not for us");
+            }
+
+            @Override
+            public Set<Class<? extends Throwable>> droppedExceptionTypes() {
+                return Set.of(UnsupportedOperationException.class);
+            }
+        });
+        final MessagePublisher<TestMessage> fanout = messaging.publisher("it_fanout");
+        start(messaging);
+
+        fanout.publish(new TestMessage("m1", null));
+
+        await().atMost(WAIT).until(() -> attempts.get() == 3);
+        quietPeriod();
+        assertEquals(3, attempts.get());
+        assertEquals(0, messageCount(brokerQueue("RETRIES")));
+        assertEquals(0, messageCount(MessagingNames.sidelineQueue(brokerQueue("RETRIES"))));
+    }
 }
+

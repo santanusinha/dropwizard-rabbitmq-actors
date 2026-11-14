@@ -6,6 +6,10 @@ import io.appform.dropwizard.actors.config.Broker;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.config.RmqManagementConfig;
 import io.appform.dropwizard.actors.connectivity.RmqManagementClient.Binding;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +20,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class RmqManagementClientTest {
 
@@ -204,12 +209,12 @@ class RmqManagementClientTest {
     }
 
     @Test
-    void testSecureUsesServerCertStoreAsTrustStore(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir)
+    void testSecureUsesServerCertStoreAsTrustStore(@TempDir Path dir)
             throws Exception {
-        final java.nio.file.Path trustStore = dir.resolve("server.jks");
-        final java.security.KeyStore keyStore = java.security.KeyStore.getInstance("JKS");
+        final Path trustStore = dir.resolve("server.jks");
+        final KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(null, null);
-        try (java.io.OutputStream out = java.nio.file.Files.newOutputStream(trustStore)) {
+        try (OutputStream out = Files.newOutputStream(trustStore)) {
             keyStore.store(out, "secret".toCharArray());
         }
         final RMQConfig rmqConfig = config(RmqManagementConfig.builder().secure(true).build(), "localhost");

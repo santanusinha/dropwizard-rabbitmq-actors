@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.appform.dropwizard.actors.messaging.ExchangeType;
+import io.appform.dropwizard.actors.retry.WaitMode;
+import io.appform.dropwizard.actors.retry.config.CountLimitedFixedWaitRetryConfig;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -140,5 +142,23 @@ class MessagingConfigValidatorTest {
         exchanges.put("y", exchange(ExchangeType.TOPIC, Map.of("q2_RETRY", queue("a..b"))));
         exchanges.put("z", exchange(ExchangeType.DIRECT, Map.of()));
         assertEquals(5, validate(exchanges).size());
+    }
+
+    @Test
+    void rejectsAsyncRetryWaitMode() {
+        final CountLimitedFixedWaitRetryConfig async =
+                new CountLimitedFixedWaitRetryConfig();
+        async.setWaitMode(WaitMode.ASYNC);
+        final QueueSpec asyncQueue = QueueSpec.builder().retryConfig(async).build();
+        assertSingleError(validate(Map.of("e", exchange(ExchangeType.FANOUT, Map.of("q", asyncQueue)))),
+                "retryConfig.waitMode ASYNC is not supported");
+
+        final CountLimitedFixedWaitRetryConfig sync =
+                new CountLimitedFixedWaitRetryConfig();
+        sync.setWaitMode(WaitMode.SYNC);
+        assertEquals(List.of(), validate(Map.of("e", exchange(ExchangeType.FANOUT,
+                Map.of("q", QueueSpec.builder().retryConfig(sync).build())))));
+        assertEquals(List.of(), validate(Map.of("e", exchange(ExchangeType.FANOUT,
+                Map.of("q", QueueSpec.builder().build())))));   // default NoRetryConfig, SYNC
     }
 }

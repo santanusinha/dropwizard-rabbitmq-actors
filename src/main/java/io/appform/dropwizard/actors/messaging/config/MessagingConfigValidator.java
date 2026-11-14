@@ -1,6 +1,7 @@
 package io.appform.dropwizard.actors.messaging.config;
 
 import io.appform.dropwizard.actors.messaging.ExchangeType;
+import io.appform.dropwizard.actors.retry.WaitMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,7 +21,9 @@ import lombok.experimental.UtilityClass;
  *   <li>every exchange has a type and at least one queue (publish-only exchanges are not supported);</li>
  *   <li>DIRECT/TOPIC queues have at least one binding key; FANOUT queues have none;</li>
  *   <li>binding keys are non-blank with no surrounding whitespace; TOPIC keys contain no empty words
- *       (e.g. {@code a..b}).</li>
+ *       (e.g. {@code a..b});</li>
+ *   <li>{@code retryConfig.waitMode} is not {@code ASYNC}: actor async retries dead-letter back through the exchange,
+ *       which for TOPIC/FANOUT would deliver a retry to every bound queue.</li>
  * </ul>
  */
 @UtilityClass
@@ -80,6 +83,11 @@ public class MessagingConfigValidator {
         if (queueSpec == null) {
             errors.add(String.format("Exchange '%s', queue '%s': spec is required", exchange, queue));
             return;
+        }
+        if (queueSpec.getRetryConfig() != null && queueSpec.getRetryConfig().getWaitMode() == WaitMode.ASYNC) {
+            errors.add(String.format("Exchange '%s', queue '%s': retryConfig.waitMode ASYNC is not supported for "
+                    + "messaging (async retries are re-routed through the exchange and would reach every bound queue); "
+                    + "use SYNC, or MessageContext.retryLater to redeliver to this queue only", exchange, queue));
         }
         final List<String> keys = Objects.requireNonNullElse(queueSpec.getBindingKeys(), List.of());
         if (!type.usesRoutingKey()) {

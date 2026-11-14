@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -39,7 +40,7 @@ class TopologyDeclarer {
 
     private final String prefix;
     private final BindingGuard bindingGuard;
-    private final List<Channel> declarationChannels = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final List<Channel> declarationChannels = new CopyOnWriteArrayList<>();
 
     TopologyDeclarer(final String prefix, final BindingGuard bindingGuard) {
         this.prefix = prefix;

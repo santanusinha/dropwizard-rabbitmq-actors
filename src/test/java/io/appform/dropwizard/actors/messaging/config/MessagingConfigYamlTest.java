@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.appform.dropwizard.actors.messaging.ExchangeType;
 import io.dropwizard.jackson.Jackson;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -45,5 +46,22 @@ class MessagingConfigYamlTest {
     void explicitSkipTurnsDriftChecksOff() throws Exception {
         assertTrue(read("skipBindingDriftCheck: true\n" + EXCHANGES).isSkipBindingDriftCheck());
         assertFalse(read("skipBindingDriftCheck: false\n" + EXCHANGES).isSkipBindingDriftCheck());
+    }
+
+    @Test
+    void asyncRetryInYamlFailsValidation() throws Exception {
+        final MessagingConfig config = read("exchanges:\n"
+                + "  ex:\n"
+                + "    type: FANOUT\n"
+                + "    queues:\n"
+                + "      q:\n"
+                + "        retryConfig:\n"
+                + "          type: COUNT_LIMITED_FIXED_WAIT\n"
+                + "          maxAttempts: 3\n"
+                + "          waitTime: 1s\n"
+                + "          waitMode: ASYNC\n");
+        final List<String> errors = MessagingConfigValidator.validate(config);
+        assertEquals(1, errors.size(), errors.toString());
+        assertTrue(errors.get(0).contains("waitMode ASYNC is not supported"), errors.toString());
     }
 }

@@ -15,7 +15,13 @@ import com.rabbitmq.client.Channel;
 import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.messaging.MessagingNames.ExchangeNames;
 import io.appform.dropwizard.actors.messaging.config.ExchangeSpec;
+import io.appform.dropwizard.actors.messaging.config.QueueSpec;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -64,15 +70,15 @@ class TopologyDeclarerTest {
         when(channel.isOpen()).thenReturn(true);
         final RMQConnection connection = mock(RMQConnection.class);
         when(connection.newChannel()).thenReturn(channel);
-        when(connection.rmqOpts(any())).thenReturn(new java.util.HashMap<>());
+        when(connection.rmqOpts(any())).thenReturn(new HashMap<>());
         final BindingGuard guard = mock(BindingGuard.class);
         doThrow(new IllegalStateException("drift")).when(guard)
                 .ensureBindings(anyString(), anyString(), any(), any(), any(), any());
         final ExchangeSpec spec = ExchangeSpec.builder()
                 .type(ExchangeType.DIRECT)
-                .queues(new java.util.LinkedHashMap<>(java.util.Map.of("Q",
-                        io.appform.dropwizard.actors.messaging.config.QueueSpec.builder()
-                                .bindingKeys(java.util.List.of("k")).build())))
+                .queues(new LinkedHashMap<>(Map.of("Q",
+                        QueueSpec.builder()
+                                .bindingKeys(List.of("k")).build())))
                 .build();
         final TopologyDeclarer declarer = new TopologyDeclarer("p", guard);
 
@@ -88,13 +94,13 @@ class TopologyDeclarerTest {
         when(channel.isOpen()).thenReturn(true);
         final RMQConnection connection = mock(RMQConnection.class);
         when(connection.newChannel()).thenReturn(channel);
-        when(connection.rmqOpts(any())).thenReturn(new java.util.HashMap<>());
+        when(connection.rmqOpts(any())).thenReturn(new HashMap<>());
         final BindingGuard guard = mock(BindingGuard.class);
         final ExchangeSpec spec = ExchangeSpec.builder()
                 .type(ExchangeType.DIRECT)
-                .queues(new java.util.LinkedHashMap<>(java.util.Map.of("Q",
-                        io.appform.dropwizard.actors.messaging.config.QueueSpec.builder()
-                                .bindingKeys(java.util.List.of("k"))
+                .queues(new LinkedHashMap<>(Map.of("Q",
+                        QueueSpec.builder()
+                                .bindingKeys(List.of("k"))
                                 .retryLaterEnabled(false)
                                 .build())))
                 .build();
@@ -103,8 +109,8 @@ class TopologyDeclarerTest {
 
         final String brokerQueue = MessagingNames.queue("p", "Q");
         // A queue that had retryLater enabled before keeps its retry binding: it must not fail the drift check.
-        verify(guard).ensureBindings(eq(brokerQueue), eq("ex"), eq(java.util.List.of("k")),
-                eq(java.util.Set.of(MessagingNames.retryExchange(brokerQueue))), any(), any());
+        verify(guard).ensureBindings(eq(brokerQueue), eq("ex"), eq(List.of("k")),
+                eq(Set.of(MessagingNames.retryExchange(brokerQueue))), any(), any());
         verify(channel, never()).exchangeDeclare(eq(MessagingNames.retryExchange(brokerQueue)), anyString(),
                 anyBoolean(), anyBoolean(), any());
     }

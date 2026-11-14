@@ -23,7 +23,6 @@ import io.appform.dropwizard.actors.connectivity.RMQConnection;
 import io.appform.dropwizard.actors.exceptionhandler.handlers.MessageSidelineHandler;
 import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
 import io.appform.dropwizard.actors.retry.impl.NoRetryStrategy;
-import io.appform.dropwizard.actors.retry.config.NoRetryConfig;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
@@ -74,7 +73,7 @@ class UnmanagedConsumerChannelRecoveryTest {
 
     private UnmanagedConsumer<String> startedConsumer(final int concurrency) throws Exception {
         final UnmanagedConsumer<String> consumer = new UnmanagedConsumer<>("q", 1, concurrency, false, 0, null,
-                connection, new ObjectMapper(), new NoRetryStrategy(new NoRetryConfig()),
+                connection, new ObjectMapper(), new NoRetryStrategy(),
                 new MessageSidelineHandler(null), String.class, (message, metadata) -> true,
                 (message, metadata) -> true, t -> false);
         consumer.start();

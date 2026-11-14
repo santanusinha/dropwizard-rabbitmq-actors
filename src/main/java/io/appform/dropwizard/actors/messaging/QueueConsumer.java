@@ -24,6 +24,7 @@ class QueueConsumer<M> {
     private final QueueRetryPublisher retryPublisher;
 
     QueueConsumer(final String prefix,
+                  final String brokerExchange,
                   final String queue,
                   final ExchangeSpec exchangeSpec,
                   final QueueSpec spec,
@@ -48,7 +49,10 @@ class QueueConsumer<M> {
                 spec.getConsumer(),
                 consumerConnection,
                 mapper,
-                retryStrategyFactory.create(spec.getRetryConfig()),
+                // SYNC retries only (ASYNC is rejected by MessagingConfigValidator), so the queue arguments, connection
+                // and names passed here are not used to declare anything.
+                retryStrategyFactory.create(spec.getRetryConfig(), spec.toQueueArgumentsConfig(brokerExchange),
+                        producerConnection, brokerExchange, brokerQueue),
                 exceptionHandlingFactory.create(spec.getExceptionHandlerConfig()),
                 messageType,
                 (message, metadata) -> handler.handle(message, context(metadata)),

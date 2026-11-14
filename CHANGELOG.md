@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## 2.0.28-18
+## 2.0.28-19
 
 - Added exchange-centric messaging (`io.appform.dropwizard.actors.messaging`), opt-in and independent of actors:
   publish to DIRECT, TOPIC or FANOUT exchanges with `MessagePublisher`; consume each configured queue with a
@@ -24,9 +24,12 @@ All notable changes to this project will be documented in this file.
   start before the application's managed objects and stop after them, so the application can publish throughout.
 - `retryLater` keeps the message's expiry (`x-expire-at`) and goes through the observer chain (metrics, tracing),
   observed under the queue's retry exchange name (`<queue>_RETRY`).
-- Actors: `UnmanagedConsumer` no longer re-subscribes a consumer channel closed by `stop()`, by the application, or
-  by a connection failure (automatic recovery restores it). Previously stopping an actor could leave a new consumer
-  running until the connection closed, and a reconnect could leave an extra consumer. Actor topology is unchanged.
+- Messaging rejects `retryConfig.waitMode: ASYNC`: async retries are dead-lettered back through the exchange, which for
+  TOPIC/FANOUT would reach every bound queue. Use `SYNC` or `MessageContext.retryLater`.
+- Actors: on top of the existing stop guard, `UnmanagedConsumer` no longer re-creates a consumer channel closed by the
+  application (e.g. its connection being closed) or by a connection failure (automatic recovery restores it, so a
+  reconnect no longer leaves an extra consumer), and cancels a channel re-created while `stop()` runs. Actor topology
+  is unchanged.
 
 ## 2.0.28-14
 

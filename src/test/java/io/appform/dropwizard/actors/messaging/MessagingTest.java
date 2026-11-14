@@ -25,6 +25,8 @@ import io.appform.dropwizard.actors.messaging.config.MessagingConfig;
 import io.appform.dropwizard.actors.messaging.config.QueueSpec;
 import io.appform.dropwizard.actors.observers.TerminalRMQObserver;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
+import io.appform.dropwizard.actors.retry.WaitMode;
+import io.appform.dropwizard.actors.retry.config.CountLimitedFixedWaitRetryConfig;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -230,4 +232,19 @@ class MessagingTest {
         assertThrows(IllegalStateException.class, messaging::start);
         assertThrows(IllegalStateException.class, () -> messaging.publisher("broadcast"));
     }
+
+    @Test
+    void asyncRetryWaitModeFailsConstruction() {
+        final CountLimitedFixedWaitRetryConfig async =
+                new CountLimitedFixedWaitRetryConfig();
+        async.setWaitMode(WaitMode.ASYNC);
+        final MessagingConfig config = MessagingConfig.builder().exchanges(new LinkedHashMap<>(Map.of("e",
+                ExchangeSpec.builder().type(ExchangeType.FANOUT).queues(new LinkedHashMap<>(Map.of("q",
+                        QueueSpec.builder().retryConfig(async).build()))).build()))).build();
+
+        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> new Messaging(config,
+                registry, new ObjectMapper(), new RetryStrategyFactory(), new ExceptionHandlingFactory(), declarer));
+        assertTrue(e.getMessage().contains("retryConfig.waitMode ASYNC is not supported"), e.getMessage());
+    }
 }
+
