@@ -18,12 +18,14 @@ class MessagingConfigYamlTest {
 
     private static final ObjectMapper YAML = Jackson.newObjectMapper(new YAMLFactory());
 
-    private static final String EXCHANGES = "exchanges:\n"
-            + "  ex:\n"
-            + "    type: DIRECT\n"
-            + "    queues:\n"
-            + "      q:\n"
-            + "        bindingKeys: [\"k\"]\n";
+    private static final String EXCHANGES = """
+            exchanges:
+              ex:
+                type: DIRECT
+                queues:
+                  q:
+                    bindingKeys: ["k"]
+            """;
 
     private static MessagingConfig read(final String yaml) throws Exception {
         return YAML.readValue(yaml, MessagingConfig.class);
@@ -50,16 +52,18 @@ class MessagingConfigYamlTest {
 
     @Test
     void asyncRetryInYamlFailsValidation() throws Exception {
-        final MessagingConfig config = read("exchanges:\n"
-                + "  ex:\n"
-                + "    type: FANOUT\n"
-                + "    queues:\n"
-                + "      q:\n"
-                + "        retryConfig:\n"
-                + "          type: COUNT_LIMITED_FIXED_WAIT\n"
-                + "          maxAttempts: 3\n"
-                + "          waitTime: 1s\n"
-                + "          waitMode: ASYNC\n");
+        final MessagingConfig config = read("""
+                exchanges:
+                  ex:
+                    type: FANOUT
+                    queues:
+                      q:
+                        retryConfig:
+                          type: COUNT_LIMITED_FIXED_WAIT
+                          maxAttempts: 3
+                          waitTime: 1s
+                          waitMode: ASYNC
+                """);
         final List<String> errors = MessagingConfigValidator.validate(config);
         assertEquals(1, errors.size(), errors.toString());
         assertTrue(errors.get(0).contains("waitMode ASYNC is not supported"), errors.toString());

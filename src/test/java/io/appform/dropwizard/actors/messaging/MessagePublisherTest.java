@@ -1,7 +1,7 @@
 package io.appform.dropwizard.actors.messaging;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -84,12 +84,13 @@ class MessagePublisherTest {
 
     @Test
     void resolverRequiredForRoutingExchangesAndRejectedForFanout() {
+        final ObjectMapper mapper = new ObjectMapper();
+        final ExchangeSpec direct = spec(ExchangeType.DIRECT, true, false);
+        final ExchangeSpec fanout = spec(ExchangeType.FANOUT, true, false);
         assertThrows(IllegalArgumentException.class, () ->
-                new MessagePublisher<String>(NAMES, spec(ExchangeType.DIRECT, true, false), null, connection,
-                        new ObjectMapper()));
+                new MessagePublisher<String>(NAMES, direct, null, connection, mapper));
         assertThrows(IllegalArgumentException.class, () ->
-                new MessagePublisher<String>(NAMES, spec(ExchangeType.FANOUT, true, false), m -> m, connection,
-                        new ObjectMapper()));
+                new MessagePublisher<String>(NAMES, fanout, m -> m, connection, mapper));
     }
 
     @Test
@@ -130,12 +131,12 @@ class MessagePublisherTest {
 
     @Test
     void rejectsBlankOrOversizedRoutingKeys() throws Exception {
-        assertThrows(IllegalArgumentException.class,
-                () -> started(spec(ExchangeType.DIRECT, true, false), m -> " ").publish("a"));
-        assertThrows(IllegalArgumentException.class,
-                () -> started(spec(ExchangeType.DIRECT, true, false), m -> null).publish("a"));
-        assertThrows(IllegalArgumentException.class,
-                () -> started(spec(ExchangeType.DIRECT, true, false), m -> "x".repeat(256)).publish("a"));
+        final MessagePublisher<String> blankKey = started(spec(ExchangeType.DIRECT, true, false), m -> " ");
+        final MessagePublisher<String> nullKey = started(spec(ExchangeType.DIRECT, true, false), m -> null);
+        final MessagePublisher<String> longKey = started(spec(ExchangeType.DIRECT, true, false), m -> "x".repeat(256));
+        assertThrows(IllegalArgumentException.class, () -> blankKey.publish("a"));
+        assertThrows(IllegalArgumentException.class, () -> nullKey.publish("a"));
+        assertThrows(IllegalArgumentException.class, () -> longKey.publish("a"));
         started(spec(ExchangeType.DIRECT, true, false), m -> "x".repeat(255)).publish("a");
         verify(channel, times(1)).basicPublish(anyString(), anyString(), anyBoolean(), any(), any());
     }
@@ -249,9 +250,11 @@ class MessagePublisherTest {
     @Test
     void delayedPublishValidation() throws Exception {
         final MessagePublisher<String> notDelayed = started(spec(ExchangeType.FANOUT, true, false), null);
-        assertThrows(IllegalStateException.class, () -> notDelayed.publishWithDelay("a", Duration.ofSeconds(1)));
+        final Duration oneSecond = Duration.ofSeconds(1);
+        final Duration negative = Duration.ofSeconds(-1);
+        assertThrows(IllegalStateException.class, () -> notDelayed.publishWithDelay("a", oneSecond));
         final MessagePublisher<String> delayed = started(spec(ExchangeType.FANOUT, true, true), null);
-        assertThrows(IllegalArgumentException.class, () -> delayed.publishWithDelay("a", Duration.ofSeconds(-1)));
+        assertThrows(IllegalArgumentException.class, () -> delayed.publishWithDelay("a", negative));
         assertThrows(IllegalArgumentException.class, () -> delayed.publishWithDelay("a", null));
     }
 
@@ -269,7 +272,6 @@ class MessagePublisherTest {
     void libraryHeadersOverrideCallerHeaders() throws Exception {
         final MessagePublisher<String> publisher = started(spec(ExchangeType.FANOUT, true, false), null);
         publisher.publish("a", Map.of(Constants.MESSAGE_PUBLISHED_TEXT, -1L));
-        assertFalse(Long.valueOf(-1L).equals(
-                publishedProperties(true).getHeaders().get(Constants.MESSAGE_PUBLISHED_TEXT)));
+        assertNotEquals(-1L, publishedProperties(true).getHeaders().get(Constants.MESSAGE_PUBLISHED_TEXT));
     }
 }

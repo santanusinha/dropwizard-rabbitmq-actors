@@ -162,7 +162,7 @@ class RmqManagementClientTest {
     }
 
     @Test
-    void testAllEndpointsDownFails() throws Exception {
+    void testAllEndpointsDownFails() {
         server.enqueue(new MockResponse().setResponseCode(500));
         final RabbitmqActorException e = Assertions.assertThrows(RabbitmqActorException.class,
                 () -> client.fetchBindings("/", "q"));
@@ -204,8 +204,9 @@ class RmqManagementClientTest {
 
     @Test
     void testNoEndpointFailsConstruction() {
-        Assertions.assertThrows(IllegalArgumentException.class,
-                () -> new RmqManagementClient(config(null), new ObjectMapper()));
+        final RMQConfig noEndpoint = config(null);
+        final ObjectMapper mapper = new ObjectMapper();
+        Assertions.assertThrows(IllegalArgumentException.class, () -> new RmqManagementClient(noEndpoint, mapper));
     }
 
     @Test
@@ -224,8 +225,9 @@ class RmqManagementClientTest {
         new RmqManagementClient(rmqConfig, new ObjectMapper()).close();
 
         rmqConfig.setServerCertStorePath(dir.resolve("missing.jks").toString());
+        final ObjectMapper mapper = new ObjectMapper();
         final RabbitmqActorException e = Assertions.assertThrows(RabbitmqActorException.class,
-                () -> new RmqManagementClient(rmqConfig, new ObjectMapper()));
+                () -> new RmqManagementClient(rmqConfig, mapper));
         Assertions.assertTrue(e.getMessage().contains("trust store"), e.getMessage());
     }
 

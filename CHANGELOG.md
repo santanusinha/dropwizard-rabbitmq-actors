@@ -24,8 +24,9 @@ All notable changes to this project will be documented in this file.
   start before the application's managed objects and stop after them, so the application can publish throughout.
 - `retryLater` keeps the message's expiry (`x-expire-at`) and goes through the observer chain (metrics, tracing),
   observed under the queue's retry exchange name (`<queue>_RETRY`).
-- Messaging rejects `retryConfig.waitMode: ASYNC`: async retries are dead-lettered back through the exchange, which for
-  TOPIC/FANOUT would reach every bound queue. Use `SYNC` or `MessageContext.retryLater`.
+- Messaging rejects `retryConfig.waitMode: ASYNC`: async retries are dead-lettered back through the exchange with the
+  queue name as routing key, so on FANOUT they would reach every bound queue and on TOPIC usually no queue. Use `SYNC`
+  or `MessageContext.retryLater`.
 - Actors: on top of the existing stop guard, `UnmanagedConsumer` no longer re-creates a consumer channel closed by the
   application (e.g. its connection being closed) or by a connection failure (automatic recovery restores it, so a
   reconnect no longer leaves an extra consumer), and cancels a channel re-created while `stop()` runs. Actor topology

@@ -150,8 +150,10 @@ class MessagingConfigValidatorTest {
                 new CountLimitedFixedWaitRetryConfig();
         async.setWaitMode(WaitMode.ASYNC);
         final QueueSpec asyncQueue = QueueSpec.builder().retryConfig(async).build();
-        assertSingleError(validate(Map.of("e", exchange(ExchangeType.FANOUT, Map.of("q", asyncQueue)))),
-                "retryConfig.waitMode ASYNC is not supported");
+        final List<String> errors = validate(Map.of("e", exchange(ExchangeType.FANOUT, Map.of("q", asyncQueue))));
+        assertSingleError(errors, "retryConfig.waitMode ASYNC is not supported");
+        assertTrue(errors.get(0).contains("on FANOUT a retry would reach every bound queue"), errors.toString());
+        assertTrue(errors.get(0).contains("on TOPIC it would usually match no binding"), errors.toString());
 
         final CountLimitedFixedWaitRetryConfig sync =
                 new CountLimitedFixedWaitRetryConfig();

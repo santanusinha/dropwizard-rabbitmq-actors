@@ -88,8 +88,11 @@ class MessagingTest {
     void invalidConfigFailsConstructionWithAllErrors() {
         final MessagingConfig bad = MessagingConfig.builder().exchanges(new LinkedHashMap<>(Map.of(
                 "e_SIDELINE", ExchangeSpec.builder().type(ExchangeType.DIRECT).build()))).build();
+        final ObjectMapper mapper = new ObjectMapper();
+        final RetryStrategyFactory retryStrategyFactory = new RetryStrategyFactory();
+        final ExceptionHandlingFactory exceptionHandlingFactory = new ExceptionHandlingFactory();
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> new Messaging(bad,
-                registry, new ObjectMapper(), new RetryStrategyFactory(), new ExceptionHandlingFactory(), declarer));
+                registry, mapper, retryStrategyFactory, exceptionHandlingFactory, declarer));
         assertTrue(e.getMessage().startsWith("Invalid messaging config: ["), e.getMessage());
         assertTrue(e.getMessage().contains("reserved") && e.getMessage().contains("no queues"), e.getMessage());
     }
@@ -242,8 +245,11 @@ class MessagingTest {
                 ExchangeSpec.builder().type(ExchangeType.FANOUT).queues(new LinkedHashMap<>(Map.of("q",
                         QueueSpec.builder().retryConfig(async).build()))).build()))).build();
 
+        final ObjectMapper mapper = new ObjectMapper();
+        final RetryStrategyFactory retryStrategyFactory = new RetryStrategyFactory();
+        final ExceptionHandlingFactory exceptionHandlingFactory = new ExceptionHandlingFactory();
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> new Messaging(config,
-                registry, new ObjectMapper(), new RetryStrategyFactory(), new ExceptionHandlingFactory(), declarer));
+                registry, mapper, retryStrategyFactory, exceptionHandlingFactory, declarer));
         assertTrue(e.getMessage().contains("retryConfig.waitMode ASYNC is not supported"), e.getMessage());
     }
 }

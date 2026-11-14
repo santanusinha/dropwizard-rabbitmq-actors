@@ -211,9 +211,10 @@ These actor features have no messaging equivalent; use an actor if you need them
 * **Per-message priority** and priority queues.
 * **Publishing with both a delay and an expiry** (actors' `publishWithDelayAndExpiry`).
 * **Publishing to an exchange without consuming from it** in the same service.
-* **Async retry** (`retryConfig.waitMode: ASYNC`): its delay queues dead-letter retries back through the exchange,
-  which for TOPIC/FANOUT would deliver a retry to every bound queue. Startup rejects it; use `SYNC` (the default) or
-  `MessageContext.retryLater`, which redelivers to the calling queue only.
+* **Async retry** (`retryConfig.waitMode: ASYNC`): its delay queues dead-letter retries back through the exchange
+  with the queue name as routing key, so on FANOUT a retry would reach every bound queue, and on TOPIC it would usually
+  match no binding and be dropped. Startup rejects it; use `SYNC` (the default) or `MessageContext.retryLater`, which
+  redelivers to the calling queue only.
 
 ### Requirements
 `delayed` and `retryLaterEnabled` need the `rabbitmq_delayed_message_exchange` plugin. The binding drift checks (on by

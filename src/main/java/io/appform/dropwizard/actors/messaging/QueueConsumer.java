@@ -8,9 +8,11 @@ import io.appform.dropwizard.actors.exceptionhandler.ExceptionHandlingFactory;
 import io.appform.dropwizard.actors.messaging.config.ExchangeSpec;
 import io.appform.dropwizard.actors.messaging.config.QueueSpec;
 import io.appform.dropwizard.actors.retry.RetryStrategyFactory;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 import org.apache.commons.lang3.ClassUtils;
 
 /**
@@ -64,7 +66,7 @@ class QueueConsumer<M> {
      * Starts the queue's {@code retryLater} publisher, if enabled (no-op otherwise). Called with the publishers, before
      * consuming starts.
      */
-    void startRetryPublisher() throws Exception {
+    void startRetryPublisher() throws IOException {
         if (retryPublisher != null) {
             retryPublisher.start();
         }
@@ -87,7 +89,7 @@ class QueueConsumer<M> {
     /**
      * Stops the queue's {@code retryLater} publisher, if enabled (no-op otherwise).
      */
-    void stopRetryPublisher() throws Exception {
+    void stopRetryPublisher() throws IOException, TimeoutException {
         if (retryPublisher != null) {
             retryPublisher.stop();
         }

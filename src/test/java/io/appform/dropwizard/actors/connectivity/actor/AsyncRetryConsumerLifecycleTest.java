@@ -32,7 +32,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -170,9 +172,9 @@ class AsyncRetryConsumerLifecycleTest {
         await().atMost(5, TimeUnit.SECONDS).until(() -> consumers(queue) == 0);
         // After the delay the retry is dead-lettered back to the main queue and stays there.
         await().atMost(15, TimeUnit.SECONDS).until(() -> messages(queue) == 1);
-        TimeUnit.SECONDS.sleep(1);
-        assertEquals(0, consumers(queue));
-        assertEquals(1, attempts.get());
+        // ...and nothing picks it up while the consumer is stopped.
+        await().during(1, TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS)
+                .until(() -> consumers(queue) == 0 && attempts.get() == 1);
 
         final AtomicInteger restartAttempts = new AtomicInteger();
         final UnmanagedBaseActor<TestMessage> restarted = startActor(name, 1, 3_000, (message, metadata) -> {
@@ -181,10 +183,9 @@ class AsyncRetryConsumerLifecycleTest {
         });
         try {
             await().atMost(10, TimeUnit.SECONDS).until(() -> restartAttempts.get() == 1);
-            TimeUnit.SECONDS.sleep(2);
-            assertEquals(1, restartAttempts.get());
-            assertEquals(0, messages(queue));
-            assertEquals(1, consumers(queue));
+            // Processed exactly once: no further delivery, nothing left, one consumer.
+            await().during(2, TimeUnit.SECONDS).atMost(4, TimeUnit.SECONDS)
+                    .until(() -> restartAttempts.get() == 1 && messages(queue) == 0 && consumers(queue) == 1);
         } finally {
             restarted.stop();
         }
@@ -211,14 +212,13 @@ class AsyncRetryConsumerLifecycleTest {
 
             // Automatic recovery restores exactly the configured consumers; no extra channel is re-created.
             await().atMost(30, TimeUnit.SECONDS).pollDelay(4, TimeUnit.SECONDS).until(() -> consumers(queue) == 2);
-            TimeUnit.SECONDS.sleep(5);
-            assertEquals(2, consumers(queue));
+            // ...and stays there: no extra consumer shows up later.
+            await().during(5, TimeUnit.SECONDS).atMost(8, TimeUnit.SECONDS).until(() -> consumers(queue) == 2);
 
             // The pending retry is delivered exactly once.
             await().atMost(20, TimeUnit.SECONDS).until(() -> attempts.get() == 2);
-            TimeUnit.SECONDS.sleep(2);
-            assertEquals(2, attempts.get());
-            assertEquals(0, messages(queue));
+            await().during(2, TimeUnit.SECONDS).atMost(4, TimeUnit.SECONDS)
+                    .until(() -> attempts.get() == 2 && messages(queue) == 0);
         } finally {
             actor.stop();
         }
@@ -229,25 +229,27 @@ class AsyncRetryConsumerLifecycleTest {
                 (broker.getAdminUsername() + ":" + broker.getAdminPassword()).getBytes(StandardCharsets.UTF_8));
         final HttpClient http = HttpClient.newHttpClient();
         final String api = broker.getHttpUrl() + "/api";
-        int closed = 0;
-        for (int attempt = 0; attempt < 20 && closed == 0; attempt++) {
-            // The management API lists a new connection after a short delay.
-            final HttpResponse<String> list = http.send(HttpRequest.newBuilder(URI.create(api + "/connections"))
-                    .header("Authorization", auth).build(), HttpResponse.BodyHandlers.ofString());
-            for (final JsonNode node : mapper.readTree(list.body())) {
-                final JsonNode properties = node.path("client_properties");
-                if (connectionName.equals(properties.path("connection_name").asText())) {
-                    final String encoded = URLEncoder.encode(node.get("name").asText(), StandardCharsets.UTF_8)
-                            .replace("+", "%20");
-                    http.send(HttpRequest.newBuilder(URI.create(api + "/connections/" + encoded))
-                            .header("Authorization", auth).DELETE().build(), HttpResponse.BodyHandlers.discarding());
-                    closed++;
-                }
-            }
-            if (closed == 0) {
-                TimeUnit.MILLISECONDS.sleep(500);
+        // The management API lists a new connection after a short delay.
+        final List<String> names = await().atMost(10, TimeUnit.SECONDS).pollInterval(500, TimeUnit.MILLISECONDS)
+                .until(() -> connectionsNamed(http, api, auth, connectionName), found -> !found.isEmpty());
+        assertEquals(1, names.size(), "expected exactly one connection named " + connectionName);
+        final String encoded = URLEncoder.encode(names.get(0), StandardCharsets.UTF_8).replace("+", "%20");
+        http.send(HttpRequest.newBuilder(URI.create(api + "/connections/" + encoded))
+                .header("Authorization", auth).DELETE().build(), HttpResponse.BodyHandlers.discarding());
+    }
+
+    private List<String> connectionsNamed(final HttpClient http,
+                                          final String api,
+                                          final String auth,
+                                          final String connectionName) throws Exception {
+        final HttpResponse<String> list = http.send(HttpRequest.newBuilder(URI.create(api + "/connections"))
+                .header("Authorization", auth).build(), HttpResponse.BodyHandlers.ofString());
+        final List<String> names = new ArrayList<>();
+        for (final JsonNode node : mapper.readTree(list.body())) {
+            if (connectionName.equals(node.path("client_properties").path("connection_name").asText())) {
+                names.add(node.get("name").asText());
             }
         }
-        assertEquals(1, closed, "expected to force-close the actor's connection");
+        return names;
     }
 }

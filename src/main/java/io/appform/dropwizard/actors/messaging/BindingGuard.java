@@ -3,8 +3,9 @@ package io.appform.dropwizard.actors.messaging;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.appform.dropwizard.actors.config.RMQConfig;
 import io.appform.dropwizard.actors.connectivity.BindingKeyMatcher;
-import io.appform.dropwizard.actors.connectivity.RmqManagementClient;
 import io.appform.dropwizard.actors.connectivity.RmqManagementClient.Binding;
+import io.appform.dropwizard.actors.connectivity.RmqManagementClient;
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -39,7 +40,7 @@ class BindingGuard implements AutoCloseable {
      */
     @FunctionalInterface
     interface QueueDeclarer {
-        void declare() throws Exception;
+        void declare() throws IOException;
     }
 
     /**
@@ -47,7 +48,7 @@ class BindingGuard implements AutoCloseable {
      */
     @FunctionalInterface
     interface QueueBinder {
-        void bind(String bindingKey) throws Exception;
+        void bind(String bindingKey) throws IOException;
     }
 
     /**
@@ -73,7 +74,7 @@ class BindingGuard implements AutoCloseable {
             return bindings.stream()
                     .filter(binding -> binding.exchange().equals(exchange))
                     .map(Binding::routingKey)
-                    .collect(Collectors.toList());
+                    .toList();
         }
     }
 

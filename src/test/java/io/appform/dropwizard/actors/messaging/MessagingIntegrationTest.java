@@ -33,8 +33,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -99,7 +99,7 @@ class MessagingIntegrationTest {
         adminConnection = factory.newConnection();
     }
 
-    private static String buildImage() throws Exception {
+    private static String buildImage() throws InterruptedException, ExecutionException {
         return new ImageFromDockerfile("dropwizard-rabbitmq-actors-messaging-it", false)
                 .withDockerfileFromBuilder(builder -> builder
                         .from(RABBITMQ_IMAGE)
@@ -208,8 +208,12 @@ class MessagingIntegrationTest {
         }
     }
 
-    private static void quietPeriod() throws InterruptedException {
-        TimeUnit.MILLISECONDS.sleep(QUIET_PERIOD_MS);
+    /**
+     * Waits {@link #QUIET_PERIOD_MS}, so that a delivery that should not happen has the time to happen.
+     */
+    private static void quietPeriod() {
+        await().pollDelay(Duration.ofMillis(QUIET_PERIOD_MS)).atMost(Duration.ofMillis(QUIET_PERIOD_MS * 3))
+                .until(() -> true);
     }
 
     // ---------------------------------------------------------------------------------------------------------------
@@ -305,8 +309,9 @@ class MessagingIntegrationTest {
         consumeAll(messaging, "it_direct", "D1");
         start(messaging);
 
+        final TestMessage unroutable = new TestMessage("m1", "nobody");
         final UnroutableMessageException e = assertThrows(UnroutableMessageException.class,
-                () -> direct.publish(new TestMessage("m1", "nobody")));
+                () -> direct.publish(unroutable));
         assertTrue(e.getMessage().contains("nobody"), e.getMessage());
         direct.publish(new TestMessage("m2", "a"));  // the publisher keeps working
         await().atMost(WAIT).until(() -> receivedBy("D1").size() == 1);

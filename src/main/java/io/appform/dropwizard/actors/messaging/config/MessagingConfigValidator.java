@@ -22,8 +22,9 @@ import lombok.experimental.UtilityClass;
  *   <li>DIRECT/TOPIC queues have at least one binding key; FANOUT queues have none;</li>
  *   <li>binding keys are non-blank with no surrounding whitespace; TOPIC keys contain no empty words
  *       (e.g. {@code a..b});</li>
- *   <li>{@code retryConfig.waitMode} is not {@code ASYNC}: actor async retries dead-letter back through the exchange,
- *       which for TOPIC/FANOUT would deliver a retry to every bound queue.</li>
+ *   <li>{@code retryConfig.waitMode} is not {@code ASYNC}: actor async retries dead-letter back through the exchange
+ *       with the queue name as routing key, so on FANOUT a retry would reach every bound queue, and on TOPIC it would
+ *       usually match no binding and be dropped.</li>
  * </ul>
  */
 @UtilityClass
@@ -84,12 +85,29 @@ public class MessagingConfigValidator {
             errors.add(String.format("Exchange '%s', queue '%s': spec is required", exchange, queue));
             return;
         }
+        validateRetry(exchange, queue, queueSpec, errors);
+        validateBindingKeys(exchange, type, queue,
+                Objects.requireNonNullElse(queueSpec.getBindingKeys(), List.of()), errors);
+    }
+
+    private void validateRetry(final String exchange,
+                               final String queue,
+                               final QueueSpec queueSpec,
+                               final List<String> errors) {
         if (queueSpec.getRetryConfig() != null && queueSpec.getRetryConfig().getWaitMode() == WaitMode.ASYNC) {
             errors.add(String.format("Exchange '%s', queue '%s': retryConfig.waitMode ASYNC is not supported for "
-                    + "messaging (async retries are re-routed through the exchange and would reach every bound queue); "
-                    + "use SYNC, or MessageContext.retryLater to redeliver to this queue only", exchange, queue));
+                    + "messaging (async retries are dead-lettered back through the exchange with the queue name as "
+                    + "routing key: on FANOUT a retry would reach every bound queue, on TOPIC it would usually match no "
+                    + "binding and be dropped); use SYNC, or MessageContext.retryLater to redeliver to this queue only",
+                    exchange, queue));
         }
-        final List<String> keys = Objects.requireNonNullElse(queueSpec.getBindingKeys(), List.of());
+    }
+
+    private void validateBindingKeys(final String exchange,
+                                     final ExchangeType type,
+                                     final String queue,
+                                     final List<String> keys,
+                                     final List<String> errors) {
         if (!type.usesRoutingKey()) {
             if (!keys.isEmpty()) {
                 errors.add(String.format("Exchange '%s' (FANOUT), queue '%s': bindingKeys must be empty, "
@@ -102,16 +120,23 @@ public class MessagingConfigValidator {
                     exchange, type, queue));
         }
         for (final String key : keys) {
-            if (isBlank(key)) {
-                errors.add(String.format("Exchange '%s', queue '%s': binding keys must not be blank",
-                        exchange, queue));
-            } else if (!key.equals(key.strip())) {
-                errors.add(String.format("Exchange '%s', queue '%s': binding key '%s' has surrounding whitespace",
-                        exchange, queue, key));
-            } else if (type == ExchangeType.TOPIC && hasEmptyWord(key)) {
-                errors.add(String.format("Exchange '%s', queue '%s': invalid topic binding key '%s'",
-                        exchange, queue, key));
-            }
+            validateBindingKey(exchange, type, queue, key, errors);
+        }
+    }
+
+    private void validateBindingKey(final String exchange,
+                                    final ExchangeType type,
+                                    final String queue,
+                                    final String key,
+                                    final List<String> errors) {
+        if (isBlank(key)) {
+            errors.add(String.format("Exchange '%s', queue '%s': binding keys must not be blank", exchange, queue));
+        } else if (!key.equals(key.strip())) {
+            errors.add(String.format("Exchange '%s', queue '%s': binding key '%s' has surrounding whitespace",
+                    exchange, queue, key));
+        } else if (type == ExchangeType.TOPIC && hasEmptyWord(key)) {
+            errors.add(String.format("Exchange '%s', queue '%s': invalid topic binding key '%s'",
+                    exchange, queue, key));
         }
     }
 

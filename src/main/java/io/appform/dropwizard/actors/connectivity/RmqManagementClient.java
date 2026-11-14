@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
@@ -91,7 +90,7 @@ public class RmqManagementClient implements AutoCloseable {
         this.mapper = mapper;
         this.baseUrls = baseUrls.stream()
                 .map(url -> Objects.requireNonNull(HttpUrl.parse(url), () -> "Invalid management URL: " + url))
-                .collect(Collectors.toList());
+                .toList();
         this.authHeader = Credentials.basic(rmqConfig.getUserName(), rmqConfig.getPassword());
         this.httpClient = httpClient;
     }
@@ -151,15 +150,15 @@ public class RmqManagementClient implements AutoCloseable {
         final RmqManagementConfig mgmt = management(rmqConfig);
         final String scheme = mgmt.isSecure() ? "https" : "http";
         final int port = mgmt.getPort() > 0 ? mgmt.getPort() : DEFAULT_PORT;
-        final List<String> hosts = !Strings.isNullOrEmpty(mgmt.getHost())
-                ? List.of(mgmt.getHost())
-                : Objects.requireNonNullElse(rmqConfig.getBrokers(), List.<Broker>of()).stream()
+        final List<String> hosts = Strings.isNullOrEmpty(mgmt.getHost())
+                ? Objects.requireNonNullElse(rmqConfig.getBrokers(), List.<Broker>of()).stream()
                         .map(Broker::getHost)
                         .distinct()
-                        .collect(Collectors.toList());
+                        .toList()
+                : List.of(mgmt.getHost());
         return hosts.stream()
                 .map(host -> String.format("%s://%s:%d", scheme, host, port))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static RmqManagementConfig management(final RMQConfig rmqConfig) {

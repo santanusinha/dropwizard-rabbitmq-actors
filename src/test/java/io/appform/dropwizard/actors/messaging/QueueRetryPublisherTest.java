@@ -147,7 +147,8 @@ class QueueRetryPublisherTest {
                 true, 1_000);
         assertThrows(IllegalStateException.class, () -> publisher.publish("m", null, Duration.ZERO));
         publisher.start();
-        assertThrows(IllegalArgumentException.class, () -> publisher.publish("m", null, Duration.ofSeconds(-1)));
+        final Duration negative = Duration.ofSeconds(-1);
+        assertThrows(IllegalArgumentException.class, () -> publisher.publish("m", null, negative));
         assertThrows(IllegalArgumentException.class, () -> publisher.publish("m", null, null));
         publisher.stop();
         verify(channel).close();
@@ -157,7 +158,8 @@ class QueueRetryPublisherTest {
     @Test
     void confirmTimeoutSurfacesAsActorException() throws Exception {
         doThrow(new TimeoutException()).when(channel).waitForConfirmsOrDie(anyLong());
-        assertThrows(RabbitmqActorException.class, () -> started(true).publish("m", null, Duration.ZERO));
+        final QueueRetryPublisher publisher = started(true);
+        assertThrows(RabbitmqActorException.class, () -> publisher.publish("m", null, Duration.ZERO));
     }
 
     @Test

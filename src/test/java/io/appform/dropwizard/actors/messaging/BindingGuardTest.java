@@ -74,7 +74,8 @@ class BindingGuardTest {
     @Test
     void changedKeysOnExistingQueueFail() {
         when(client.fetchBindings("vh", QUEUE)).thenReturn(bindings(new Binding(EXCHANGE, "a")));
-        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> ensure(List.of("a", "c")));
+        final List<String> keys = List.of("a", "c");
+        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> ensure(keys));
         assertTrue(e.getMessage().contains("immutable"), e.getMessage());
         assertEquals(List.of("declare"), events);
     }
@@ -91,7 +92,8 @@ class BindingGuardTest {
     @Test
     void staleExchangeFailsBeforeAnythingIsDeclared() {
         when(client.fetchBindings("vh", QUEUE)).thenReturn(bindings(new Binding("ns.other", "a")));
-        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> ensure(List.of("a")));
+        final List<String> keys = List.of("a");
+        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> ensure(keys));
         assertTrue(e.getMessage().contains("unexpected exchange"), e.getMessage());
         assertEquals(List.of(), events);
     }
@@ -101,7 +103,8 @@ class BindingGuardTest {
         when(client.fetchBindings("vh", QUEUE))
                 .thenReturn(Optional.empty())
                 .thenReturn(bindings(new Binding(EXCHANGE, "a"), new Binding(EXCHANGE, "z")));
-        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> ensure(List.of("a")));
+        final List<String> keys = List.of("a");
+        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> ensure(keys));
         assertTrue(e.getMessage().contains("concurrent creator"), e.getMessage());
     }
 
@@ -110,7 +113,8 @@ class BindingGuardTest {
         when(client.fetchBindings("vh", QUEUE))
                 .thenReturn(Optional.empty())
                 .thenReturn(bindings(new Binding(EXCHANGE, "a"), new Binding("ns.other", "a")));
-        assertThrows(IllegalStateException.class, () -> ensure(List.of("a")));
+        final List<String> keys = List.of("a");
+        assertThrows(IllegalStateException.class, () -> ensure(keys));
     }
 
     @Test
@@ -123,7 +127,8 @@ class BindingGuardTest {
     @Test
     void unreadableManagementApiFailsStartup() {
         when(client.fetchBindings(anyString(), eq(QUEUE))).thenThrow(new RuntimeException("connection refused"));
-        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> ensure(List.of("a")));
+        final List<String> keys = List.of("a");
+        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> ensure(keys));
         assertTrue(e.getMessage().contains("Unable to read bindings"), e.getMessage());
         assertEquals(List.of(), events);
     }
@@ -163,7 +168,8 @@ class BindingGuardTest {
     @Test
     void unreadableManagementApiExplainsHowToFixOrOptOut() {
         when(client.fetchBindings(anyString(), eq(QUEUE))).thenThrow(new RuntimeException("connection refused"));
-        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> ensure(List.of("a")));
+        final List<String> keys = List.of("a");
+        final IllegalStateException e = assertThrows(IllegalStateException.class, () -> ensure(keys));
         assertTrue(e.getMessage().contains("skipBindingDriftCheck: true"), e.getMessage());
         assertTrue(e.getMessage().contains("connection refused"), e.getMessage());
     }
